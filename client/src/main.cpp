@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection
     );
 
-    engine.loadFromModule("chat_app", "Main");
+    engine.loadFromModule("client", "Main");
 
     return app.exec();
 }
