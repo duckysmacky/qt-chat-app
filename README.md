@@ -9,7 +9,7 @@ This is an educational university project
 Build project:
 
 ```
-cmake --build build
+cmake --build build/
 ```
 
 Built binaries will be located in `build/`.
