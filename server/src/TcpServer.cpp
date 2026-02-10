@@ -10,7 +10,7 @@
 TcpServer::TcpServer(QObject* parent) 
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
-		m_running(false)
+	  m_running(false)
 {
 	connect(m_server, &QTcpServer::newConnection, this, &TcpServer::on_new_connection);
 }
@@ -19,7 +19,6 @@ TcpServer::~TcpServer()
 {
 	m_server->close();
 	delete m_server;
-	//server_status=0;
 }
 
 void TcpServer::start(uint16_t port)
