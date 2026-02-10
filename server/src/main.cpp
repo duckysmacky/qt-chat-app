@@ -1,14 +1,14 @@
 #include <QCoreApplication>
 #include <QTextStream>
 
+#include "TcpServer.h"
+
 int main(int argc, char* argv[])
 {
     QCoreApplication app(argc, argv);
-
-    QTextStream cout(stdout);
-
-    cout << "Hello, world!\n";
-    cout.flush();
+		
+	TcpServer server;
+	server.start();
 
     return app.exec();
 }
