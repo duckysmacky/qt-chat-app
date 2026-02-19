@@ -31,7 +31,7 @@ void load_env_file(const QString& file_path)
 
 int main(int argc, char* argv[])
 {
-    QCoreApplication app(argc, argv);
+	QCoreApplication app(argc, argv);
 	load_env_file(".env");
 
 	Database& db = Database::instance();
@@ -39,5 +39,5 @@ int main(int argc, char* argv[])
 	TcpServer server;
 	server.start();
 
-    return app.exec();
+  return app.exec();
 }

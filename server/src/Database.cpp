@@ -20,7 +20,7 @@ Database::Database()
 {
 	QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 
-	m_db.setHostName("127.0.0.1");
+	m_db.setHostName(env.value("DB_HOST"));
 	m_db.setDatabaseName(env.value("DB_NAME"));
 	m_db.setUserName(env.value("DB_USER"));
 	m_db.setPassword(env.value("DB_PASSWORD"));
