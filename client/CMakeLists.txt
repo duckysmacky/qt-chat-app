@@ -1,9 +1,12 @@
+find_package(Qt6 REQUIRED COMPONENTS Qml Quick)
+
 qt_add_executable(client_app
     src/main.cpp
 )
 
 qt_add_qml_module(client_app
     URI client
+		VERSION 1.0
     QML_FILES
         src/ui/Main.qml
 )

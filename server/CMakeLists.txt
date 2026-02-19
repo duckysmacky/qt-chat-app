@@ -1,3 +1,5 @@
+find_package(Qt6 REQUIRED COMPONENTS Sql)
+
 qt_add_executable(server_app
     src/main.cpp
 	src/TcpServer.cpp
@@ -14,7 +16,7 @@ target_link_libraries(server_app PRIVATE
 )
 
 include(GNUInstallDirs)
-install(TARGETS client_app
+install(TARGETS server_app
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
