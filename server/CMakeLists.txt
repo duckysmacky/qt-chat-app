@@ -21,3 +21,7 @@ install(TARGETS server_app
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+if(WIN32)
+    enable_qt_windows_deploy(server_app)
+endif()

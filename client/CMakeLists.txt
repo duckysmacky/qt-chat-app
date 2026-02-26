@@ -30,3 +30,7 @@ install(TARGETS client_app
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+if(WIN32)
+    enable_qt_windows_deploy(client_app QML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/ui")
+endif()
