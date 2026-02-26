@@ -9,11 +9,13 @@ compile_commands.json
 
 *.user
 *.user.*
-.qtcreator/
 .qtc_clangd/
 
 .vs/
 .vscode/
+.idea/
+.qtcreator/
+
 *.vcxproj*
 *.sln
 

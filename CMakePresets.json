@@ -6,7 +6,6 @@
       "hidden": true,
       "displayName": "Windows MSVC Qt 6.8",
       "generator": "NMake Makefiles",
-      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_PREFIX_PATH": "C:/Qt/6.8.0/msvc2022_64",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
@@ -16,6 +15,7 @@
       "name": "windows-msvc-debug",
       "displayName": "Windows MSVC Qt 6.8 Debug",
       "inherits": "windows-msvc",
+      "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
@@ -24,6 +24,7 @@
       "name": "windows-msvc-release",
       "displayName": "Windows MSVC Qt 6.8 Release",
       "inherits": "windows-msvc",
+      "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -33,7 +34,6 @@
       "hidden": true,
       "displayName": "Linux GCC Qt 6",
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_PREFIX_PATH": "/usr/lib/qt6",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
@@ -43,6 +43,7 @@
       "name": "linux-gcc-debug",
       "displayName": "Linux GCC Qt 6 Debug",
       "inherits": "linux-gcc",
+      "binaryDir": "${sourceDir}/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
@@ -51,6 +52,7 @@
       "name": "linux-gcc-release",
       "displayName": "Linux GCC Qt 6 Release",
       "inherits": "linux-gcc",
+      "binaryDir": "${sourceDir}/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }

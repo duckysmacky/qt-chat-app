@@ -126,11 +126,11 @@ just clean
 
 ## Run
 
-Generated binaries will be located in the `build/` directory. 
+Generated binaries will be located in the `build/` directory, under `build/release` or `build/debug` respectively.
 
 ### Client
 
-Simply run `client_app` from the `build/` directory.
+Simply run `client_app` from the `build/release` or `build/debug` directory.
 
 ### Server binary
 
@@ -147,7 +147,7 @@ docker compose up -d db
 
 #### 2. Start Server
 
-Simply run `server_app` from the `build/` directory.
+Simply run `server_app` from the `build/release` or `build/debug` directory.
 
 ### Server image
 
