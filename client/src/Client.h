@@ -2,17 +2,18 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QStringList>
 
 class Client : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
-    Q_PROPERTY(QString lastMessage READ lastMessage NOTIFY lastMessageChanged)
+    Q_PROPERTY(QStringList messages READ messages NOTIFY messagesChanged)
 
 private:
     QTcpSocket m_socket;
     QString m_statusText;
-    QString m_lastMessage;
+    QStringList m_messages;
 
 public:
     explicit Client(QObject* parent = nullptr);
@@ -20,11 +21,11 @@ public:
     Q_INVOKABLE void connectTo(const QString& host, int port);
 
     const QString& statusText() const { return m_statusText; }
-    const QString& lastMessage() const { return m_lastMessage; }
+    const QStringList& messages() const { return m_messages; }
 
 signals:
     void statusTextChanged();
-    void lastMessageChanged();
+    void messagesChanged();
     void messageReceived(const QString& message);
 
 private slots:
@@ -34,5 +35,5 @@ private slots:
 
 private:
     void setStatusText(const QString& text);
-    void setLastMessage(const QString& message);
+    void appendMessage(const QString& message);
 };

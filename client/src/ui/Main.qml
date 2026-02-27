@@ -3,8 +3,8 @@ import QtQuick.Controls
 import client 1.0
 
 Window {
-    width: 400
-    height: 240
+    width: 640
+    height: 320
     visible: true
     title: "Client"
 
@@ -12,38 +12,58 @@ Window {
         id: connection
     }
 
-    Column {
-        anchors.centerIn: parent
-        spacing: 12
-        width: parent.width * 0.8
+    Row {
+        anchors.fill: parent
+        anchors.margins: 16
+        spacing: 16
 
-        TextField {
-            id: hostField
-            placeholderText: "Host"
-            text: "127.0.0.1"
+        Column {
+            spacing: 12
+            width: 200
+
+            TextField {
+                id: hostField
+                placeholderText: "Host"
+                text: "127.0.0.1"
+            }
+
+            TextField {
+                id: portField
+                placeholderText: "Port"
+                text: "8080"
+                inputMethodHints: Qt.ImhDigitsOnly
+            }
+
+            Button {
+                text: "Connect"
+                onClicked: connection.connectTo(hostField.text, parseInt(portField.text))
+            }
+
+            Text {
+                text: connection.statusText
+                color: connection.statusText === "Connected" ? "green" : "red"
+                wrapMode: Text.Wrap
+            }
         }
 
-        TextField {
-            id: portField
-            placeholderText: "Port"
-            text: "8080"
-            inputMethodHints: Qt.ImhDigitsOnly
-        }
+        Rectangle {
+            color: "#f4f4f4"
+            radius: 6
+            border.color: "#d0d0d0"
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: parent.width - 200 - 16
 
-        Button {
-            text: "Connect"
-            onClicked: connection.connectTo(hostField.text, parseInt(portField.text))
-        }
-
-        Text {
-            text: connection.statusText
-            color: connection.statusText === "Connected" ? "green" : "red"
-            wrapMode: Text.Wrap
-        }
-
-        Text {
-            text: connection.lastMessage
-            wrapMode: Text.Wrap
+            ListView {
+                anchors.fill: parent
+                anchors.margins: 8
+                model: connection.messages
+                clip: true
+                delegate: Text {
+                    text: modelData
+                    wrapMode: Text.Wrap
+                }
+            }
         }
     }
 }

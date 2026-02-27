@@ -1,6 +1,7 @@
 #include "Client.h"
 
 #include <QAbstractSocket>
+#include <QRegularExpression>
 
 Client::Client(QObject* parent)
     : QObject(parent),
@@ -42,24 +43,28 @@ void Client::onReadyRead()
     if (bytes.isEmpty()) return;
 
     const QString message = QString::fromUtf8(bytes);
-    setLastMessage(message);
-    emit messageReceived(message);
+    const QStringList parts = message.split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+
+    if (parts.isEmpty()) {
+        appendMessage(message);
+    } else {
+        for (const QString& part : parts) appendMessage(part);
+    }
 }
 
 void Client::setStatusText(const QString& text)
 {
-    if (m_statusText == text)
-        return;
+    if (m_statusText == text) return;
 
     m_statusText = text;
     emit statusTextChanged();
 }
 
-void Client::setLastMessage(const QString& message)
+void Client::appendMessage(const QString& message)
 {
-    if (m_lastMessage == message)
-        return;
+    if (message.isEmpty()) return;
 
-    m_lastMessage = message;
-    emit lastMessageChanged();
+    m_messages.append(message);
+    emit messagesChanged();
+    emit messageReceived(message);
 }
