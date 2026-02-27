@@ -8,6 +8,7 @@ Client::Client(QObject* parent)
 {
     connect(&m_socket, &QTcpSocket::connected, this, &Client::onConnected);
     connect(&m_socket, &QTcpSocket::errorOccurred, this, &Client::onErrorOccurred);
+    connect(&m_socket, &QTcpSocket::readyRead, this, &Client::onReadyRead);
 }
 
 void Client::connectTo(const QString& host, const int port)
@@ -35,6 +36,16 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
     setStatusText(m_socket.errorString());
 }
 
+void Client::onReadyRead()
+{
+    const QByteArray bytes = m_socket.readAll();
+    if (bytes.isEmpty()) return;
+
+    const QString message = QString::fromUtf8(bytes);
+    setLastMessage(message);
+    emit messageReceived(message);
+}
+
 void Client::setStatusText(const QString& text)
 {
     if (m_statusText == text)
@@ -42,4 +53,13 @@ void Client::setStatusText(const QString& text)
 
     m_statusText = text;
     emit statusTextChanged();
+}
+
+void Client::setLastMessage(const QString& message)
+{
+    if (m_lastMessage == message)
+        return;
+
+    m_lastMessage = message;
+    emit lastMessageChanged();
 }

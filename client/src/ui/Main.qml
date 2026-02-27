@@ -40,5 +40,10 @@ Window {
             color: connection.statusText === "Connected" ? "green" : "red"
             wrapMode: Text.Wrap
         }
+
+        Text {
+            text: connection.lastMessage
+            wrapMode: Text.Wrap
+        }
     }
 }
