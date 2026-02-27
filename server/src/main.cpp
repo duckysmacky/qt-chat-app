@@ -1,21 +1,20 @@
 #include <QCoreApplication>
 #include <QTextStream>
 #include <QFile>
-#include <QTextStream>
 #include <QStringList>
 
 #include "TcpServer.h"
 #include "Database.h"
 
-void load_env_file(const QString& file_path) 
+void loadEnvFile(const QString& filePath)
 {
-    QFile file(file_path);
+    QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 
-    QTextStream file_stream(&file);
-    while (!file_stream.atEnd()) 
+    QTextStream fileStream(&file);
+    while (!fileStream.atEnd())
 	{
-        QString line = file_stream.readLine().trimmed();
+        QString line = fileStream.readLine().trimmed();
         if (line.isEmpty() || line.startsWith('#')) continue;
 
         QStringList parts = line.split('=');
@@ -32,12 +31,17 @@ void load_env_file(const QString& file_path)
 int main(int argc, char* argv[])
 {
 	QCoreApplication app(argc, argv);
-	load_env_file(".env");
+	loadEnvFile("../../.env");
 
 	Database& db = Database::instance();
-	
+	if (!db.connect())
+	{
+		qFatal() << "A connection to the database is required for the sever to start";
+		return 1;
+	}
+
 	TcpServer server;
 	server.start();
 
-  return app.exec();
+  return QCoreApplication::exec();
 }
