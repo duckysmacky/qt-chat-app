@@ -1,7 +1,9 @@
-find_package(Qt6 REQUIRED COMPONENTS Qml Quick)
+find_package(Qt6 REQUIRED COMPONENTS Qml Quick Network)
 
 qt_add_executable(client_app
     src/main.cpp
+        src/Client.cpp
+        src/Client.h
 )
 
 qt_add_qml_module(client_app
@@ -15,6 +17,7 @@ target_link_libraries(client_app PRIVATE
     shared
     Qt6::Quick
     Qt6::Qml
+    Qt6::Network
 )
 
 set_target_properties(client_app PROPERTIES
