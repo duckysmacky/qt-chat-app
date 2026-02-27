@@ -1,13 +1,11 @@
 #include "TcpServer.h"
 
 #include <QByteArray>
-#include <QString>
 #include <QDebug>
 
 TcpServer::TcpServer(QObject* parent) 
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
-	  m_socket(nullptr),
 	  m_isRunning(false)
 {
 	connect(m_server, &QTcpServer::newConnection, this, &TcpServer::onNewConnection);
@@ -17,7 +15,7 @@ bool TcpServer::start(const uint16_t port)
 {
 	if (m_server->listen(QHostAddress::Any, port))
 	{
-		qInfo() << "Server started and listening on" << port;
+		qInfo() << "Server started and listening on port" << port;
 		m_isRunning = true;
 		return true;
 	}
@@ -32,40 +30,63 @@ void TcpServer::stop() const
 		m_server->close();
 }
 
+void TcpServer::broadcast(const QString& message) const
+{
+	for (const auto socket : m_sockets)
+	{
+		if (socket->write(message.toUtf8()) == -1)
+		{
+			qCritical() << "Error writing to socket" << socket->localAddress() << ":" << socket->errorString();
+		}
+	}
+}
 
 void TcpServer::onNewConnection()
 {
-	m_socket = m_server->nextPendingConnection();
+	QTcpSocket* socket = m_server->nextPendingConnection();
+	if (!socket) return;
 
-	connect(m_socket, &QTcpSocket::readyRead, this, &TcpServer::onServerRead);
-	connect(m_socket, &QTcpSocket::disconnected, this, &TcpServer::onClientDisconnected);
+	const qintptr descriptor = socket->socketDescriptor();
+	m_sockets.insert(descriptor, socket);
 
-	m_socket->write("Hello, client!\r\n");
+	connect(socket, &QTcpSocket::readyRead, this, &TcpServer::onServerRead);
+	connect(socket, &QTcpSocket::disconnected, this, &TcpServer::onClientDisconnected);
+
+	socket->write("Hello, client!\r\n");
 }
 
 void TcpServer::onServerRead() const
 {
+	auto* socket = qobject_cast<QTcpSocket*>(sender());
+	if (!socket) return;
+
     QString message = "";
 
-    while(m_socket->bytesAvailable() > 0)
+    while (socket->bytesAvailable() > 0)
     {
-        QByteArray bytes = m_socket->readAll();
+        QByteArray bytes = socket->readAll();
         qDebug() << "Incoming bytes:" << bytes << "\n";
 
         if (bytes == "\x01")
         {
-            m_socket->write(message.toUtf8());
+            socket->write(message.toUtf8());
             message = "";
         }
         else
             message.append(bytes);
     }
 
-    m_socket->write(message.toUtf8());
+    socket->write(message.toUtf8());
 }
 
 void TcpServer::onClientDisconnected()
 {
-    m_socket->close();
-	m_socket = nullptr;
+	auto* socket = qobject_cast<QTcpSocket*>(sender());
+	if (!socket) return;
+
+	const qintptr descriptor = socket->socketDescriptor();
+	m_sockets.remove(descriptor);
+
+	socket->close();
+	socket->deleteLater();
 }

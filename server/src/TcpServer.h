@@ -2,6 +2,8 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QString>
+#include <QHash>
 
 #include <cstdint>
 
@@ -11,7 +13,7 @@ class TcpServer : public QObject
 
 private:
     QTcpServer* m_server;
-    QTcpSocket* m_socket;
+    QHash<qintptr, QTcpSocket*> m_sockets;
     bool m_isRunning;
 
 public:
@@ -19,6 +21,7 @@ public:
 
 	bool start(uint16_t port = 8080);
     void stop() const;
+    void broadcast(const QString& message) const;
 
 	bool isRunning() const { return m_isRunning; }
 
