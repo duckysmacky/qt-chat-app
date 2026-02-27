@@ -1,71 +1,71 @@
 #include "TcpServer.h"
 
-#include <QTcpSocket>
-#include <QtNetwork>
 #include <QByteArray>
 #include <QString>
 #include <QDebug>
-#include <cstdint>
 
 TcpServer::TcpServer(QObject* parent) 
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
-	  m_running(false)
+	  m_socket(nullptr),
+	  m_isRunning(false)
 {
-	connect(m_server, &QTcpServer::newConnection, this, &TcpServer::on_new_connection);
+	connect(m_server, &QTcpServer::newConnection, this, &TcpServer::onNewConnection);
 }
 
-TcpServer::~TcpServer()
+bool TcpServer::start(const uint16_t port)
 {
-	m_server->close();
-	delete m_server;
-}
-
-void TcpServer::start(uint16_t port)
-{
-	if(m_server->listen(QHostAddress::Any, port))
+	if (m_server->listen(QHostAddress::Any, port))
 	{
-		qDebug() << "Server started and listening on" << port;
-		m_running = true;
-	} 
-	else
-		qDebug() << "Server not started";
+		qInfo() << "Server started and listening on" << port;
+		m_isRunning = true;
+		return true;
+	}
+
+	qCritical() << "Server not started";
+	return false;
+}
+
+void TcpServer::stop() const
+{
+	if (m_isRunning)
+		m_server->close();
 }
 
 
-void TcpServer::on_new_connection()
+void TcpServer::onNewConnection()
 {
 	m_socket = m_server->nextPendingConnection();
 
-	connect(m_socket, &QTcpSocket::readyRead, this, &TcpServer::on_server_read);
-	connect(m_socket, &QTcpSocket::disconnected, this, &TcpServer::on_client_disconnected);
+	connect(m_socket, &QTcpSocket::readyRead, this, &TcpServer::onServerRead);
+	connect(m_socket, &QTcpSocket::disconnected, this, &TcpServer::onClientDisconnected);
 
 	m_socket->write("Hello, client!\r\n");
 }
 
-void TcpServer::on_server_read()
+void TcpServer::onServerRead() const
 {
-    QString res = "";
+    QString message = "";
 
     while(m_socket->bytesAvailable() > 0)
     {
-        QByteArray array = m_socket->readAll();
-        qDebug() << array << "\n";
+        QByteArray bytes = m_socket->readAll();
+        qDebug() << "Incoming bytes:" << bytes << "\n";
 
-        if(array == "\x01")
+        if (bytes == "\x01")
         {
-            m_socket->write(res.toUtf8());
-            res = "";
+            m_socket->write(message.toUtf8());
+            message = "";
         }
         else
-            res.append(array);
+            message.append(bytes);
     }
 
-    m_socket->write(res.toUtf8());
+    m_socket->write(message.toUtf8());
 }
 
-void TcpServer::on_client_disconnected()
+void TcpServer::onClientDisconnected()
 {
     m_socket->close();
+	m_socket = nullptr;
 }
-

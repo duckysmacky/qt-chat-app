@@ -41,7 +41,11 @@ int main(int argc, char* argv[])
 	}
 
 	TcpServer server;
-	server.start();
+	if (!server.start())
+	{
+		qFatal() << "An error occurred when starting the server";
+		return 1;
+	}
 
   return QCoreApplication::exec();
 }

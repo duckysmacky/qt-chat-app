@@ -1,7 +1,8 @@
 #pragma once
 
-#include <QObject>
 #include <QTcpServer>
+#include <QTcpSocket>
+
 #include <cstdint>
 
 class TcpServer : public QObject
@@ -11,18 +12,18 @@ class TcpServer : public QObject
 private:
     QTcpServer* m_server;
     QTcpSocket* m_socket;
-    bool m_running;
+    bool m_isRunning;
 
 public:
     explicit TcpServer(QObject* parent = nullptr);
-    ~TcpServer();
 
-	void start(uint16_t port = 8080);
-	
-	bool is_running() const { return m_running; }
+	bool start(uint16_t port = 8080);
+    void stop() const;
+
+	bool isRunning() const { return m_isRunning; }
 
 public slots:
-    void on_new_connection();
-    void on_client_disconnected();
-    void on_server_read();
+    void onNewConnection();
+    void onClientDisconnected();
+    void onServerRead() const;
 };
