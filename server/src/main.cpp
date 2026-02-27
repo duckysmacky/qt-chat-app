@@ -2,14 +2,17 @@
 #include <QTextStream>
 #include <QFile>
 #include <QStringList>
-
 #include "TcpServer.h"
 #include "Database.h"
 
 void loadEnvFile(const QString& filePath)
 {
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+	    qCritical() << "Unable to open .env file:" << file.errorString();
+    	return;
+    }
 
     QTextStream fileStream(&file);
     while (!fileStream.atEnd())

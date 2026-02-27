@@ -4,6 +4,7 @@
 #include <QTcpSocket>
 #include <QString>
 #include <QHash>
+#include "ConsoleReader.h"
 
 #include <cstdint>
 
@@ -14,10 +15,12 @@ class TcpServer : public QObject
 private:
     QTcpServer* m_server;
     QHash<qintptr, QTcpSocket*> m_sockets;
+    ConsoleReader* m_consoleReader;
     bool m_isRunning;
 
 public:
     explicit TcpServer(QObject* parent = nullptr);
+    ~TcpServer() override;
 
 	bool start(uint16_t port = 8080);
     void stop() const;

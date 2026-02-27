@@ -6,6 +6,8 @@ qt_add_executable(server_app
 	src/TcpServer.h
 	src/Database.cpp
 	src/Database.h
+	src/ConsoleReader.cpp
+	src/ConsoleReader.h
 )
 
 target_link_libraries(server_app PRIVATE
