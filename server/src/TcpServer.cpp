@@ -1,5 +1,6 @@
 #include "TcpServer.h"
-
+#include "Middleware.h"
+#include "Message.h"
 #include <QByteArray>
 #include <QDebug>
 
@@ -64,6 +65,7 @@ void TcpServer::onNewConnection()
 
 	const qintptr descriptor = socket->socketDescriptor();
 	m_sockets.insert(descriptor, socket);
+    m_buffers.insert(descriptor, "");
 
 	connect(socket, &QTcpSocket::readyRead, this, &TcpServer::onServerRead);
 	connect(socket, &QTcpSocket::disconnected, this, &TcpServer::onClientDisconnected);
@@ -73,30 +75,30 @@ void TcpServer::onNewConnection()
 	socket->write("Hello, client!\r\n");
 }
 
-void TcpServer::onServerRead() const
+void TcpServer::onServerRead()
 {
 	auto* socket = qobject_cast<QTcpSocket*>(sender());
 	if (!socket) return;
 
-    QString message = "";
+    const auto descriptor = socket->socketDescriptor();
 
-    while (socket->bytesAvailable() > 0)
-    {
-        QByteArray bytes = socket->readAll();
-        qDebug() << "Incoming bytes:" << bytes << "\n";
+    while(socket->bytesAvailable() > 0){
+        const QByteArray bytes = socket->readAll();
+        qDebug() << "vsem privet pashalka";
+        const QList<QByteArray> messages = middleware::parse(bytes);
 
-        if (bytes == "\x01")
-        {
-            socket->write(message.toUtf8());
-            message = "";
+        for(const auto& message : messages){
+            shared::Message mes = shared::Message::decode(message);
+            if (mes.type() == shared::MessageType::Text) {
+                qInfo() << "Text message" << mes.content();
+            }
+            else if (mes.type() == shared::MessageType::Command) {
+                qInfo() << "Command message" << mes.content();
+            }
         }
-        else
-            message.append(bytes);
     }
 
-	qInfo() << "Incoming message from [" << socket->socketDescriptor() << "]:" << message;
 
-    socket->write(message.toUtf8());
 }
 
 void TcpServer::onClientDisconnected()
@@ -106,6 +108,7 @@ void TcpServer::onClientDisconnected()
 
 	const qintptr descriptor = socket->socketDescriptor();
 	m_sockets.remove(descriptor);
+    m_buffers.remove(descriptor);
 
 	qInfo() << "Client [" << descriptor << "] disconnected";
 

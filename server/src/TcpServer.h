@@ -15,6 +15,7 @@ class TcpServer : public QObject
 private:
     QTcpServer* m_server;
     QHash<qintptr, QTcpSocket*> m_sockets;
+    QHash<qintptr, QString> m_buffers;
     ConsoleReader* m_consoleReader;
     bool m_isRunning;
 
@@ -31,5 +32,5 @@ public:
 public slots:
     void onNewConnection();
     void onClientDisconnected();
-    void onServerRead() const;
+    void onServerRead();
 };

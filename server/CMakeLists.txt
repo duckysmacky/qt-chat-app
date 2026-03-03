@@ -8,6 +8,8 @@ qt_add_executable(server_app
 	src/Database.h
 	src/ConsoleReader.cpp
 	src/ConsoleReader.h
+        src/Middleware.h
+        src/Middleware.cpp
 )
 
 target_link_libraries(server_app PRIVATE
