@@ -34,7 +34,7 @@ void loadEnvFile(const QString& filePath)
 int main(int argc, char* argv[])
 {
 	QCoreApplication app(argc, argv);
-	loadEnvFile("../../.env");
+	loadEnvFile(".env");
 
 	Database& db = Database::instance();
 	if (!db.connect())
