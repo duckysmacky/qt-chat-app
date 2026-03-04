@@ -7,25 +7,26 @@ namespace shared {
 
 enum class MessageType
 {
-    Text = 0,
-    Command = 1
+    Text,
+    Command,
 };
 
 class Message
 {
 private:
-    QString m_content;
     MessageType m_type;
+    QString m_content;
 
 public:
-    Message(const QString& content, MessageType type);
+    Message(MessageType type, QString content);
     ~Message() = default;
 
-    QByteArray encode() const;
     static Message decode(const QByteArray& bytes);
 
-    QString content() const;
-    MessageType type() const;
+    QByteArray encode() const;
+
+    const MessageType& type() const;
+    const QString& content() const;
 };
 
 }
