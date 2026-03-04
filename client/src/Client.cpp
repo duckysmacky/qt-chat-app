@@ -3,6 +3,8 @@
 #include <QAbstractSocket>
 #include <QRegularExpression>
 
+#include "Message.h"
+
 Client::Client(QObject* parent)
     : QObject(parent),
       m_socket(this)
@@ -27,16 +29,21 @@ void Client::connectTo(const QString& host, const int port)
     m_socket.connectToHost(host, static_cast<quint16>(port));
 }
 
-void Client::sendMessage(const QString& message)
+void Client::sendMessage(const QString& text)
 {
-    if (message.trimmed().isEmpty())
+    if (text.trimmed().isEmpty())
         return;
 
-    qInfo() << "Message sent:" << message;
+    qInfo() << "Message sent:" << text;
 
-    m_socket.write(message.toUtf8());
+    const shared::Message message(shared::MessageType::Text, text);
+    QByteArray bytes;
+    bytes.append(message.encode());
+    bytes.append('\x01');
 
-    emit messageReceived(message);
+    m_socket.write(bytes);
+
+    appendMessage(text);
 }
 
 void Client::onConnected()
@@ -51,16 +58,25 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
 
 void Client::onReadyRead()
 {
+    // TODO: add support for multiple messages, like on the server side
     const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
-    const QString message = QString::fromUtf8(bytes);
-    const QStringList parts = message.split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+    const auto msg = shared::Message::decode(bytes);
 
-    if (parts.isEmpty()) {
-        appendMessage(message);
-    } else {
-        for (const QString& part : parts) appendMessage(part);
+    if (msg.type() == shared::MessageType::Text)
+    {
+        const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+
+        if (parts.isEmpty()) {
+            appendMessage(msg.content());
+        } else {
+            for (const QString& part : parts) appendMessage(part);
+        }
+    }
+    else
+    {
+        appendMessage("[Unknown message received]");
     }
 }
 
@@ -78,5 +94,4 @@ void Client::appendMessage(const QString& message)
 
     m_messages.append(message);
     emit messagesChanged();
-    emit messageReceived(message);
 }

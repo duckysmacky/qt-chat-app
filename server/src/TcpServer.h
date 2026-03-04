@@ -25,12 +25,12 @@ public:
 
 	bool start(uint16_t port = 8080);
     void stop() const;
-    void broadcast(const QString& message) const;
+    void broadcast(const QString& text) const;
 
 	bool isRunning() const { return m_isRunning; }
 
 public slots:
     void onNewConnection();
     void onClientDisconnected();
-    void onServerRead();
+    void onServerRead() const;
 };

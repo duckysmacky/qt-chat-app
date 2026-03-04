@@ -1,10 +1,11 @@
-#include "TcpServer.h"
-#include "Middleware.h"
-#include "Message.h"
 #include <QByteArray>
 #include <QDebug>
 
-TcpServer::TcpServer(QObject* parent) 
+#include "TcpServer.h"
+#include "middleware.h"
+#include "Message.h"
+
+TcpServer::TcpServer(QObject* parent)
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
 	  m_consoleReader(new ConsoleReader(this)),
@@ -13,7 +14,7 @@ TcpServer::TcpServer(QObject* parent)
 	connect(m_server, &QTcpServer::newConnection, this, &TcpServer::onNewConnection);
 	connect(m_consoleReader, &ConsoleReader::lineRead, this, [this](const QString& line) {
 		if (!line.isEmpty())
-			broadcast(line + "\r\n");
+			broadcast(line);
 	}, Qt::QueuedConnection);
 }
 
@@ -45,16 +46,19 @@ void TcpServer::stop() const
 	m_consoleReader->stop();
 }
 
-void TcpServer::broadcast(const QString& message) const
+void TcpServer::broadcast(const QString& text) const
 {
+	const shared::Message msg(shared::MessageType::Text, text);
+	QByteArray bytes;
+	bytes.append(msg.encode());
+	bytes.append('\x01');
+
 	for (const auto socket : m_sockets)
 	{
-		qDebug() << "Sending" << message << "to [" << socket->socketDescriptor() << "]";
+		qDebug() << "Sending" << text << "to [" << socket->socketDescriptor() << "]";
 
-		if (socket->write(message.toUtf8()) == -1)
-		{
+		if (socket->write(bytes) == -1)
 			qCritical() << "Error writing to socket [" << socket->socketDescriptor() << "]:" << socket->errorString();
-		}
 	}
 }
 
@@ -72,33 +76,34 @@ void TcpServer::onNewConnection()
 
 	qInfo() << "New client [" << descriptor << "] connected";
 
-	socket->write("Hello, client!\r\n");
+	const shared::Message msg(shared::MessageType::Text, "Hello, client!");
+	socket->write(msg.encode());
 }
 
-void TcpServer::onServerRead()
+void TcpServer::onServerRead() const
 {
 	auto* socket = qobject_cast<QTcpSocket*>(sender());
 	if (!socket) return;
 
     const auto descriptor = socket->socketDescriptor();
 
-    while(socket->bytesAvailable() > 0){
+    while (socket->bytesAvailable() > 0)
+    {
         const QByteArray bytes = socket->readAll();
-        qDebug() << "vsem privet pashalka";
-        const QList<QByteArray> messages = middleware::parse(bytes);
+        const QList<shared::Message> messages = middleware::parse(bytes);
 
-        for(const auto& message : messages){
-            shared::Message mes = shared::Message::decode(message);
-            if (mes.type() == shared::MessageType::Text) {
-                qInfo() << "Text message" << mes.content();
+        for (const auto& msg : messages)
+        {
+            if (msg.type() == shared::MessageType::Text)
+            {
+                qInfo() << "Text message from [" << descriptor << "]:" << msg.content();
             }
-            else if (mes.type() == shared::MessageType::Command) {
-                qInfo() << "Command message" << mes.content();
+            else if (msg.type() == shared::MessageType::Command)
+            {
+                qInfo() << "Command from [" << descriptor << "]:" << msg.content();
             }
         }
     }
-
-
 }
 
 void TcpServer::onClientDisconnected()
