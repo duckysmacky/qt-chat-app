@@ -27,6 +27,18 @@ void Client::connectTo(const QString& host, const int port)
     m_socket.connectToHost(host, static_cast<quint16>(port));
 }
 
+void Client::sendMessage(const QString& message)
+{
+    if (message.trimmed().isEmpty())
+        return;
+
+    qInfo() << "Message sent:" << message;
+
+    m_socket.write(message.toUtf8());
+
+    emit messageReceived(message);
+}
+
 void Client::onConnected()
 {
     setStatusText("Connected");

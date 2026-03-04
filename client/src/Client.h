@@ -19,6 +19,7 @@ public:
     explicit Client(QObject* parent = nullptr);
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
+    Q_INVOKABLE void sendMessage(const QString& message);
 
     const QString& statusText() const { return m_statusText; }
     const QStringList& messages() const { return m_messages; }
