@@ -36,7 +36,7 @@ Window {
             }
 
             Button {
-                text: connection.connected ? "Disconnect" : "Connect"
+								text: connection.connected ? "Disconnect" : "Connect"
 								onClicked: {
 										if (connection.connected)
 												connection.disconnect()
@@ -87,7 +87,10 @@ Window {
                     TextField {
                         id: messageInput
                         placeholderText: "Enter a message..."
-                        Layout.fillWidth: true
+												Layout.fillWidth: true
+												onAccepted: {
+														sendButton.clicked()
+												}
                     }
 
                     Button {
