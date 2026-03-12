@@ -36,13 +36,18 @@ Window {
             }
 
             Button {
-                text: "Connect"
-                onClicked: connection.connectTo(hostField.text, parseInt(portField.text))
+                text: connection.connected ? "Disconnect" : "Connect"
+								onClicked: {
+										if (connection.connected)
+												connection.disconnect()
+										else
+												connection.connectTo(hostField.text, parseInt(portField.text))
+								}
             }
 
             Text {
                 text: connection.statusText
-                color: connection.statusText === "Connected" ? "green" : "red"
+                color: connection.connected ? "green" : "red"
                 wrapMode: Text.Wrap
             }
         }
