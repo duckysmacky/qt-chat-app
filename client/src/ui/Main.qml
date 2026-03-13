@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+
 import client 1.0
 
 Window {
@@ -9,8 +10,8 @@ Window {
     visible: true
     title: "Client"
 
-    Client {
-        id: connection
+    ChatWindow {
+        id: chat
     }
 
     RowLayout {
@@ -36,18 +37,18 @@ Window {
             }
 
             Button {
-								text: connection.connected ? "Disconnect" : "Connect"
+								text: Client.connected ? "Disconnect" : "Connect"
 								onClicked: {
-										if (connection.connected)
-												connection.disconnect()
+										if (Client.connected)
+												Client.disconnect()
 										else
-												connection.connectTo(hostField.text, parseInt(portField.text))
+												Client.connectTo(hostField.text, parseInt(portField.text))
 								}
             }
 
             Text {
-                text: connection.statusText
-                color: connection.connected ? "green" : "red"
+                text: Client.statusText
+                color: Client.connected ? "green" : "red"
                 wrapMode: Text.Wrap
             }
         }
@@ -68,7 +69,7 @@ Window {
 
                 ListView {
                     id: messageList
-                    model: connection.messages
+                    model: chat.messages
                     clip: true
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -97,7 +98,7 @@ Window {
                         id: sendButton
                         text: "Send"
                         onClicked: {
-                            connection.sendMessage(messageInput.text)
+                            chat.sendMessage(messageInput.text)
                             messageInput.text = ""
                         }
                     }

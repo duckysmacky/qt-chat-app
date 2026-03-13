@@ -1,9 +1,14 @@
 #include "Client.h"
 
 #include <QAbstractSocket>
-#include <QRegularExpression>
 
 #include "Message.h"
+
+Client& Client::instance()
+{
+    static Client instance;
+    return instance;
+}
 
 Client::Client(QObject* parent)
     : QObject(parent),
@@ -40,21 +45,13 @@ void Client::disconnect()
 		m_socket.disconnectFromHost();
 }
 
-void Client::sendMessage(const QString& text)
+void Client::sendMessage(const shared::Message& msg)
 {
-    if (text.trimmed().isEmpty())
-        return;
-
-    qInfo() << "Message sent:" << text;
-
-    const shared::Message message(shared::MessageType::Text, text);
     QByteArray bytes;
-    bytes.append(message.encode());
+    bytes.append(msg.encode());
     bytes.append('\x01');
 
     m_socket.write(bytes);
-
-    appendMessage(text);
 }
 
 void Client::onConnected()
@@ -78,26 +75,11 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
 
 void Client::onReadyRead()
 {
-    // TODO: add support for multiple messages, like on the server side
     const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
     const auto msg = shared::Message::decode(bytes);
-
-    if (msg.type() == shared::MessageType::Text)
-    {
-        const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
-
-        if (parts.isEmpty()) {
-            appendMessage(msg.content());
-        } else {
-            for (const QString& part : parts) appendMessage(part);
-        }
-    }
-    else
-    {
-        appendMessage("[Unknown message received]");
-    }
+		emit messageReceived(msg);
 }
 
 void Client::setStatusText(const QString& text)
@@ -112,12 +94,4 @@ void Client::setConnectionStatus(bool connected)
 {
     m_connected = connected;
     emit connectionStatusChanged();
-}
-
-void Client::appendMessage(const QString& message)
-{
-    if (message.isEmpty()) return;
-
-    m_messages.append(message);
-    emit messagesChanged();
 }

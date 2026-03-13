@@ -2,37 +2,42 @@
 
 #include <QObject>
 #include <QTcpSocket>
-#include <QStringList>
+
+#include "Message.h"
 
 class Client : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool connected READ connected NOTIFY connectionStatusChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
-    Q_PROPERTY(QStringList messages READ messages NOTIFY messagesChanged)
 
 private:
     QTcpSocket m_socket;
 		bool m_connected;
     QString m_statusText;
-    QStringList m_messages;
+
+private:
+    explicit Client(QObject* parent = nullptr);
 
 public:
-    explicit Client(QObject* parent = nullptr);
+    static Client& instance();
+
+    Client(const Client&) = delete;
+    Client& operator =(const Client&) = delete;
+    Client(Client&&) = delete;
+    Client& operator =(Client&&) = delete;
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
     Q_INVOKABLE void disconnect();
-    Q_INVOKABLE void sendMessage(const QString& text);
+    Q_INVOKABLE void sendMessage(const shared::Message& message);
 
 		bool connected() const { return m_connected; }
     const QString& statusText() const { return m_statusText; }
-    const QStringList& messages() const { return m_messages; }
 
 signals:
     void connectionStatusChanged();
     void statusTextChanged();
-    void messagesChanged();
-    void messageReceived(const QString& message);
+    void messageReceived(const shared::Message& msg);
 
 private slots:
     void onConnected();
@@ -43,5 +48,4 @@ private slots:
 private:
 		void setConnectionStatus(bool connected);
     void setStatusText(const QString& text);
-    void appendMessage(const QString& message);
 };
