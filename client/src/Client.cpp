@@ -55,7 +55,6 @@ void Client::sendMessage(const QString& text)
 
     m_socket.write(bytes);
 
-    appendMessage(text);
 }
 
 void Client::onConnected()
