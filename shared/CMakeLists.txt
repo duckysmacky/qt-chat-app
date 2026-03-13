@@ -1,6 +1,9 @@
 add_library(shared STATIC
     src/Message.h
     src/Message.cpp
+    src/utilus.h
+    src/utilus.cpp
+
 )
 
 target_include_directories(shared PUBLIC

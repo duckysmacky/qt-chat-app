@@ -2,7 +2,7 @@
 #include <QDebug>
 
 #include "TcpServer.h"
-#include "middleware.h"
+#include "utilus.h"
 #include "Message.h"
 
 TcpServer::TcpServer(QObject* parent)
@@ -46,7 +46,7 @@ void TcpServer::stop() const
 	m_consoleReader->stop();
 }
 
-void TcpServer::broadcast(const QString& text) const
+void TcpServer::broadcast(const QString& text, const QTcpSocket* excluded) const
 {
 	const shared::Message msg(shared::MessageType::Text, text);
 	QByteArray bytes;
@@ -55,6 +55,8 @@ void TcpServer::broadcast(const QString& text) const
 
 	for (const auto socket : m_sockets)
 	{
+        if (socket == excluded) continue;
+
 		qDebug() << "Sending" << text << "to [" << socket->socketDescriptor() << "]";
 
 		if (socket->write(bytes) == -1)
@@ -90,13 +92,15 @@ void TcpServer::onServerRead() const
     while (socket->bytesAvailable() > 0)
     {
         const QByteArray bytes = socket->readAll();
-        const QList<shared::Message> messages = middleware::parse(bytes);
+        const QList<shared::Message> messages = shared::parse(bytes);
 
         for (const auto& msg : messages)
         {
             if (msg.type() == shared::MessageType::Text)
             {
                 qInfo() << "Text message from [" << descriptor << "]:" << msg.content();
+
+                broadcast(msg.content(), socket);
             }
             else if (msg.type() == shared::MessageType::Command)
             {

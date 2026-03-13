@@ -4,6 +4,7 @@
 #include <QRegularExpression>
 
 #include "Message.h"
+#include "utilus.h"
 
 Client::Client(QObject* parent)
     : QObject(parent),
@@ -78,26 +79,33 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
 
 void Client::onReadyRead()
 {
-    // TODO: add support for multiple messages, like on the server side
+    // TODO: add support for multiple messages, like on the server side (X)
+    // вроде бы я сделал то что нужно, если что не бейте (((
     const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
-    const auto msg = shared::Message::decode(bytes);
+    const QList<shared::Message> messages = shared::parse(bytes);
 
-    if (msg.type() == shared::MessageType::Text)
-    {
-        const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+    for (const auto& msg : messages){
 
-        if (parts.isEmpty()) {
-            appendMessage(msg.content());
-        } else {
-            for (const QString& part : parts) appendMessage(part);
+        if (msg.type() == shared::MessageType::Text)
+        {
+            const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+
+            if (parts.isEmpty()) {
+                appendMessage(msg.content());
+            } else {
+                for (const QString& part : parts) appendMessage(part);
+            }
         }
+        else
+        {
+            appendMessage("[Unknown message received]");
+        }
+
     }
-    else
-    {
-        appendMessage("[Unknown message received]");
-    }
+
+
 }
 
 void Client::setStatusText(const QString& text)

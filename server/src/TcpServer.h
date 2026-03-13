@@ -25,7 +25,7 @@ public:
 
 	bool start(uint16_t port = 8080);
     void stop() const;
-    void broadcast(const QString& text) const;
+    void broadcast(const QString& text, const QTcpSocket* excluded = nullptr) const;
 
 	bool isRunning() const { return m_isRunning; }
 
