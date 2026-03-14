@@ -29,6 +29,7 @@ Message& Message::operator =(Message&& other) noexcept
     m_type = other.m_type;
     m_sender = std::move(other.m_sender);
     m_content = std::move(other.m_content);
+    return *this;
 }
 
 Message Message::decode(const QByteArray& bytes)
