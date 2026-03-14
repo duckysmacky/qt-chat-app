@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	TcpServer server;
+	TcpServer& server = TcpServer::instance();
 	if (!server.start())
 	{
 		qFatal() << "An error occurred when starting the server";

@@ -5,6 +5,12 @@
 
 #include "util.h"
 
+TcpServer& TcpServer::instance()
+{
+	static TcpServer instance;
+	return instance;
+}
+
 TcpServer::TcpServer(QObject* parent)
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),

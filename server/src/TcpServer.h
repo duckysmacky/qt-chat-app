@@ -24,7 +24,13 @@ private:
     bool m_isRunning;
 
 public:
-    explicit TcpServer(QObject* parent = nullptr);
+    static TcpServer& instance();
+
+    TcpServer(const TcpServer& other) = delete;
+    TcpServer& operator =(const TcpServer& other) = delete;
+    TcpServer(TcpServer&& other) = delete;
+    TcpServer& operator =(TcpServer&& other) = delete;
+
     ~TcpServer() override;
 
 	bool start(uint16_t port = 8080);
@@ -40,6 +46,7 @@ public slots:
     void onServerRead();
 
 private:
+    explicit TcpServer(QObject* parent = nullptr);
     void handleMessage(const shared::Message& msg) const;
     void registerClient(QTcpSocket* socket, const shared::Message& msg);
 };
