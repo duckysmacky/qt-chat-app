@@ -13,7 +13,7 @@ class Client : public QObject
 
 private:
     QTcpSocket m_socket;
-		bool m_connected;
+    bool m_connected;
     QString m_statusText;
 
 private:
@@ -31,7 +31,7 @@ public:
     Q_INVOKABLE void disconnect();
     Q_INVOKABLE void sendMessage(const shared::Message& message);
 
-		bool connected() const { return m_connected; }
+    bool connected() const { return m_connected; }
     const QString& statusText() const { return m_statusText; }
 
 signals:
