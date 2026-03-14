@@ -4,12 +4,12 @@
 #include <QRegularExpression>
 
 #include "Message.h"
-#include "utilus.h"
+#include "util.h"
 
 Client::Client(QObject* parent)
     : QObject(parent),
       m_socket(this),
-		  m_connected(false)
+      m_connected(false)
 {
     connect(&m_socket, &QTcpSocket::connected, this, &Client::onConnected);
     connect(&m_socket, &QTcpSocket::disconnected, this, &Client::onDisconnected);
@@ -25,20 +25,20 @@ void Client::connectTo(const QString& host, const int port)
         return;
     }
 
-		if (m_socket.state() != QAbstractSocket::UnconnectedState)
-				m_socket.abort();
+    if (m_socket.state() != QAbstractSocket::UnconnectedState)
+        m_socket.abort();
 
-		setStatusText("Connecting...");
+    setStatusText("Connecting...");
     m_socket.connectToHost(host, static_cast<quint16>(port));
 }
 
 void Client::disconnect()
 {
-		if (m_socket.state() != QAbstractSocket::ConnectedState)
-				m_socket.abort();
+    if (m_socket.state() != QAbstractSocket::ConnectedState)
+        m_socket.abort();
 
-		setStatusText("Disconnecting...");
-		m_socket.disconnectFromHost();
+    setStatusText("Disconnecting...");
+    m_socket.disconnectFromHost();
 }
 
 void Client::sendMessage(const QString& text)
@@ -54,39 +54,35 @@ void Client::sendMessage(const QString& text)
     bytes.append('\x01');
 
     m_socket.write(bytes);
-
 }
 
 void Client::onConnected()
 {
     setStatusText("Connected");
-		setConnectionStatus(true);
+    setConnectionStatus(true);
 }
 
 void Client::onDisconnected()
 {
     setStatusText("Disconnected");
-		setConnectionStatus(false);
+    setConnectionStatus(false);
 }
 
 void Client::onErrorOccurred(QAbstractSocket::SocketError)
 {
     setStatusText(m_socket.errorString());
-		if (m_socket.state() != QAbstractSocket::ConnectedState)
-				setConnectionStatus(false);
+    if (m_socket.state() != QAbstractSocket::ConnectedState)
+            setConnectionStatus(false);
 }
 
 void Client::onReadyRead()
 {
-    // TODO: add support for multiple messages, like on the server side (X)
-    // вроде бы я сделал то что нужно, если что не бейте (((
     const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
-    const QList<shared::Message> messages = shared::parse(bytes);
+    const QList<shared::Message> messages = shared::util::parse(bytes);
 
     for (const auto& msg : messages){
-
         if (msg.type() == shared::MessageType::Text)
         {
             const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
@@ -97,14 +93,7 @@ void Client::onReadyRead()
                 for (const QString& part : parts) appendMessage(part);
             }
         }
-        else
-        {
-            appendMessage("[Unknown message received]");
-        }
-
     }
-
-
 }
 
 void Client::setStatusText(const QString& text)

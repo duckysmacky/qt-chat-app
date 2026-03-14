@@ -1,9 +1,10 @@
+#include "TcpServer.h"
+
 #include <QByteArray>
 #include <QDebug>
 
-#include "TcpServer.h"
-#include "utilus.h"
 #include "Message.h"
+#include "util.h"
 
 TcpServer::TcpServer(QObject* parent)
 	: QObject(parent),
@@ -92,7 +93,7 @@ void TcpServer::onServerRead() const
     while (socket->bytesAvailable() > 0)
     {
         const QByteArray bytes = socket->readAll();
-        const QList<shared::Message> messages = shared::parse(bytes);
+        const QList<shared::Message> messages = shared::util::parse(bytes);
 
         for (const auto& msg : messages)
         {

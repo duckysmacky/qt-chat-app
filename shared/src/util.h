@@ -2,10 +2,11 @@
 
 #include <QByteArray>
 #include <QList>
+
 #include "Message.h"
 
-namespace shared {
+namespace shared::util {
 
-QList<shared::Message> parse(const QByteArray& bytes);
+QList<Message> parse(const QByteArray& bytes);
 
 }

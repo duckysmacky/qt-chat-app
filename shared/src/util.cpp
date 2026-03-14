@@ -1,10 +1,10 @@
-#include "utilus.h"
+#include "util.h"
 
-namespace shared {
+namespace shared::util {
 
-QList<shared::Message> parse(const QByteArray& bytes)
+QList<Message> parse(const QByteArray& bytes)
 {
-    QList<shared::Message> messages;
+    QList<Message> messages;
     QByteArray buffer;
 
     int start = 0;
@@ -13,7 +13,7 @@ QList<shared::Message> parse(const QByteArray& bytes)
         if (bytes[i] == '\x01')
         {
             buffer.append(bytes.mid(start, i - start));
-            messages.append(shared::Message::decode(buffer));
+            messages.append(Message::decode(buffer));
             buffer.clear();
             start = i + 1;
         }
