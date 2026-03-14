@@ -43,7 +43,7 @@
       "name": "linux-gcc-debug",
       "displayName": "Linux GCC Qt 6 Debug",
       "inherits": "linux-gcc",
-      "binaryDir": "${sourceDir}/debug",
+      "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
@@ -52,7 +52,7 @@
       "name": "linux-gcc-release",
       "displayName": "Linux GCC Qt 6 Release",
       "inherits": "linux-gcc",
-      "binaryDir": "${sourceDir}/release",
+      "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
