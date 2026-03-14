@@ -4,6 +4,8 @@ qt_add_executable(client_app
     src/main.cpp
         src/Client.cpp
         src/Client.h
+        src/ChatWindow.cpp
+        src/ChatWindow.h
 )
 
 qt_add_qml_module(client_app

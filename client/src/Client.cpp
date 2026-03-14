@@ -1,15 +1,19 @@
 #include "Client.h"
 
 #include <QAbstractSocket>
-#include <QRegularExpression>
 
 #include "Message.h"
-#include "util.h"
+
+Client& Client::instance()
+{
+    static Client instance;
+    return instance;
+}
 
 Client::Client(QObject* parent)
     : QObject(parent),
       m_socket(this),
-      m_connected(false)
+		  m_connected(false)
 {
     connect(&m_socket, &QTcpSocket::connected, this, &Client::onConnected);
     connect(&m_socket, &QTcpSocket::disconnected, this, &Client::onDisconnected);
@@ -25,32 +29,26 @@ void Client::connectTo(const QString& host, const int port)
         return;
     }
 
-    if (m_socket.state() != QAbstractSocket::UnconnectedState)
-        m_socket.abort();
+		if (m_socket.state() != QAbstractSocket::UnconnectedState)
+				m_socket.abort();
 
-    setStatusText("Connecting...");
+		setStatusText("Connecting...");
     m_socket.connectToHost(host, static_cast<quint16>(port));
 }
 
 void Client::disconnect()
 {
-    if (m_socket.state() != QAbstractSocket::ConnectedState)
-        m_socket.abort();
+		if (m_socket.state() != QAbstractSocket::ConnectedState)
+				m_socket.abort();
 
-    setStatusText("Disconnecting...");
-    m_socket.disconnectFromHost();
+		setStatusText("Disconnecting...");
+		m_socket.disconnectFromHost();
 }
 
-void Client::sendMessage(const QString& text)
+void Client::sendMessage(const shared::Message& msg)
 {
-    if (text.trimmed().isEmpty())
-        return;
-
-    qInfo() << "Message sent:" << text;
-
-    const shared::Message message(shared::MessageType::Text, text);
     QByteArray bytes;
-    bytes.append(message.encode());
+    bytes.append(msg.encode());
     bytes.append('\x01');
 
     m_socket.write(bytes);
@@ -59,20 +57,20 @@ void Client::sendMessage(const QString& text)
 void Client::onConnected()
 {
     setStatusText("Connected");
-    setConnectionStatus(true);
+		setConnectionStatus(true);
 }
 
 void Client::onDisconnected()
 {
     setStatusText("Disconnected");
-    setConnectionStatus(false);
+		setConnectionStatus(false);
 }
 
 void Client::onErrorOccurred(QAbstractSocket::SocketError)
 {
     setStatusText(m_socket.errorString());
-    if (m_socket.state() != QAbstractSocket::ConnectedState)
-            setConnectionStatus(false);
+		if (m_socket.state() != QAbstractSocket::ConnectedState)
+				setConnectionStatus(false);
 }
 
 void Client::onReadyRead()
@@ -80,20 +78,8 @@ void Client::onReadyRead()
     const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
-    const QList<shared::Message> messages = shared::util::parse(bytes);
-
-    for (const auto& msg : messages){
-        if (msg.type() == shared::MessageType::Text)
-        {
-            const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
-
-            if (parts.isEmpty()) {
-                appendMessage(msg.content());
-            } else {
-                for (const QString& part : parts) appendMessage(part);
-            }
-        }
-    }
+    const auto msg = shared::Message::decode(bytes);
+		emit messageReceived(msg);
 }
 
 void Client::setStatusText(const QString& text)
@@ -108,12 +94,4 @@ void Client::setConnectionStatus(bool connected)
 {
     m_connected = connected;
     emit connectionStatusChanged();
-}
-
-void Client::appendMessage(const QString& message)
-{
-    if (message.isEmpty()) return;
-
-    m_messages.append(message);
-    emit messagesChanged();
 }
