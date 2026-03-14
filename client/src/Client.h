@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QUuid>
 
 #include "Message.h"
 
@@ -12,6 +13,7 @@ class Client : public QObject
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
 
 private:
+    const QUuid m_uuid;
     QTcpSocket m_socket;
     bool m_connected;
     QString m_statusText;
@@ -29,8 +31,9 @@ public:
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
     Q_INVOKABLE void disconnect();
-    Q_INVOKABLE void sendMessage(const shared::Message& message);
+    Q_INVOKABLE void sendMessage(shared::MessageType type, const QString& content = "");
 
+    const QUuid& uuid() const { return m_uuid; }
     bool connected() const { return m_connected; }
     const QString& statusText() const { return m_statusText; }
 
@@ -46,6 +49,6 @@ private slots:
     void onReadyRead();
 
 private:
-		void setConnectionStatus(bool connected);
+    void setConnectionStatus(bool connected);
     void setStatusText(const QString& text);
 };
