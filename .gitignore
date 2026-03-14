@@ -3,9 +3,6 @@ out/
 cmake-build-*/
 CMakeFiles/
 
-./debug/
-./release/
-
 CMakeCache.txt
 Makefile
 compile_commands.json
