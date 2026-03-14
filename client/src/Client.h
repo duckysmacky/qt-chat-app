@@ -31,7 +31,7 @@ public:
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
     Q_INVOKABLE void disconnect();
-    Q_INVOKABLE void sendMessage(shared::MessageType type, const QString& content = "");
+    Q_INVOKABLE void sendMessage(shared::MessageType type, QString content = "");
 
     const QUuid& uuid() const { return m_uuid; }
     bool connected() const { return m_connected; }

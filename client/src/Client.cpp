@@ -44,7 +44,7 @@ void Client::disconnect()
     m_socket.disconnectFromHost();
 }
 
-void Client::sendMessage(const shared::MessageType type, const QString& content)
+void Client::sendMessage(const shared::MessageType type, QString content)
 {
     const shared::Message msg = content.isEmpty()
         ? shared::Message(type, m_uuid)

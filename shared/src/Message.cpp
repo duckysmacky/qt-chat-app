@@ -16,7 +16,22 @@ Message::Message(const MessageType type, QUuid sender, QString content)
 {
 }
 
-Message Message::decode(QByteArray& bytes)
+Message::Message(Message&& other) noexcept
+    : m_type(other.m_type),
+      m_sender(std::move(other.m_sender)),
+      m_content(std::move(other.m_content))
+{
+}
+
+Message& Message::operator =(Message&& other) noexcept
+{
+    if (this == &other) return *this;
+    m_type = other.m_type;
+    m_sender = std::move(other.m_sender);
+    m_content = std::move(other.m_content);
+}
+
+Message Message::decode(const QByteArray& bytes)
 {
     if (bytes.size() < MSG_TYPE_LEN + MSG_SENDER_LEN)
     {

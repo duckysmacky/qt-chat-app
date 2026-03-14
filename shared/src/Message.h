@@ -22,9 +22,15 @@ private:
 
 public:
     Message(MessageType type, QUuid sender, QString content = "");
+
+    Message(const Message& other) = default;
+    Message& operator =(const Message& other) = default;
+    Message(Message&& other) noexcept;
+    Message& operator =(Message&& other) noexcept;
+
     ~Message() = default;
 
-    static Message decode(QByteArray& bytes);
+    static Message decode(const QByteArray& bytes);
 
     QByteArray encode() const;
 
