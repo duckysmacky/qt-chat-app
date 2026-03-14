@@ -1,6 +1,10 @@
 #include "Message.h"
 
+#include <QBuffer>
+
 #include <utility>
+
+constexpr auto MSG_TYPE_LEN = 1;
 
 namespace shared {
 
@@ -10,13 +14,18 @@ Message::Message(const MessageType type, QString content)
 {
 }
 
-Message Message::decode(const QByteArray& bytes)
+Message Message::decode(QByteArray& bytes)
 {
-    if (bytes.isEmpty())
-        return Message(MessageType::Text, "");
+    QBuffer buffer(&bytes);
 
-    const auto type = static_cast<MessageType>(bytes[0]);
-    const QString content = QString::fromUtf8(bytes.mid(1));
+    const auto typeBytes = buffer.read(MSG_TYPE_LEN);
+    const auto type = static_cast<MessageType>(typeBytes[0]);
+
+    const auto contentBytes = buffer.readAll();
+    if (contentBytes.isEmpty())
+        return Message(type, "");
+
+    const QString content = QString::fromUtf8(contentBytes);
 
     return Message(type, content);
 }

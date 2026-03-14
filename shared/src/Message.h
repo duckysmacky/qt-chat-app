@@ -18,10 +18,10 @@ private:
     QString m_content;
 
 public:
-    Message(MessageType type, QString content);
+    Message(const MessageType type, QString content);
     ~Message() = default;
 
-    static Message decode(const QByteArray& bytes);
+    static Message decode(QByteArray& bytes);
 
     QByteArray encode() const;
 
