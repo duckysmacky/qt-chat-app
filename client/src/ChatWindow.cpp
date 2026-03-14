@@ -1,6 +1,7 @@
 #include "ChatWindow.h"
 
 #include <QRegularExpression>
+#include <QTime>
 
 #include "Client.h"
 
@@ -14,38 +15,42 @@ void ChatWindow::sendMessage(const QString& text)
 {
     if (text.trimmed().isEmpty()) return;
 
-    qInfo() << "Message sent:" << text;
+    qInfo() << "Sending message:" << text;
 
-		appendMessage(text);
-    const shared::Message msg(shared::MessageType::Text, text);
-    Client::instance().sendMessage(msg);
+    Client& client = Client::instance();
+    const QString sender = client.uuid().toString();
+
+    appendMessage(sender, text);
+    client.sendMessage(shared::MessageType::Text, text);
 }
 
 void ChatWindow::onMessageReceived(const shared::Message& msg)
 {
-		qDebug() << "ON MESSAGE";
-
     if (msg.type() == shared::MessageType::Text)
     {
-				qInfo() << "Incoming text message";
+        qInfo() << "Incoming text message from" << msg.sender();
 
+        const QString sender = msg.sender().toString();
         const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
 
         if (parts.isEmpty()) {
-            appendMessage(msg.content());
+            appendMessage(sender, msg.content());
         } else {
             for (const QString& part : parts)
-								appendMessage(part);
+                appendMessage(sender, part);
         }
     }
 }
 
-void ChatWindow::appendMessage(const QString& text)
+void ChatWindow::appendMessage(const QString& sender, const QString& text)
 {
     if (text.isEmpty()) return;
 
-    qInfo() << "Displaying message:" << text;
+    const QString currentTime = QTime::currentTime().toString("hh:mm:ss");
+    const QString message = QString("[%1] <%2> %3").arg(currentTime, sender, text);
 
-    m_messages.append(text);
+    qInfo() << "Displaying message:" << message;
+
+    m_messages.append(message);
     emit messagesChanged();
 }

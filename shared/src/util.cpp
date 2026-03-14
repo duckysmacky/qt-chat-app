@@ -13,7 +13,8 @@ QList<Message> parse(const QByteArray& bytes)
         if (bytes[i] == '\x01')
         {
             buffer.append(bytes.mid(start, i - start));
-            messages.append(Message::decode(buffer));
+            if (!buffer.isEmpty())
+                messages.append(Message::decode(buffer));
             buffer.clear();
             start = i + 1;
         }

@@ -27,5 +27,5 @@ private slots:
     void onMessageReceived(const shared::Message& msg);
 
 private:
-    void appendMessage(const QString& text);
+    void appendMessage(const QString& sender, const QString& text);
 };

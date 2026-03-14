@@ -1,4 +1,5 @@
 #include <QCoreApplication>
+#include <QProcessEnvironment>
 #include <QTextStream>
 #include <QFile>
 #include <QStringList>
@@ -43,8 +44,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	TcpServer server;
-	if (!server.start())
+	const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+	const uint16_t port = env.contains("PORT") ? env.value("PORT").toUShort() : 8080;
+
+	TcpServer& server = TcpServer::instance();
+	if (!server.start(port))
 	{
 		qFatal() << "An error occurred when starting the server";
 		return 1;
