@@ -5,7 +5,9 @@ CREATE TABLE chats (
     title TEXT,                              
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    FOREIGN KEY (created_by) 
+        REFERENCES users(id) 
+        ON DELETE SET NULL
 );
 
 CREATE TABLE chat_members (
@@ -13,6 +15,12 @@ CREATE TABLE chat_members (
     user_id UUID NOT NULL,
 
     PRIMARY KEY (chat_id, user_id),
-    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+
+    FOREIGN KEY (chat_id) 
+        REFERENCES chats(id) 
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE
 );
