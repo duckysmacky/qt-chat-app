@@ -3,6 +3,9 @@
 #include <QSqlError>
 #include <QProcessEnvironment>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QSqlError>
 
 Database& Database::instance()
 {
@@ -54,4 +57,39 @@ Database::~Database()
 
 	m_db = QSqlDatabase();
 	QSqlDatabase::removeDatabase(m_connectionName);
+}
+
+bool Database::init(){
+	if (!m_db.isOpen()){
+		return false;
+	}
+
+	QDir dir("migrations");
+
+	QStringList files = dir.entryList({"*.sql"}, QDir::Files, QDir::Name);
+
+	if (!m_db.transaction()) return false;
+
+	for (const QString & fileName: files){
+		QString path = dir.filePath(fileName);
+
+		QFile file{path};
+
+		if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			m_db.rollback();
+			return false;
+		}
+
+		QString sql = file.readAll();
+		file.close();
+
+		QSqlQuery query(m_db);
+		if (!query.exec(sql)) {
+			m_db.rollback();
+			return false;
+		}
+	}
+	m_db.commit();
+	qInfo() << "all migrations executed";
+	return true;
 }
