@@ -16,6 +16,8 @@ public:
 	bool connect();
 	bool isConnected() const;
 
+	bool init();
+
 	Database(const Database& other) = delete;
     Database& operator =(const Database& other) = delete;
 	Database(Database&& other) = delete;
