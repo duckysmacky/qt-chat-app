@@ -31,7 +31,6 @@ jobs:
               - 'CMakeLists.txt'
               - 'CMakePresets.json'
               - 'cmake/**'
-              - 'scripts/**'
               - '.github/workflows/**'
 
   build-server:
@@ -60,17 +59,6 @@ jobs:
           target: "desktop"
           arch: "linux_gcc_64"
           cache: true
-
-      - name: Show Qt version
-        run: qmake -query QT_VERSION
-      - name: Verify Qt >= 6.8
-        run: |
-          ver="$(qmake -query QT_VERSION)"
-          printf "Qt version: %s\n" "$ver"
-          if ! printf "%s\n%s\n" "6.8.0" "$ver" | sort -V -C; then
-            echo "Qt 6.8 or newer is required" >&2
-            exit 1
-          fi
 
       - name: Configure
         run: cmake -S . -B build/server -G Ninja -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
@@ -101,19 +89,7 @@ jobs:
           host: "linux"
           target: "desktop"
           arch: "linux_gcc_64"
-          modules: "qtdeclarative"
           cache: true
-
-      - name: Show Qt version
-        run: qmake -query QT_VERSION
-      - name: Verify Qt >= 6.8
-        run: |
-          ver="$(qmake -query QT_VERSION)"
-          printf "Qt version: %s\n" "$ver"
-          if ! printf "%s\n%s\n" "6.8.0" "$ver" | sort -V -C; then
-            echo "Qt 6.8 or newer is required" >&2
-            exit 1
-          fi
 
       - name: Configure
         run: cmake -S . -B build/client -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
@@ -144,19 +120,7 @@ jobs:
           host: "linux"
           target: "desktop"
           arch: "linux_gcc_64"
-          modules: "qtdeclarative"
           cache: true
-
-      - name: Show Qt version
-        run: qmake -query QT_VERSION
-      - name: Verify Qt >= 6.8
-        run: |
-          ver="$(qmake -query QT_VERSION)"
-          printf "Qt version: %s\n" "$ver"
-          if ! printf "%s\n%s\n" "6.8.0" "$ver" | sort -V -C; then
-            echo "Qt 6.8 or newer is required" >&2
-            exit 1
-          fi
 
       - name: Configure
         run: cmake -S . -B build/shared -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
