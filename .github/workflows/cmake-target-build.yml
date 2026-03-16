@@ -1,0 +1,106 @@
+name: CMake Target Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
+      shared: ${{ steps.filter.outputs.shared }}
+      global: ${{ steps.filter.outputs.global }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            server:
+              - 'server/**'
+            client:
+              - 'client/**'
+            shared:
+              - 'shared/**'
+            global:
+              - 'CMakeLists.txt'
+              - 'CMakePresets.json'
+              - 'cmake/**'
+              - 'scripts/**'
+              - '.github/workflows/**'
+
+  build-server:
+    name: Build server target
+    needs: changes
+    if: needs.changes.outputs.server == 'true' || needs.changes.outputs.shared == 'true' || needs.changes.outputs.global == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            qt6-base-dev-tools
+
+      - name: Configure
+        run: cmake -S . -B build/server -G Ninja -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON
+
+      - name: Build server
+        run: cmake --build build/server --target server_app --parallel
+
+  build-client:
+    name: Build client target
+    needs: changes
+    if: needs.changes.outputs.client == 'true' || needs.changes.outputs.shared == 'true' || needs.changes.outputs.global == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            qt6-declarative-dev
+
+      - name: Configure
+        run: cmake -S . -B build/client -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF
+
+      - name: Build client
+        run: cmake --build build/client --target client_app --parallel
+
+  build-shared:
+    name: Build shared target
+    needs: changes
+    if: needs.changes.outputs.shared == 'true' || needs.changes.outputs.global == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            qt6-declarative-dev
+
+      - name: Configure
+        run: cmake -S . -B build/shared -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF
+
+      - name: Build shared
+        run: cmake --build build/shared --target shared --parallel
