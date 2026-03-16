@@ -38,27 +38,42 @@ jobs:
     name: Build server target
     needs: changes
     if: needs.changes.outputs.server == 'true' || needs.changes.outputs.shared == 'true' || needs.changes.outputs.global == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
             cmake \
             ninja-build \
-            qt6-base-dev \
-            qt6-base-dev-tools \
             libpq-dev \
             libqt6sql6-psql
 
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.*"
+          host: "linux"
+          target: "desktop"
+          arch: "linux_gcc_64"
+          cache: true
+
       - name: Show Qt version
-        run: qmake6 -query QT_VERSION
+        run: qmake -query QT_VERSION
+      - name: Verify Qt >= 6.8
+        run: |
+          ver="$(qmake -query QT_VERSION)"
+          printf "Qt version: %s\n" "$ver"
+          if ! printf "%s\n%s\n" "6.8.0" "$ver" | sort -V -C; then
+            echo "Qt 6.8 or newer is required" >&2
+            exit 1
+          fi
 
       - name: Configure
-        run: cmake -S . -B build/server -G Ninja -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON
+        run: cmake -S . -B build/server -G Ninja -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 
       - name: Build server
         run: cmake --build build/server --target server_app --parallel
@@ -67,26 +82,41 @@ jobs:
     name: Build client target
     needs: changes
     if: needs.changes.outputs.client == 'true' || needs.changes.outputs.shared == 'true' || needs.changes.outputs.global == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
             cmake \
-            ninja-build \
-            qt6-base-dev \
-            qt6-base-dev-tools \
-            qt6-declarative-dev
+            ninja-build
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.*"
+          host: "linux"
+          target: "desktop"
+          arch: "linux_gcc_64"
+          modules: "qtdeclarative"
+          cache: true
 
       - name: Show Qt version
-        run: qmake6 -query QT_VERSION
+        run: qmake -query QT_VERSION
+      - name: Verify Qt >= 6.8
+        run: |
+          ver="$(qmake -query QT_VERSION)"
+          printf "Qt version: %s\n" "$ver"
+          if ! printf "%s\n%s\n" "6.8.0" "$ver" | sort -V -C; then
+            echo "Qt 6.8 or newer is required" >&2
+            exit 1
+          fi
 
       - name: Configure
-        run: cmake -S . -B build/client -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF
+        run: cmake -S . -B build/client -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 
       - name: Build client
         run: cmake --build build/client --target client_app --parallel
@@ -95,26 +125,41 @@ jobs:
     name: Build shared target
     needs: changes
     if: needs.changes.outputs.shared == 'true' || needs.changes.outputs.global == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential \
             cmake \
-            ninja-build \
-            qt6-base-dev \
-            qt6-base-dev-tools \
-            qt6-declarative-dev
+            ninja-build
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.*"
+          host: "linux"
+          target: "desktop"
+          arch: "linux_gcc_64"
+          modules: "qtdeclarative"
+          cache: true
 
       - name: Show Qt version
-        run: qmake6 -query QT_VERSION
+        run: qmake -query QT_VERSION
+      - name: Verify Qt >= 6.8
+        run: |
+          ver="$(qmake -query QT_VERSION)"
+          printf "Qt version: %s\n" "$ver"
+          if ! printf "%s\n%s\n" "6.8.0" "$ver" | sort -V -C; then
+            echo "Qt 6.8 or newer is required" >&2
+            exit 1
+          fi
 
       - name: Configure
-        run: cmake -S . -B build/shared -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF
+        run: cmake -S . -B build/shared -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 
       - name: Build shared
         run: cmake --build build/shared --target shared --parallel
