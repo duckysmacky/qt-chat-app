@@ -11,19 +11,19 @@ void loadEnvFile(const QString& filePath)
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-	    qCritical() << "Unable to open .env file:" << file.errorString();
-    	return;
+        qCritical() << "Unable to open .env file:" << file.errorString();
+        return;
     }
 
     QTextStream fileStream(&file);
     while (!fileStream.atEnd())
-	{
+    {
         QString line = fileStream.readLine().trimmed();
         if (line.isEmpty() || line.startsWith('#')) continue;
 
         QStringList parts = line.split('=');
-        if (parts.size() >= 2) 
-		{
+        if (parts.size() >= 2)
+        {
             QString key = parts.at(0).trimmed();
             QString value = parts.at(1).trimmed();
 
@@ -34,25 +34,25 @@ void loadEnvFile(const QString& filePath)
 
 int main(int argc, char* argv[])
 {
-	QCoreApplication app(argc, argv);
-	loadEnvFile(".env");
+    QCoreApplication app(argc, argv);
+    loadEnvFile(".env");
 
-	Database& db = Database::instance();
-	if (!db.connect())
-	{
-		qFatal() << "A connection to the database is required for the sever to start";
-		return 1;
-	}
+    Database& db = Database::instance();
+    if (!db.connect())
+    {
+        qFatal() << "A connection to the database is required for the sever to start";
+        return 1;
+    }
 
-	const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-	const uint16_t port = env.contains("PORT") ? env.value("PORT").toUShort() : 8080;
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const uint16_t port = env.contains("PORT") ? env.value("PORT").toUShort() : 8080;
 
-	TcpServer& server = TcpServer::instance();
-	if (!server.start(port))
-	{
-		qFatal() << "An error occurred when starting the server";
-		return 1;
-	}
+    TcpServer& server = TcpServer::instance();
+    if (!server.start(port))
+    {
+        qFatal() << "An error occurred when starting the server";
+        return 1;
+    }
 
-  return QCoreApplication::exec();
+    return QCoreApplication::exec();
 }

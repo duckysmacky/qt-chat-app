@@ -33,12 +33,12 @@ public:
 
     ~TcpServer() override;
 
-	bool start(uint16_t port = 8080);
+    bool start(uint16_t port = 8080);
     void stop() const;
     void sendMessage(const QUuid& target, const shared::Message& msg) const;
     void broadcast(const QString& text) const;
 
-	bool isRunning() const { return m_isRunning; }
+    bool isRunning() const { return m_isRunning; }
 
 public slots:
     void onNewConnection();

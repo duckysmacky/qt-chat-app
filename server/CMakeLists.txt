@@ -2,14 +2,14 @@ find_package(Qt6 REQUIRED COMPONENTS Sql)
 
 qt_add_executable(server_app
     src/main.cpp
-		src/TcpServer.cpp
-		src/TcpServer.h
-		src/Database.cpp
-		src/Database.h
-		src/ConsoleReader.cpp
-		src/ConsoleReader.h
-		src/middleware.h
-		src/middleware.cpp
+        src/TcpServer.cpp
+        src/TcpServer.h
+        src/Database.cpp
+        src/Database.h
+        src/ConsoleReader.cpp
+        src/ConsoleReader.h
+        src/middleware.h
+        src/middleware.cpp
 )
 
 target_link_libraries(server_app PRIVATE
