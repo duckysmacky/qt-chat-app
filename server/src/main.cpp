@@ -44,6 +44,12 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	if (!db.init())
+	{
+		qFatal() << "Failed to initialize the database";
+		return 1;
+	}
+
 	const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 	const uint16_t port = env.contains("PORT") ? env.value("PORT").toUShort() : 8080;
 
