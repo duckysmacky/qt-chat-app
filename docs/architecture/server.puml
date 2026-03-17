@@ -1,0 +1,178 @@
+@startuml ServerArchitecture
+skinparam classAttributeIconSize 0
+
+package "server" {
+
+class TcpServer {
+  - ConnectionAcceptor m_acceptor
+  - ClientRegistry m_clientRegistry
+  - MessageRouter m_router
+  - ConsoleReader m_consoleReader
+  - bool m_running
+  - TcpServer(QObject* parent = nullptr)
+  + {static} TcpServer& instance()
+  + ~TcpServer()
+  + TcpServer(const TcpServer&) = delete
+  + TcpServer& operator=(const TcpServer&) = delete
+  + TcpServer(TcpServer&&) = delete
+  + TcpServer& operator=(TcpServer&&) = delete
+  + bool start(uint16_t port = 8080)
+  + void stop()
+  + bool isRunning() const
+}
+
+class ConnectionAcceptor {
+  - AuthService* m_authService
+  - ClientRegistry* m_clientRegistry
+  + ConnectionAcceptor(QObject* parent = nullptr)
+  + ~ConnectionAcceptor()
+  + void onSocketConnected()
+  + void onSocketDisconnected(QUuid clientId)
+  + void onBytesReceived(QUuid clientId, QByteArray bytes)
+}
+
+class Client {
+  - QUuid m_clientId
+  - QString m_displayName
+  - ConnectionState m_state
+  - QDateTime m_connectedAt
+  - QByteArray m_pendingBytes
+  + Client(QUuid clientId, QString displayName = "")
+  + ~Client()
+  + QUuid clientId() const
+  + bool isAuthenticated() const
+  + void setState(ConnectionState state)
+}
+
+class ClientConnection {
+  - QUuid m_clientId
+  - bool m_alive
+  + ClientConnection(QUuid clientId)
+  + ~ClientConnection()
+  + void sendFrame(QByteArray frame)
+  + void close()
+}
+
+class ClientSession {
+  - Client m_client
+  - ClientConnection* m_connection
+  + ClientSession(Client client, ClientConnection* connection)
+  + ~ClientSession()
+  + QUuid clientId() const
+  + bool isOnline() const
+}
+
+class ClientRegistry {
+  - QHash<QUuid, ClientSession*> m_sessions
+  + ClientRegistry()
+  + ~ClientRegistry()
+  + bool registerSession(ClientSession* session)
+  + void unregisterSession(QUuid clientId)
+  + ClientSession* sessionById(QUuid clientId) const
+  + QList<ClientSession*> onlineSessions() const
+}
+
+class AuthService {
+  - Database* m_database
+  + AuthService(Database* db)
+  + ~AuthService()
+  + AuthResult authenticateConnect(MessageEnvelope envelope)
+  + bool ensureAccount(QUuid clientId)
+}
+
+class MessageRouter {
+  - ClientRegistry* m_clientRegistry
+  - ChatService* m_chatService
+  + MessageRouter(ClientRegistry* registry, ChatService* chatService)
+  + ~MessageRouter()
+  + void routeIncoming(MessageEnvelope envelope)
+  + void sendTo(QUuid targetClient, MessageEnvelope envelope)
+  + void broadcast(MessageEnvelope envelope)
+}
+
+class ChatService {
+  - Database* m_database
+  + ChatService(Database* db)
+  + ~ChatService()
+  + MessageEnvelope handleChatMessage(MessageEnvelope envelope)
+  + QList<ChatMessageModel> history(QUuid userA, QUuid userB) const
+}
+
+class CommandService {
+  - ClientRegistry* m_clientRegistry
+  + CommandService(ClientRegistry* registry)
+  + ~CommandService()
+  + void handleServerCommand(QString line)
+}
+
+class Database {
+  - QSqlDatabase m_db
+  - QString m_connectionName
+  - bool m_initialized
+  - Database()
+  + {static} Database& instance()
+  + ~Database()
+  + bool connect()
+  + bool isConnected() const
+  + bool ensureAccount(AccountModel account)
+  + AccountModel findAccount(QUuid accountId) const
+  + ConversationModel ensureDirectConversation(QUuid userA, QUuid userB)
+  + QList<ConversationModel> listUserConversations(QUuid userId) const
+  + ChatMessageModel insertMessage(ChatMessageModel message)
+  + QList<ChatMessageModel> messageHistory(QUuid conversationId, int limit) const
+}
+
+class ConsoleReader {
+  + ConsoleReader(QObject* parent = nullptr)
+  + ~ConsoleReader()
+  + void stop()
+}
+
+namespace middleware {
+  + bool validateEnvelope(MessageEnvelope envelope)
+  + bool ensureKnownClient(ClientRegistry registry, QUuid clientId)
+  + bool ensureAuthorizedTarget(ClientRegistry registry, MessageEnvelope envelope)
+  + MessageEnvelope normalizePayload(MessageEnvelope envelope)
+  + void auditIncoming(MessageEnvelope envelope)
+}
+
+}
+
+note bottom of TcpServer
+Meyers singleton: instance() returns a function-local static TcpServer.
+end note
+
+note bottom of Database
+Meyers singleton: instance() returns a function-local static Database.
+All persistence queries are centralized in Database.cpp (no repository layer).
+end note
+
+TcpServer *-- ConnectionAcceptor
+TcpServer *-- ClientRegistry
+TcpServer *-- MessageRouter
+TcpServer *-- ConsoleReader
+
+ConnectionAcceptor --> AuthService
+ConnectionAcceptor --> ClientRegistry
+ConnectionAcceptor --> MessageRouter
+
+ClientSession *-- Client
+ClientSession *-- ClientConnection
+ClientRegistry *-- ClientSession
+
+MessageRouter --> ClientRegistry
+MessageRouter --> ChatService
+MessageRouter --> CommandService
+
+AuthService --> Database
+ChatService --> Database
+
+Database --> AccountModel
+Database --> ConversationModel
+Database --> ChatMessageModel
+
+ConnectionAcceptor ..> middleware
+MessageRouter ..> middleware
+ChatService ..> middleware
+
+@enduml

@@ -1,0 +1,187 @@
+@startuml ClientArchitecture
+skinparam classAttributeIconSize 0
+
+package "client" {
+
+class Client {
+  - ConnectionController m_connectionController
+  - SessionStore m_sessionStore
+  - MessageDispatcher m_dispatcher
+  - ChatRepository m_chatRepository
+  - QUuid m_uuid
+  - bool m_connected
+  - Client(QObject* parent = nullptr)
+  + {static} Client& instance()
+  + ~Client()
+  + Client(const Client&) = delete
+  + Client& operator=(const Client&) = delete
+  + Client(Client&&) = delete
+  + Client& operator=(Client&&) = delete
+  + void connectTo(QString host, int port)
+  + void disconnect()
+  + void sendText(QUuid targetUserId, QString text)
+  + void sendCommand(QString command)
+  + QUuid uuid() const
+  + bool connected() const
+}
+
+class MessengerWindow {
+  - ConnectDialog* m_connectDialog
+  - ContactListPanel* m_contactPanel
+  - ChatView* m_chatView
+  - StatusBarView* m_statusBar
+  + MessengerWindow(QObject* parent = nullptr)
+  + ~MessengerWindow()
+  + void initialize()
+  + void openConnectDialog()
+  + void openConversation(QUuid peerId)
+}
+
+class ConnectDialog {
+  - QString m_host
+  - int m_port
+  + ConnectDialog(QObject* parent = nullptr)
+  + ~ConnectDialog()
+  + void submitConnection()
+  + void cancel()
+}
+
+class ContactListPanel {
+  - QList<ContactButton*> m_contactButtons
+  - QUuid m_selectedPeer
+  + ContactListPanel(QObject* parent = nullptr)
+  + ~ContactListPanel()
+  + void setContacts(QList<ContactSummary> contacts)
+  + void addContact(QUuid peerId, QString displayName)
+  + QUuid selectedPeer() const
+}
+
+class ContactButton {
+  - QUuid m_peerId
+  - QString m_displayName
+  - int m_unreadCount
+  + ContactButton(QUuid peerId, QString displayName)
+  + ~ContactButton()
+  + void setSelected(bool selected)
+  + void setUnreadCount(int count)
+  + QUuid peerId() const
+}
+
+class ChatView {
+  - QUuid m_activePeer
+  - QList<MessageBubble*> m_bubbles
+  + ChatView(QObject* parent = nullptr)
+  + ~ChatView()
+  + void setConversation(QUuid peerId)
+  + void appendBubble(ChatMessageModel message)
+  + void submitText(QString text)
+  + void loadHistory(QList<ChatMessageModel> history)
+}
+
+class MessageBubble {
+  - ChatMessageModel m_message
+  - bool m_outgoing
+  + MessageBubble(ChatMessageModel message, bool outgoing)
+  + ~MessageBubble()
+  + void setDeliveryState(DeliveryState state)
+  + ChatMessageModel message() const
+}
+
+class StatusBarView {
+  - QString m_connectionText
+  - QString m_syncText
+  + StatusBarView(QObject* parent = nullptr)
+  + ~StatusBarView()
+  + void setConnectionText(QString text)
+  + void setSyncText(QString text)
+}
+
+class ConnectionController {
+  - NetworkClient m_networkClient
+  - ClientProtocolAdapter m_protocol
+  + ConnectionController(QObject* parent = nullptr)
+  + ~ConnectionController()
+  + void connectTo(QString host, int port)
+  + void disconnect()
+  + bool isConnected() const
+}
+
+class NetworkClient {
+  - QByteArray m_readBuffer
+  + NetworkClient(QObject* parent = nullptr)
+  + ~NetworkClient()
+  + void open(QString host, int port)
+  + void close()
+  + void writeFrame(QByteArray frame)
+}
+
+class ClientProtocolAdapter {
+  + ClientProtocolAdapter()
+  + QByteArray makeFrame(MessageEnvelope message)
+  + QList<MessageEnvelope> parseFrames(QByteArray bytes)
+}
+
+class MessageDispatcher {
+  - ChatRepository* m_chatRepository
+  - SessionStore* m_sessionStore
+  + MessageDispatcher(ChatRepository* repo, SessionStore* store)
+  + ~MessageDispatcher()
+  + void processIncoming(MessageEnvelope envelope)
+  + void processOutgoing(MessageEnvelope envelope)
+}
+
+class ChatRepository {
+  - QHash<QUuid, QList<ChatMessageModel>> m_history
+  + ChatRepository()
+  + ~ChatRepository()
+  + void appendMessage(ChatMessageModel message)
+  + QList<ChatMessageModel> historyFor(QUuid peerId) const
+  + void markRead(QUuid peerId)
+}
+
+class SessionStore {
+  - QUuid m_currentUserId
+  - QUuid m_activePeerId
+  - QHash<QUuid, ContactSummary> m_contacts
+  + SessionStore()
+  + ~SessionStore()
+  + void setCurrentUser(QUuid userId)
+  + void setActivePeer(QUuid peerId)
+  + void upsertContact(ContactSummary contact)
+  + ContactSummary contactById(QUuid peerId) const
+}
+
+}
+
+note bottom of Client
+Meyers singleton: instance() returns a function-local static Client.
+Client here is a client-side singleton service and is distinct from server::Client.
+end note
+
+MessengerWindow *-- ConnectDialog
+MessengerWindow *-- ContactListPanel
+MessengerWindow *-- ChatView
+MessengerWindow *-- StatusBarView
+ContactListPanel *-- ContactButton
+ChatView *-- MessageBubble
+
+Client *-- ConnectionController
+Client *-- SessionStore
+Client *-- MessageDispatcher
+Client *-- ChatRepository
+
+ConnectionController *-- NetworkClient
+ConnectionController *-- ClientProtocolAdapter
+MessageDispatcher --> ChatRepository
+MessageDispatcher --> SessionStore
+
+MessengerWindow --> Client
+ConnectDialog --> Client
+ContactListPanel --> SessionStore
+ChatView --> Client
+ChatView --> ChatRepository
+MessageBubble --> ChatMessageModel
+ContactListPanel --> ContactSummary
+ClientProtocolAdapter --> MessageEnvelope
+
+@enduml

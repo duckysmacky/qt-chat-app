@@ -1,0 +1,159 @@
+@startuml SharedArchitecture
+skinparam classAttributeIconSize 0
+
+package "shared" {
+
+enum MessageType {
+  Text
+  Command
+  Connect
+  AuthResult
+  HistoryRequest
+  HistoryResponse
+}
+
+enum DeliveryState {
+  Pending
+  Sent
+  Delivered
+  Read
+  Failed
+}
+
+enum AttachmentType {
+  None
+  Image
+  File
+}
+
+class Message {
+  - MessageType m_type
+  - QUuid m_sender
+  - QString m_content
+  + Message(MessageType type, QUuid sender, QString content = "")
+  + ~Message()
+  + {static} Message decode(QByteArray bytes)
+  + QByteArray encode() const
+  + MessageType type() const
+  + QUuid sender() const
+  + QString content() const
+}
+
+class MessageEnvelope {
+  - MessageType m_type
+  - QUuid m_senderId
+  - QUuid m_targetId
+  - QDateTime m_timestamp
+  - QString m_payload
+  + MessageEnvelope()
+  + ~MessageEnvelope()
+  + bool isValid() const
+}
+
+class AccountModel {
+  - QUuid m_accountId
+  - QString m_displayName
+  - QDateTime m_createdAt
+  + AccountModel()
+  + ~AccountModel()
+}
+
+class ConversationModel {
+  - QUuid m_conversationId
+  - QUuid m_ownerId
+  - QUuid m_peerId
+  - QDateTime m_createdAt
+  + ConversationModel()
+  + ~ConversationModel()
+}
+
+class ChatMessageModel {
+  - QUuid m_messageId
+  - QUuid m_conversationId
+  - QUuid m_senderId
+  - QString m_text
+  - AttachmentType m_attachmentType
+  - QString m_attachmentUrl
+  - DeliveryState m_deliveryState
+  - QDateTime m_createdAt
+  + ChatMessageModel()
+  + ~ChatMessageModel()
+}
+
+class ContactSummary {
+  - QUuid m_peerId
+  - QString m_displayName
+  - QString m_lastMessagePreview
+  - int m_unreadCount
+  + ContactSummary()
+  + ~ContactSummary()
+}
+
+class AuthResult {
+  - bool m_success
+  - QString m_reason
+  - QUuid m_accountId
+  + AuthResult()
+  + ~AuthResult()
+}
+
+class ConversationParticipantModel {
+  - QUuid m_conversationId
+  - QUuid m_accountId
+  - QDateTime m_joinedAt
+  + ConversationParticipantModel()
+  + ~ConversationParticipantModel()
+}
+
+class AttachmentModel {
+  - QUuid m_attachmentId
+  - QUuid m_messageId
+  - AttachmentType m_type
+  - QString m_storagePath
+  - QString m_originalName
+  + AttachmentModel()
+  + ~AttachmentModel()
+}
+
+class MessageMapper {
+  + MessageMapper()
+  + {static} MessageEnvelope toEnvelope(Message message)
+  + {static} Message toLegacy(MessageEnvelope envelope)
+}
+
+namespace util {
+  + QList<Message> parse(QByteArray bytes)
+  + QList<MessageEnvelope> parseFrames(QByteArray bytes)
+  + QByteArray joinFrames(QList<MessageEnvelope> frames)
+}
+
+namespace protocol {
+  + QByteArray encodeEnvelope(MessageEnvelope envelope)
+  + MessageEnvelope decodeEnvelope(QByteArray bytes)
+  + bool isDelimiter(char byte)
+}
+
+namespace validation {
+  + bool isValidUuid(QString raw)
+  + bool isMessagePayloadValid(QString payload)
+  + bool isCommandAllowed(QString command)
+}
+
+}
+
+MessageMapper --> Message
+MessageMapper --> MessageEnvelope
+
+ConversationModel --> AccountModel
+ConversationParticipantModel --> ConversationModel
+ConversationParticipantModel --> AccountModel
+ChatMessageModel --> ConversationModel
+ChatMessageModel --> AttachmentModel
+ContactSummary --> ChatMessageModel
+
+util ..> Message
+util ..> MessageEnvelope
+protocol ..> MessageEnvelope
+validation ..> MessageEnvelope
+
+@enduml
