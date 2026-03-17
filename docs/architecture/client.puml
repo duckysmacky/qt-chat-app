@@ -1,9 +1,14 @@
 @startuml ClientArchitecture
 skinparam classAttributeIconSize 0
 
+legend right
+  <<QObject>> QObject-derived class
+  <<C++>> Pure C++ class (non-QObject)
+endlegend
+
 package "client" {
 
-class Client {
+class Client <<QObject>> {
   - ConnectionController m_connectionController
   - SessionStore m_sessionStore
   - MessageDispatcher m_dispatcher
@@ -25,7 +30,7 @@ class Client {
   + bool connected() const
 }
 
-class MessengerWindow {
+class MessengerWindow <<QObject>> {
   - ConnectDialog* m_connectDialog
   - ContactListPanel* m_contactPanel
   - ChatView* m_chatView
@@ -37,7 +42,7 @@ class MessengerWindow {
   + void openConversation(QUuid peerId)
 }
 
-class ConnectDialog {
+class ConnectDialog <<QObject>> {
   - QString m_host
   - int m_port
   + ConnectDialog(QObject* parent = nullptr)
@@ -46,7 +51,7 @@ class ConnectDialog {
   + void cancel()
 }
 
-class ContactListPanel {
+class ContactListPanel <<QObject>> {
   - QList<ContactButton*> m_contactButtons
   - QUuid m_selectedPeer
   + ContactListPanel(QObject* parent = nullptr)
@@ -56,7 +61,7 @@ class ContactListPanel {
   + QUuid selectedPeer() const
 }
 
-class ContactButton {
+class ContactButton <<QObject>> {
   - QUuid m_peerId
   - QString m_displayName
   - int m_unreadCount
@@ -67,7 +72,7 @@ class ContactButton {
   + QUuid peerId() const
 }
 
-class ChatView {
+class ChatView <<QObject>> {
   - QUuid m_activePeer
   - QList<MessageBubble*> m_bubbles
   + ChatView(QObject* parent = nullptr)
@@ -78,7 +83,7 @@ class ChatView {
   + void loadHistory(QList<ChatMessageModel> history)
 }
 
-class MessageBubble {
+class MessageBubble <<QObject>> {
   - ChatMessageModel m_message
   - bool m_outgoing
   + MessageBubble(ChatMessageModel message, bool outgoing)
@@ -87,7 +92,7 @@ class MessageBubble {
   + ChatMessageModel message() const
 }
 
-class StatusBarView {
+class StatusBarView <<QObject>> {
   - QString m_connectionText
   - QString m_syncText
   + StatusBarView(QObject* parent = nullptr)
@@ -96,7 +101,7 @@ class StatusBarView {
   + void setSyncText(QString text)
 }
 
-class ConnectionController {
+class ConnectionController <<QObject>> {
   - NetworkClient m_networkClient
   - ClientProtocolAdapter m_protocol
   + ConnectionController(QObject* parent = nullptr)
@@ -106,7 +111,7 @@ class ConnectionController {
   + bool isConnected() const
 }
 
-class NetworkClient {
+class NetworkClient <<QObject>> {
   - QByteArray m_readBuffer
   + NetworkClient(QObject* parent = nullptr)
   + ~NetworkClient()
@@ -115,13 +120,13 @@ class NetworkClient {
   + void writeFrame(QByteArray frame)
 }
 
-class ClientProtocolAdapter {
+class ClientProtocolAdapter <<C++>> {
   + ClientProtocolAdapter()
   + QByteArray makeFrame(MessageEnvelope message)
   + QList<MessageEnvelope> parseFrames(QByteArray bytes)
 }
 
-class MessageDispatcher {
+class MessageDispatcher <<C++>> {
   - ChatRepository* m_chatRepository
   - SessionStore* m_sessionStore
   + MessageDispatcher(ChatRepository* repo, SessionStore* store)
@@ -130,7 +135,7 @@ class MessageDispatcher {
   + void processOutgoing(MessageEnvelope envelope)
 }
 
-class ChatRepository {
+class ChatRepository <<C++>> {
   - QHash<QUuid, QList<ChatMessageModel>> m_history
   + ChatRepository()
   + ~ChatRepository()
@@ -139,7 +144,7 @@ class ChatRepository {
   + void markRead(QUuid peerId)
 }
 
-class SessionStore {
+class SessionStore <<C++>> {
   - QUuid m_currentUserId
   - QUuid m_activePeerId
   - QHash<QUuid, ContactSummary> m_contacts

@@ -1,9 +1,14 @@
 @startuml ServerArchitecture
 skinparam classAttributeIconSize 0
 
+legend right
+  <<QObject>> QObject-derived class
+  <<C++>> Pure C++ class (non-QObject)
+endlegend
+
 package "server" {
 
-class TcpServer {
+class TcpServer <<QObject>> {
   - ConnectionAcceptor m_acceptor
   - ClientRegistry m_clientRegistry
   - MessageRouter m_router
@@ -21,7 +26,7 @@ class TcpServer {
   + bool isRunning() const
 }
 
-class ConnectionAcceptor {
+class ConnectionAcceptor <<QObject>> {
   - AuthService* m_authService
   - ClientRegistry* m_clientRegistry
   + ConnectionAcceptor(QObject* parent = nullptr)
@@ -31,7 +36,7 @@ class ConnectionAcceptor {
   + void onBytesReceived(QUuid clientId, QByteArray bytes)
 }
 
-class Client {
+class Client <<C++>> {
   - QUuid m_clientId
   - QString m_displayName
   - ConnectionState m_state
@@ -44,7 +49,7 @@ class Client {
   + void setState(ConnectionState state)
 }
 
-class ClientConnection {
+class ClientConnection <<C++>> {
   - QUuid m_clientId
   - bool m_alive
   + ClientConnection(QUuid clientId)
@@ -53,7 +58,7 @@ class ClientConnection {
   + void close()
 }
 
-class ClientSession {
+class ClientSession <<C++>> {
   - Client m_client
   - ClientConnection* m_connection
   + ClientSession(Client client, ClientConnection* connection)
@@ -62,7 +67,7 @@ class ClientSession {
   + bool isOnline() const
 }
 
-class ClientRegistry {
+class ClientRegistry <<C++>> {
   - QHash<QUuid, ClientSession*> m_sessions
   + ClientRegistry()
   + ~ClientRegistry()
@@ -72,7 +77,7 @@ class ClientRegistry {
   + QList<ClientSession*> onlineSessions() const
 }
 
-class AuthService {
+class AuthService <<C++>> {
   - Database* m_database
   + AuthService(Database* db)
   + ~AuthService()
@@ -80,7 +85,7 @@ class AuthService {
   + bool ensureAccount(QUuid clientId)
 }
 
-class MessageRouter {
+class MessageRouter <<C++>> {
   - ClientRegistry* m_clientRegistry
   - ChatService* m_chatService
   + MessageRouter(ClientRegistry* registry, ChatService* chatService)
@@ -90,7 +95,7 @@ class MessageRouter {
   + void broadcast(MessageEnvelope envelope)
 }
 
-class ChatService {
+class ChatService <<C++>> {
   - Database* m_database
   + ChatService(Database* db)
   + ~ChatService()
@@ -98,14 +103,14 @@ class ChatService {
   + QList<ChatMessageModel> history(QUuid userA, QUuid userB) const
 }
 
-class CommandService {
+class CommandService <<C++>> {
   - ClientRegistry* m_clientRegistry
   + CommandService(ClientRegistry* registry)
   + ~CommandService()
   + void handleServerCommand(QString line)
 }
 
-class Database {
+class Database <<C++>> {
   - QSqlDatabase m_db
   - QString m_connectionName
   - bool m_initialized
@@ -122,7 +127,7 @@ class Database {
   + QList<ChatMessageModel> messageHistory(QUuid conversationId, int limit) const
 }
 
-class ConsoleReader {
+class ConsoleReader <<QObject>> {
   + ConsoleReader(QObject* parent = nullptr)
   + ~ConsoleReader()
   + void stop()

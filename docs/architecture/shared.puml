@@ -1,6 +1,11 @@
 @startuml SharedArchitecture
 skinparam classAttributeIconSize 0
 
+legend right
+  <<QObject>> QObject-derived class
+  <<C++>> Pure C++ class (non-QObject)
+endlegend
+
 package "shared" {
 
 enum MessageType {
@@ -26,7 +31,7 @@ enum AttachmentType {
   File
 }
 
-class Message {
+class Message <<C++>> {
   - MessageType m_type
   - QUuid m_sender
   - QString m_content
@@ -39,7 +44,7 @@ class Message {
   + QString content() const
 }
 
-class MessageEnvelope {
+class MessageEnvelope <<C++>> {
   - MessageType m_type
   - QUuid m_senderId
   - QUuid m_targetId
@@ -50,7 +55,7 @@ class MessageEnvelope {
   + bool isValid() const
 }
 
-class AccountModel {
+class AccountModel <<C++>> {
   - QUuid m_accountId
   - QString m_displayName
   - QDateTime m_createdAt
@@ -58,7 +63,7 @@ class AccountModel {
   + ~AccountModel()
 }
 
-class ConversationModel {
+class ConversationModel <<C++>> {
   - QUuid m_conversationId
   - QUuid m_ownerId
   - QUuid m_peerId
@@ -67,7 +72,7 @@ class ConversationModel {
   + ~ConversationModel()
 }
 
-class ChatMessageModel {
+class ChatMessageModel <<C++>> {
   - QUuid m_messageId
   - QUuid m_conversationId
   - QUuid m_senderId
@@ -80,7 +85,7 @@ class ChatMessageModel {
   + ~ChatMessageModel()
 }
 
-class ContactSummary {
+class ContactSummary <<C++>> {
   - QUuid m_peerId
   - QString m_displayName
   - QString m_lastMessagePreview
@@ -89,7 +94,7 @@ class ContactSummary {
   + ~ContactSummary()
 }
 
-class AuthResult {
+class AuthResult <<C++>> {
   - bool m_success
   - QString m_reason
   - QUuid m_accountId
@@ -97,7 +102,7 @@ class AuthResult {
   + ~AuthResult()
 }
 
-class ConversationParticipantModel {
+class ConversationParticipantModel <<C++>> {
   - QUuid m_conversationId
   - QUuid m_accountId
   - QDateTime m_joinedAt
@@ -105,7 +110,7 @@ class ConversationParticipantModel {
   + ~ConversationParticipantModel()
 }
 
-class AttachmentModel {
+class AttachmentModel <<C++>> {
   - QUuid m_attachmentId
   - QUuid m_messageId
   - AttachmentType m_type
@@ -115,7 +120,7 @@ class AttachmentModel {
   + ~AttachmentModel()
 }
 
-class MessageMapper {
+class MessageMapper <<C++>> {
   + MessageMapper()
   + {static} MessageEnvelope toEnvelope(Message message)
   + {static} Message toLegacy(MessageEnvelope envelope)
