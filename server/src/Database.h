@@ -4,7 +4,7 @@
 #include <QString>
 #include <QUuid>
 #include <optional>
-#include "model.cpp"
+#include "model.h"
 
 
 
