@@ -126,24 +126,24 @@ class MessageMapper <<C++>> {
   + {static} Message toLegacy(MessageEnvelope envelope)
 }
 
-namespace util {
-  + QList<Message> parse(QByteArray bytes)
-  + QList<MessageEnvelope> parseFrames(QByteArray bytes)
-  + QByteArray joinFrames(QList<MessageEnvelope> frames)
-  + QByteArray joinMessages(QList<Message> messages)
+class Util <<C++>> {
+  + {static} QList<Message> parse(QByteArray bytes)
+  + {static} QList<MessageEnvelope> parseFrames(QByteArray bytes)
+  + {static} QByteArray joinFrames(QList<MessageEnvelope> frames)
+  + {static} QByteArray joinMessages(QList<Message> messages)
 }
 
-namespace protocol {
-  + QByteArray encodeEnvelope(MessageEnvelope envelope)
-  + MessageEnvelope decodeEnvelope(QByteArray bytes)
-  + bool isDelimiter(char byte)
-  + const char DELIMITER = '\x01'
+class Protocol <<C++>> {
+  + {static} QByteArray encodeEnvelope(MessageEnvelope envelope)
+  + {static} MessageEnvelope decodeEnvelope(QByteArray bytes)
+  + {static} bool isDelimiter(char byte)
+  + {static} const char DELIMITER
 }
 
-namespace validation {
-  + bool isValidUuid(QString raw)
-  + bool isMessagePayloadValid(QString payload)
-  + bool isCommandAllowed(QString command)
+class Validation <<C++>> {
+  + {static} bool isValidUuid(QString raw)
+  + {static} bool isMessagePayloadValid(QString payload)
+  + {static} bool isCommandAllowed(QString command)
 }
 
 }
@@ -158,12 +158,12 @@ ChatMessageModel --> ConversationModel
 ChatMessageModel --> AttachmentModel
 ContactSummary --> ChatMessageModel
 
-util ..> Message
-util ..> MessageEnvelope
-protocol ..> MessageEnvelope
-validation ..> MessageEnvelope
+Util ..> Message
+Util ..> MessageEnvelope
+Protocol ..> MessageEnvelope
+Validation ..> MessageEnvelope
 
 note bottom of Message : Used in client/server code\nencode() adds DELIMITER \x01
-note bottom of protocol : DELIMITER = \x01 used in TcpServer
+note bottom of Protocol : DELIMITER = \x01 used in TcpServer
 
 @enduml
