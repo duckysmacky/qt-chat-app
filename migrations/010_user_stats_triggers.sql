@@ -38,19 +38,23 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION stats_chat_leave()
 RETURNS TRIGGER AS $$
+BEGIN
     UPDATE user_stats
     SET chats_joined = chats_joined - 1
     WHERE user_id = OLD.user_id;
     RETURN OLD;
-$$ LANGUAGE SQL;
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION track_old_username_sql()
 RETURNS TRIGGER AS $$
+BEGIN
     UPDATE user_stats
     SET ex_usernames = COALESCE(ex_usernames, '[]'::jsonb) || to_jsonb(OLD.username)
     WHERE user_id = NEW.id;
     RETURN NEW;
-$$ LANGUAGE SQL;
+END;
+$$ LANGUAGE plpgsql;
 
 ---------------------------------------------
 
