@@ -1,0 +1,169 @@
+@startuml SharedArchitecture
+skinparam classAttributeIconSize 0
+
+legend right
+  <<QObject>> QObject-derived class
+  <<C++>> Pure C++ class (non-QObject)
+endlegend
+
+package "shared" {
+
+enum MessageType {
+  Text
+  Command
+  Connect
+  AuthResult
+  HistoryRequest
+  HistoryResponse
+}
+
+enum DeliveryState {
+  Pending
+  Sent
+  Delivered
+  Read
+  Failed
+}
+
+enum AttachmentType {
+  None
+  Image
+  File
+}
+
+class Message <<C++>> {
+  - MessageType m_type
+  - QUuid m_sender
+  - QString m_content
+  + Message(MessageType type, QUuid sender, QString content = "")
+  + ~Message()
+  + {static} Message decode(QByteArray bytes)
+  + QByteArray encode() const
+  + MessageType type() const
+  + QUuid sender() const
+  + QString content() const
+}
+
+class MessageEnvelope <<C++>> {
+  - MessageType m_type
+  - QUuid m_senderId
+  - QUuid m_targetId
+  - QDateTime m_timestamp
+  - QString m_payload
+  + MessageEnvelope()
+  + ~MessageEnvelope()
+  + bool isValid() const
+}
+
+class AccountModel <<C++>> {
+  - QUuid m_accountId
+  - QString m_displayName
+  - QDateTime m_createdAt
+  + AccountModel()
+  + ~AccountModel()
+}
+
+class ConversationModel <<C++>> {
+  - QUuid m_conversationId
+  - QUuid m_ownerId
+  - QUuid m_peerId
+  - QDateTime m_createdAt
+  + ConversationModel()
+  + ~ConversationModel()
+}
+
+class ChatMessageModel <<C++>> {
+  - QUuid m_messageId
+  - QUuid m_conversationId
+  - QUuid m_senderId
+  - QString m_text
+  - AttachmentType m_attachmentType
+  - QString m_attachmentUrl
+  - DeliveryState m_deliveryState
+  - QDateTime m_createdAt
+  + ChatMessageModel()
+  + ~ChatMessageModel()
+}
+
+class ContactSummary <<C++>> {
+  - QUuid m_peerId
+  - QString m_displayName
+  - QString m_lastMessagePreview
+  - int m_unreadCount
+  + ContactSummary()
+  + ~ContactSummary()
+}
+
+class AuthResult <<C++>> {
+  - bool m_success
+  - QString m_reason
+  - QUuid m_accountId
+  + AuthResult()
+  + ~AuthResult()
+}
+
+class ConversationParticipantModel <<C++>> {
+  - QUuid m_conversationId
+  - QUuid m_accountId
+  - QDateTime m_joinedAt
+  + ConversationParticipantModel()
+  + ~ConversationParticipantModel()
+}
+
+class AttachmentModel <<C++>> {
+  - QUuid m_attachmentId
+  - QUuid m_messageId
+  - AttachmentType m_type
+  - QString m_storagePath
+  - QString m_originalName
+  + AttachmentModel()
+  + ~AttachmentModel()
+}
+
+class MessageMapper <<C++>> {
+  + MessageMapper()
+  + {static} MessageEnvelope toEnvelope(Message message)
+  + {static} Message toLegacy(MessageEnvelope envelope)
+}
+
+class Util <<C++>> {
+  + {static} QList<Message> parse(QByteArray bytes)
+  + {static} QList<MessageEnvelope> parseFrames(QByteArray bytes)
+  + {static} QByteArray joinFrames(QList<MessageEnvelope> frames)
+  + {static} QByteArray joinMessages(QList<Message> messages)
+}
+
+class Protocol <<C++>> {
+  + {static} QByteArray encodeEnvelope(MessageEnvelope envelope)
+  + {static} MessageEnvelope decodeEnvelope(QByteArray bytes)
+  + {static} bool isDelimiter(char byte)
+  + {static} const char DELIMITER
+}
+
+class Validation <<C++>> {
+  + {static} bool isValidUuid(QString raw)
+  + {static} bool isMessagePayloadValid(QString payload)
+  + {static} bool isCommandAllowed(QString command)
+}
+
+}
+
+MessageMapper --> Message
+MessageMapper --> MessageEnvelope
+
+ConversationModel --> AccountModel
+ConversationParticipantModel --> ConversationModel
+ConversationParticipantModel --> AccountModel
+ChatMessageModel --> ConversationModel
+ChatMessageModel --> AttachmentModel
+ContactSummary --> ChatMessageModel
+
+Util ..> Message
+Util ..> MessageEnvelope
+Protocol ..> MessageEnvelope
+Validation ..> MessageEnvelope
+
+note bottom of Message : Used in client/server code\nencode() adds DELIMITER \x01
+note bottom of Protocol : DELIMITER = \x01 used in TcpServer
+
+@enduml
