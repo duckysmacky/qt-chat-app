@@ -4,16 +4,17 @@ skinparam classAttributeIconSize 0
 legend right
   <<QObject>> QObject-derived class
   <<C++>> Pure C++ class (non-QObject)
+  <<Qt>> Qt class
 endlegend
 
 package "server" {
 
 class TcpServer <<QObject>> {
-  - ConnectionAcceptor m_acceptor
-  - ClientRegistry m_clientRegistry
-  - MessageRouter m_router
-  - ConsoleReader m_consoleReader
-  - bool m_running
+  - const QUuid m_uuid
+  - QTcpServer* m_server
+  - QHash<QUuid, QTcpSocket*> m_sockets
+  - ConsoleReader* m_consoleReader
+  - bool m_isRunning
   - TcpServer(QObject* parent = nullptr)
   + {static} TcpServer& instance()
   + ~TcpServer()
@@ -22,8 +23,15 @@ class TcpServer <<QObject>> {
   + TcpServer(TcpServer&&) = delete
   + TcpServer& operator=(TcpServer&&) = delete
   + bool start(uint16_t port = 8080)
-  + void stop()
+  + void stop() const
+  + void sendMessage(const QUuid& target, const shared::Message& msg) const
+  + void broadcast(const QString& text) const
   + bool isRunning() const
+  + void onNewConnection()
+  + void onClientDisconnected()
+  + void onServerRead()
+  - void handleMessage(const shared::Message& msg) const
+  - void registerClient(QTcpSocket* socket, const shared::Message& msg)
 }
 
 class ConnectionAcceptor <<QObject>> {
@@ -133,6 +141,20 @@ class ConsoleReader <<QObject>> {
   + void stop()
 }
 
+class QTcpServer <<Qt>> {
+}
+
+class QTcpSocket <<Qt>> {
+}
+
+namespace shared {
+  class Message <<C++>> {
+  }
+  
+  enum MessageType <<C++>> {
+  }
+}
+
 namespace middleware {
   + bool validateEnvelope(MessageEnvelope envelope)
   + bool ensureKnownClient(ClientRegistry registry, QUuid clientId)
@@ -145,6 +167,7 @@ namespace middleware {
 
 note bottom of TcpServer
 Meyers singleton: instance() returns a function-local static TcpServer.
+Directly manages QTcpServer and client sockets.
 end note
 
 note bottom of Database
@@ -152,10 +175,14 @@ Meyers singleton: instance() returns a function-local static Database.
 All persistence queries are centralized in Database.cpp (no repository layer).
 end note
 
+TcpServer *-- QTcpServer
+TcpServer *-- QTcpSocket : manages
+TcpServer *-- ConsoleReader
+TcpServer --> shared::Message : uses
+
 TcpServer *-- ConnectionAcceptor
 TcpServer *-- ClientRegistry
 TcpServer *-- MessageRouter
-TcpServer *-- ConsoleReader
 
 ConnectionAcceptor --> AuthService
 ConnectionAcceptor --> ClientRegistry
@@ -179,5 +206,7 @@ Database --> ChatMessageModel
 ConnectionAcceptor ..> middleware
 MessageRouter ..> middleware
 ChatService ..> middleware
+
+ConsoleReader : +signal lineRead(const QString& line)
 
 @enduml
