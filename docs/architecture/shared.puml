@@ -130,12 +130,14 @@ namespace util {
   + QList<Message> parse(QByteArray bytes)
   + QList<MessageEnvelope> parseFrames(QByteArray bytes)
   + QByteArray joinFrames(QList<MessageEnvelope> frames)
+  + QByteArray joinMessages(QList<Message> messages)
 }
 
 namespace protocol {
   + QByteArray encodeEnvelope(MessageEnvelope envelope)
   + MessageEnvelope decodeEnvelope(QByteArray bytes)
   + bool isDelimiter(char byte)
+  + const char DELIMITER = '\x01'
 }
 
 namespace validation {
@@ -160,5 +162,8 @@ util ..> Message
 util ..> MessageEnvelope
 protocol ..> MessageEnvelope
 validation ..> MessageEnvelope
+
+note bottom of Message : Used in client/server code\nencode() adds DELIMITER \x01
+note bottom of protocol : DELIMITER = \x01 used in TcpServer
 
 @enduml
