@@ -130,3 +130,65 @@ bool Database::init(){
 	qInfo() << "All migrations executed successfully";
 	return true;
 }
+
+bool Database::createUser(const QString& username, const QString& name, const QString& passwordHash, const QString& email)
+{
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "INSERT INTO users (username, name, password_hash, email) "
+        "VALUES (:username, :name, :password_hash, :email)"
+        );
+
+    query.bindValue(":username", username);
+    query.bindValue(":name", name);
+    query.bindValue(":password_hash", passwordHash);
+    query.bindValue(":email", email);
+
+    if (!query.exec()) {
+        qCritical() << "Failed to create user:" << query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
+
+std::optional<User> Database::getUserById(const QUuid& id) const
+{
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return std::nullopt;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, username, name, password_hash, email "
+        "FROM users "
+        "WHERE id = :id "
+        "LIMIT 1"
+        );
+
+    query.bindValue(":id", id.toString(QUuid::WithoutBraces));
+
+    if (!query.exec()) {
+        qCritical() << "Failed to get user by id:" << query.lastError().text();
+        return std::nullopt;
+    }
+
+    if (!query.next()) {
+        return std::nullopt;
+    }
+
+    User user;
+    user.id = QUuid(query.value(0).toString());
+    user.username = query.value(1).toString();
+    user.name = query.value(2).toString();
+    user.passwordHash = query.value(3).toString();
+    user.email = query.value(4).toString();
+
+    return user;
+}
