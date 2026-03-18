@@ -147,20 +147,34 @@ class QTcpServer <<Qt>> {
 class QTcpSocket <<Qt>> {
 }
 
-namespace shared {
+package "shared" {
   class Message <<C++>> {
   }
   
   enum MessageType <<C++>> {
   }
+  
+  class MessageEnvelope <<C++>> {
+  }
+  
+  class AccountModel <<C++>> {
+  }
+  
+  class ConversationModel <<C++>> {
+  }
+  
+  class ChatMessageModel <<C++>> {
+  }
 }
 
-namespace middleware {
-  + bool validateEnvelope(MessageEnvelope envelope)
-  + bool ensureKnownClient(ClientRegistry registry, QUuid clientId)
-  + bool ensureAuthorizedTarget(ClientRegistry registry, MessageEnvelope envelope)
-  + MessageEnvelope normalizePayload(MessageEnvelope envelope)
-  + void auditIncoming(MessageEnvelope envelope)
+package "middleware" {
+  class MiddlewareUtils <<C++>> {
+    + {static} bool validateEnvelope(MessageEnvelope envelope)
+    + {static} bool ensureKnownClient(ClientRegistry registry, QUuid clientId)
+    + {static} bool ensureAuthorizedTarget(ClientRegistry registry, MessageEnvelope envelope)
+    + {static} MessageEnvelope normalizePayload(MessageEnvelope envelope)
+    + {static} void auditIncoming(MessageEnvelope envelope)
+  }
 }
 
 }
@@ -203,9 +217,9 @@ Database --> AccountModel
 Database --> ConversationModel
 Database --> ChatMessageModel
 
-ConnectionAcceptor ..> middleware
-MessageRouter ..> middleware
-ChatService ..> middleware
+ConnectionAcceptor ..> middleware::MiddlewareUtils
+MessageRouter ..> middleware::MiddlewareUtils
+ChatService ..> middleware::MiddlewareUtils
 
 ConsoleReader : +signal lineRead(const QString& line)
 
