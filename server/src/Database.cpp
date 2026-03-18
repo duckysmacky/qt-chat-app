@@ -146,11 +146,11 @@ bool Database::createUser(const model::User& user)
         "VALUES (:id, :username, :name, :password_hash, :email)"
         );
 
-    query.bindValue(":id", user.id.toString(QUuid::WithoutBraces));
-    query.bindValue(":username", user.username);
-    query.bindValue(":name", user.name);
-    query.bindValue(":password_hash", user.passwordHash);
-    query.bindValue(":email", user.email);
+    query.bindValue(":id", user.id().toString(QUuid::WithoutBraces));
+    query.bindValue(":username", user.username());
+    query.bindValue(":name", user.name());
+    query.bindValue(":password_hash", user.passwordHash());
+    query.bindValue(":email", user.email());
 
     if (!query.exec()) {
         qCritical() << "Failed to create user:" << query.lastError().text();
