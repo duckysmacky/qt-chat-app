@@ -9,25 +9,28 @@ endlegend
 package "client" {
 
 class Client <<QObject>> {
-  - ConnectionController m_connectionController
-  - SessionStore m_sessionStore
-  - MessageDispatcher m_dispatcher
-  - ChatRepository m_chatRepository
   - QUuid m_uuid
+  - QTcpSocket m_socket
   - bool m_connected
+  - QString m_statusText
   - Client(QObject* parent = nullptr)
   + {static} Client& instance()
-  + ~Client()
   + Client(const Client&) = delete
   + Client& operator=(const Client&) = delete
   + Client(Client&&) = delete
   + Client& operator=(Client&&) = delete
-  + void connectTo(QString host, int port)
-  + void disconnect()
-  + void sendText(QUuid targetUserId, QString text)
-  + void sendCommand(QString command)
-  + QUuid uuid() const
+  + Q_INVOKABLE void connectTo(QString host, int port)
+  + Q_INVOKABLE void disconnect()
+  + Q_INVOKABLE void sendMessage(shared::MessageType type, QString content = "")
+  + const QUuid& uuid() const
   + bool connected() const
+  + const QString& statusText() const
+  - void setConnectionStatus(bool connected)
+  - void setStatusText(const QString& text)
+  # void onConnected()
+  # void onDisconnected()
+  # void onErrorOccurred(QAbstractSocket::SocketError error)
+  # void onReadyRead()
 }
 
 class MessengerWindow <<QObject>> {
@@ -156,12 +159,27 @@ class SessionStore <<C++>> {
   + ContactSummary contactById(QUuid peerId) const
 }
 
+class QTcpSocket <<QObject>> {
+}
+
+namespace shared {
+  class Message <<C++>> {
+  }
+  
+  enum MessageType <<C++>> {
+  }
+}
+
 }
 
 note bottom of Client
 Meyers singleton: instance() returns a function-local static Client.
-Client here is a client-side singleton service and is distinct from server::Client.
+Client directly manages QTcpSocket for network communication.
 end note
+
+Client *-- QTcpSocket
+Client --> shared::Message : receives
+Client --> shared::MessageType : uses
 
 MessengerWindow *-- ConnectDialog
 MessengerWindow *-- ContactListPanel
@@ -188,5 +206,9 @@ ChatView --> ChatRepository
 MessageBubble --> ChatMessageModel
 ContactListPanel --> ContactSummary
 ClientProtocolAdapter --> MessageEnvelope
+
+Client : +signal connectionStatusChanged()
+Client : +signal statusTextChanged()
+Client : +signal messageReceived(const shared::Message& msg)
 
 @enduml
