@@ -10,6 +10,7 @@ qt_add_executable(server_app
 		src/ConsoleReader.h
 		src/middleware.h
 		src/middleware.cpp
+                src/model.cpp
 )
 
 target_link_libraries(server_app PRIVATE
