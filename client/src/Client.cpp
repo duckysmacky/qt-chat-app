@@ -5,12 +5,20 @@
 #include "Message.h"
 #include "util.h"
 
+/**
+ * @brief Returns the singleton client instance.
+ * @return Reference to the Client instance.
+ */
 Client& Client::instance()
 {
     static Client instance;
     return instance;
 }
 
+/**
+ * @brief Constructs the Client.
+ * @param parent The parent QObject.
+ */
 Client::Client(QObject* parent)
     : QObject(parent),
       m_uuid(QUuid::createUuid()),
@@ -23,6 +31,11 @@ Client::Client(QObject* parent)
     connect(&m_socket, &QTcpSocket::readyRead, this, &Client::onReadyRead);
 }
 
+/**
+ * @brief Connects the client to a server.
+ * @param host The server's host address.
+ * @param port The server's port number.
+ */
 void Client::connectTo(const QString& host, const int port)
 {
     if (host.isEmpty() || port <= 0 || port > 65535)
@@ -38,12 +51,20 @@ void Client::connectTo(const QString& host, const int port)
     m_socket.connectToHost(host, static_cast<quint16>(port));
 }
 
+/**
+ * @brief Disconnects the client from the server.
+ */
 void Client::disconnect()
 {
     setStatusText("Disconnecting...");
     m_socket.disconnectFromHost();
 }
 
+/**
+ * @brief Sends a message to the server.
+ * @param type The type of the message.
+ * @param content The content of the message.
+ */
 void Client::sendMessage(const shared::MessageType type, QString content)
 {
     const shared::Message msg = content.isEmpty()
@@ -60,6 +81,9 @@ void Client::sendMessage(const shared::MessageType type, QString content)
     m_socket.write(bytes);
 }
 
+/**
+ * @brief Handles the connected signal from the socket.
+ */
 void Client::onConnected()
 {
     sendMessage(shared::MessageType::Connect);
@@ -68,12 +92,19 @@ void Client::onConnected()
     setConnectionStatus(true);
 }
 
+/**
+ * @brief Handles the disconnected signal from the socket.
+ */
 void Client::onDisconnected()
 {
     setStatusText("Disconnected");
     setConnectionStatus(false);
 }
 
+/**
+ * @brief Handles socket errors.
+ * @param error The socket error type.
+ */
 void Client::onErrorOccurred(QAbstractSocket::SocketError)
 {
     setStatusText(m_socket.errorString());
@@ -81,6 +112,9 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
         setConnectionStatus(false);
 }
 
+/**
+ * @brief Handles incoming data from the socket.
+ */
 void Client::onReadyRead()
 {
     QByteArray bytes = m_socket.readAll();
@@ -91,6 +125,10 @@ void Client::onReadyRead()
         emit messageReceived(msg);
 }
 
+/**
+ * @brief Sets the status text.
+ * @param text The new status text.
+ */
 void Client::setStatusText(const QString& text)
 {
     if (m_statusText == text) return;
@@ -99,6 +137,10 @@ void Client::setStatusText(const QString& text)
     emit statusTextChanged();
 }
 
+/**
+ * @brief Sets the connection status.
+ * @param connected The new connection status.
+ */
 void Client::setConnectionStatus(bool connected)
 {
     m_connected = connected;
