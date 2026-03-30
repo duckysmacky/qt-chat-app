@@ -1,0 +1,214 @@
+@startuml ClientArchitecture
+skinparam classAttributeIconSize 0
+
+legend right
+  <<QObject>> QObject-derived class
+  <<C++>> Pure C++ class (non-QObject)
+endlegend
+
+package "client" {
+
+class Client <<QObject>> {
+  - QUuid m_uuid
+  - QTcpSocket m_socket
+  - bool m_connected
+  - QString m_statusText
+  - Client(QObject* parent = nullptr)
+  + {static} Client& instance()
+  + Client(const Client&) = delete
+  + Client& operator=(const Client&) = delete
+  + Client(Client&&) = delete
+  + Client& operator=(Client&&) = delete
+  + Q_INVOKABLE void connectTo(QString host, int port)
+  + Q_INVOKABLE void disconnect()
+  + Q_INVOKABLE void sendMessage(shared::MessageType type, QString content = "")
+  + const QUuid& uuid() const
+  + bool connected() const
+  + const QString& statusText() const
+  - void setConnectionStatus(bool connected)
+  - void setStatusText(const QString& text)
+  # void onConnected()
+  # void onDisconnected()
+  # void onErrorOccurred(QAbstractSocket::SocketError error)
+  # void onReadyRead()
+}
+
+class MessengerWindow <<QObject>> {
+  - ConnectDialog* m_connectDialog
+  - ContactListPanel* m_contactPanel
+  - ChatView* m_chatView
+  - StatusBarView* m_statusBar
+  + MessengerWindow(QObject* parent = nullptr)
+  + ~MessengerWindow()
+  + void initialize()
+  + void openConnectDialog()
+  + void openConversation(QUuid peerId)
+}
+
+class ConnectDialog <<QObject>> {
+  - QString m_host
+  - int m_port
+  + ConnectDialog(QObject* parent = nullptr)
+  + ~ConnectDialog()
+  + void submitConnection()
+  + void cancel()
+}
+
+class ContactListPanel <<QObject>> {
+  - QList<ContactButton*> m_contactButtons
+  - QUuid m_selectedPeer
+  + ContactListPanel(QObject* parent = nullptr)
+  + ~ContactListPanel()
+  + void setContacts(QList<ContactSummary> contacts)
+  + void addContact(QUuid peerId, QString displayName)
+  + QUuid selectedPeer() const
+}
+
+class ContactButton <<QObject>> {
+  - QUuid m_peerId
+  - QString m_displayName
+  - int m_unreadCount
+  + ContactButton(QUuid peerId, QString displayName)
+  + ~ContactButton()
+  + void setSelected(bool selected)
+  + void setUnreadCount(int count)
+  + QUuid peerId() const
+}
+
+class ChatView <<QObject>> {
+  - QUuid m_activePeer
+  - QList<MessageBubble*> m_bubbles
+  + ChatView(QObject* parent = nullptr)
+  + ~ChatView()
+  + void setConversation(QUuid peerId)
+  + void appendBubble(ChatMessageModel message)
+  + void submitText(QString text)
+  + void loadHistory(QList<ChatMessageModel> history)
+}
+
+class MessageBubble <<QObject>> {
+  - ChatMessageModel m_message
+  - bool m_outgoing
+  + MessageBubble(ChatMessageModel message, bool outgoing)
+  + ~MessageBubble()
+  + void setDeliveryState(DeliveryState state)
+  + ChatMessageModel message() const
+}
+
+class StatusBarView <<QObject>> {
+  - QString m_connectionText
+  - QString m_syncText
+  + StatusBarView(QObject* parent = nullptr)
+  + ~StatusBarView()
+  + void setConnectionText(QString text)
+  + void setSyncText(QString text)
+}
+
+class ConnectionController <<QObject>> {
+  - NetworkClient m_networkClient
+  - ClientProtocolAdapter m_protocol
+  + ConnectionController(QObject* parent = nullptr)
+  + ~ConnectionController()
+  + void connectTo(QString host, int port)
+  + void disconnect()
+  + bool isConnected() const
+}
+
+class NetworkClient <<QObject>> {
+  - QByteArray m_readBuffer
+  + NetworkClient(QObject* parent = nullptr)
+  + ~NetworkClient()
+  + void open(QString host, int port)
+  + void close()
+  + void writeFrame(QByteArray frame)
+}
+
+class ClientProtocolAdapter <<C++>> {
+  + ClientProtocolAdapter()
+  + QByteArray makeFrame(MessageEnvelope message)
+  + QList<MessageEnvelope> parseFrames(QByteArray bytes)
+}
+
+class MessageDispatcher <<C++>> {
+  - ChatRepository* m_chatRepository
+  - SessionStore* m_sessionStore
+  + MessageDispatcher(ChatRepository* repo, SessionStore* store)
+  + ~MessageDispatcher()
+  + void processIncoming(MessageEnvelope envelope)
+  + void processOutgoing(MessageEnvelope envelope)
+}
+
+class ChatRepository <<C++>> {
+  - QHash<QUuid, QList<ChatMessageModel>> m_history
+  + ChatRepository()
+  + ~ChatRepository()
+  + void appendMessage(ChatMessageModel message)
+  + QList<ChatMessageModel> historyFor(QUuid peerId) const
+  + void markRead(QUuid peerId)
+}
+
+class SessionStore <<C++>> {
+  - QUuid m_currentUserId
+  - QUuid m_activePeerId
+  - QHash<QUuid, ContactSummary> m_contacts
+  + SessionStore()
+  + ~SessionStore()
+  + void setCurrentUser(QUuid userId)
+  + void setActivePeer(QUuid peerId)
+  + void upsertContact(ContactSummary contact)
+  + ContactSummary contactById(QUuid peerId) const
+}
+
+class QTcpSocket <<QObject>> {
+}
+
+namespace shared {
+  class Message <<C++>> {
+  }
+  
+  enum MessageType <<C++>> {
+  }
+}
+
+}
+
+note bottom of Client
+Meyers singleton: instance() returns a function-local static Client.
+Client directly manages QTcpSocket for network communication.
+end note
+
+Client *-- QTcpSocket
+Client --> shared::Message : receives
+Client --> shared::MessageType : uses
+
+MessengerWindow *-- ConnectDialog
+MessengerWindow *-- ContactListPanel
+MessengerWindow *-- ChatView
+MessengerWindow *-- StatusBarView
+ContactListPanel *-- ContactButton
+ChatView *-- MessageBubble
+
+Client *-- ConnectionController
+Client *-- SessionStore
+Client *-- MessageDispatcher
+Client *-- ChatRepository
+
+ConnectionController *-- NetworkClient
+ConnectionController *-- ClientProtocolAdapter
+MessageDispatcher --> ChatRepository
+MessageDispatcher --> SessionStore
+
+MessengerWindow --> Client
+ConnectDialog --> Client
+ContactListPanel --> SessionStore
+ChatView --> Client
+ChatView --> ChatRepository
+MessageBubble --> ChatMessageModel
+ContactListPanel --> ContactSummary
+ClientProtocolAdapter --> MessageEnvelope
+
+Client : +signal connectionStatusChanged()
+Client : +signal statusTextChanged()
+Client : +signal messageReceived(const shared::Message& msg)
+
+@enduml
