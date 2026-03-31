@@ -11,6 +11,12 @@
 
 static QFile g_logFile;
 
+/**
+ * @brief Custom Qt message handler that writes log messages to a file.
+ * @param type The type of the log message.
+ * @param context The message context (file, line, etc.).
+ * @param message The log message text.
+ */
 void handleLogMessage(const QtMsgType type, const QMessageLogContext& context, const QString& message)
 {
     static QMutex logMutex;
@@ -42,6 +48,12 @@ void handleLogMessage(const QtMsgType type, const QMessageLogContext& context, c
         abort();
 }
 
+/**
+ * @brief Main entry point of the Qt chat client application.
+ * @param argc Number of command line arguments.
+ * @param argv Array of command line arguments.
+ * @return Application exit code.
+ */
 int main(int argc, char *argv[])
 {
     const QGuiApplication app(argc, argv);

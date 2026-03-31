@@ -5,12 +5,19 @@
 
 #include "util.h"
 
+/**
+ * @brief Returns the singleton TcpServer instance
+ */
 TcpServer& TcpServer::instance()
 {
 	static TcpServer instance;
 	return instance;
 }
 
+/**
+ * @brief Constructs the TcpServer object
+ * Sets up TCP server, console reader, and signal connections.
+ */
 TcpServer::TcpServer(QObject* parent)
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
@@ -29,6 +36,11 @@ TcpServer::~TcpServer()
 	stop();
 }
 
+/**
+ * @brief Starts the TCP server
+ * @param port Port number to listen on
+ * @return true if server started successfully
+ */
 bool TcpServer::start(const uint16_t port)
 {
 	m_consoleReader->start();
@@ -44,6 +56,9 @@ bool TcpServer::start(const uint16_t port)
 	return false;
 }
 
+/**
+ * @brief Constant function which stops the server and closes the connection
+ */
 void TcpServer::stop() const
 {
 	if (m_isRunning)
@@ -52,6 +67,9 @@ void TcpServer::stop() const
 	m_consoleReader->stop();
 }
 
+/**
+ * @brief Sends a message to a specific client using bytes stream
+ */
 void TcpServer::sendMessage(const QUuid& target, const shared::Message& msg) const
 {
 	QTcpSocket* socket = m_sockets[target];
@@ -75,6 +93,9 @@ void TcpServer::broadcast(const QString& text) const
 	}
 }
 
+/**
+ * Handles new incoming TCP connections; returns None if socket is not defined
+ */
 void TcpServer::onNewConnection()
 {
 	QTcpSocket* socket = m_server->nextPendingConnection();
@@ -84,6 +105,12 @@ void TcpServer::onNewConnection()
 	connect(socket, &QTcpSocket::disconnected, this, &TcpServer::onClientDisconnected);
 }
 
+/**
+ * @brief Reads available data from a client socket and processes messages.
+ *
+ * Parses the incoming bytes into Message objects.
+ * Connect messages are used to register new clients; other messages are handled normally.
+ */
 void TcpServer::onServerRead()
 {
 	auto* socket = qobject_cast<QTcpSocket*>(sender());
@@ -107,6 +134,9 @@ void TcpServer::onServerRead()
     }
 }
 
+/**
+ * @brief Handles client disconnection
+ */
 void TcpServer::onClientDisconnected()
 {
 	auto* socket = qobject_cast<QTcpSocket*>(sender());
@@ -125,6 +155,11 @@ void TcpServer::onClientDisconnected()
 	socket->deleteLater();
 }
 
+/**
+ * @brief Handles client disconnection.
+ *
+ * Removes the client from the socket map, logs the event, and deletes the socket.
+ */
 void TcpServer::handleMessage(const shared::Message& msg) const
 {
 	if (msg.sender().isNull())
@@ -159,6 +194,12 @@ void TcpServer::handleMessage(const shared::Message& msg) const
 	}
 }
 
+/**
+ * @brief Registers a new client after receiving a connect message.
+ * Adds the client to the internal socket map and sends a welcome message.
+ * @param socket The client's QTcpSocket.
+ * @param msg Connect message containing the client's UUID.
+ */
 void TcpServer::registerClient(QTcpSocket* socket, const shared::Message& msg)
 {
 	if (!socket) return;
