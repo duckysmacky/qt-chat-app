@@ -3,12 +3,14 @@
 #include <QByteArray>
 #include <QList>
 
-#include "Message.h"
+#include "Packet.h"
+
+constexpr auto DELIMITER = '\xFF';
 
 namespace shared::util {
 /**
  * @brief Parses raw byte data into a list of Message objects.
  */
-QList<Message> parse(const QByteArray& bytes);
+QList<Packet> parse(const QByteArray& bytes);
 
 }

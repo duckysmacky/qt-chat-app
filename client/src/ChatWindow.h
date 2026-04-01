@@ -3,8 +3,8 @@
 #include <QObject>
 #include <QStringList>
 
+#include "Packet.h"
 #include "Message.h"
-
 
 /**
  * @class ChatWindow
@@ -34,7 +34,7 @@ signals:
     void messagesChanged();
 
 private slots:
-    void onMessageReceived(const shared::Message& msg);
+    void onMessageReceived(const QUuid& sender, const shared::Message& message);
 
 private:
     void appendMessage(const QString& sender, const QString& text);

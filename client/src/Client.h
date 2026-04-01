@@ -4,7 +4,9 @@
 #include <QTcpSocket>
 #include <QUuid>
 
+#include "Packet.h"
 #include "Message.h"
+
 /**
  * @class Client
  * @brief TCP client for connecting to the server and exchanging messages.
@@ -49,10 +51,9 @@ public:
     Q_INVOKABLE void disconnect();
     /**
      * @brief Sends a message to the server.
-     * @param type Message type
-     * @param content Message content (optional)
+     * @param content Message content
      */
-    Q_INVOKABLE void sendMessage(shared::MessageType type, QString content = "");
+    Q_INVOKABLE void sendMessage(QString content);
 
     const QUuid& uuid() const { return m_uuid; }
     bool connected() const { return m_connected; }
@@ -61,7 +62,7 @@ public:
 signals:
     void connectionStatusChanged();
     void statusTextChanged();
-    void messageReceived(const shared::Message& msg);
+    void messageReceived(const QUuid& sender, const shared::Message& msg);
 
 private slots:
     void onConnected();
@@ -70,6 +71,8 @@ private slots:
     void onReadyRead();
 
 private:
+    void sendPacket(shared::PacketType type);
+    void sendPacket(shared::PacketType type, QByteArray data);
     void setConnectionStatus(bool connected);
     void setStatusText(const QString& text);
 };
