@@ -1,79 +1,58 @@
 #include "Message.h"
 
 #include <QDebug>
+#include <QBuffer>
 
-#include <utility>
-
-/// @brief Size of the serialized message type field (in bytes)
-constexpr auto MSG_TYPE_LEN = 1;
-/// @brief Size of the serialized sender UUID field (in bytes)
-constexpr auto MSG_SENDER_LEN = 16;
+static constexpr auto MESSAGE_TYPE_SIZE = 1;
+static constexpr auto MESSAGE_HEADER_SIZE = MESSAGE_TYPE_SIZE;
 
 namespace shared {
 
-/**
- * @brief Constructors use 'move' to set up Message without copying attributes
- */
-Message::Message(const MessageType type, QUuid sender, QString content)
+Message::Message(const MessageType type, QString content)
     : m_type(type),
-      m_sender(std::move(sender)),
       m_content(std::move(content))
-{
-}
+{}
 
 Message::Message(Message&& other) noexcept
     : m_type(other.m_type),
-      m_sender(std::move(other.m_sender)),
       m_content(std::move(other.m_content))
-{
-}
+{}
 
-Message& Message::operator =(Message&& other) noexcept
+Message& Message::operator=(Message&& other) noexcept
 {
     if (this == &other) return *this;
     m_type = other.m_type;
-    m_sender = std::move(other.m_sender);
     m_content = std::move(other.m_content);
     return *this;
 }
 
-/**
- * @brief Decodes messages using utf-8 encoding for message content and Rfc4122 for sender
- * Checks if all bytes have been delivered, warning error otherwise
- * 
- */
-Message Message::decode(const QByteArray& bytes)
+Message Message::deserialize(QByteArray bytes)
 {
-    if (bytes.size() < MSG_TYPE_LEN + MSG_SENDER_LEN)
+    if (bytes.size() < MESSAGE_HEADER_SIZE)
     {
         qWarning() << "Invalid message payload length:" << bytes.size();
-        return Message(MessageType::Command, QUuid(), "");
+        // we can just ignore this, since message cannot be 0
     }
 
-    const auto type = static_cast<MessageType>(bytes[0]);
-    const auto sender = QUuid::fromRfc4122(bytes.mid(MSG_TYPE_LEN, MSG_SENDER_LEN));
-    const auto contentBytes = bytes.mid(MSG_TYPE_LEN + MSG_SENDER_LEN);
+    QBuffer bytesReader(&bytes);
+    bytesReader.open(QIODevice::ReadOnly);
 
-    if (contentBytes.isEmpty())
-        return Message(type, std::move(sender), "");
+    char messageTypeBuffer[MESSAGE_TYPE_SIZE];
+    bytesReader.read(messageTypeBuffer, MESSAGE_TYPE_SIZE);
+    const auto type = static_cast<MessageType>(messageTypeBuffer[0]);
 
-    const QString content = QString::fromUtf8(contentBytes);
-
-    return Message(type, std::move(sender), std::move(content));
+    bytes.remove(0, MESSAGE_HEADER_SIZE);
+    return Message{type, QString::fromUtf8(bytes)};
 }
 
-/**
- * @brief Encodes message using array with bytes
- */
-QByteArray Message::encode() const
+QByteArray Message::serialize() const
 {
-    QByteArray result;
+    QByteArray bytes;
 
-    result.append(static_cast<char>(m_type));
-    result.append(m_sender.toRfc4122());
-    result.append(m_content.toUtf8());
+    bytes.append(static_cast<char>(m_type));
+    bytes.append(m_content.toUtf8());
 
-    return result;
+    return bytes;
 }
 
-}
+} // shared

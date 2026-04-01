@@ -29,27 +29,28 @@ void ChatWindow::sendMessage(const QString& text)
     const QString sender = client.uuid().toString();
 
     appendMessage(sender, text);
-    client.sendMessage(shared::MessageType::Text, text);
+    client.sendMessage(text);
 }
 
 /**
  * @brief Handles incoming messages from the server.
- * @param msg The received message.
+ * @param sender The sender of the message
+ * @param message The received message.
  */
-void ChatWindow::onMessageReceived(const shared::Message& msg)
+void ChatWindow::onMessageReceived(const QUuid& sender, const shared::Message& message)
 {
-    if (msg.type() == shared::MessageType::Text)
+    if (message.type() == shared::MessageType::TEXT)
     {
-        qInfo() << "Incoming text message from" << msg.sender();
+        qInfo() << "Incoming text message from" << sender;
 
-        const QString sender = msg.sender().toString();
-        const QStringList parts = msg.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+        const QString senderName = sender.toString();
+        const QStringList parts = message.content().split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
 
         if (parts.isEmpty()) {
-            appendMessage(sender, msg.content());
+            appendMessage(senderName, message.content());
         } else {
             for (const QString& part : parts)
-                appendMessage(sender, part);
+                appendMessage(senderName, part);
         }
     }
 }

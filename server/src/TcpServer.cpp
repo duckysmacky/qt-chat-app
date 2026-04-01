@@ -3,6 +3,8 @@
 #include <QByteArray>
 #include <QDebug>
 
+#include "Message.h"
+#include "PacketFactory.h"
 #include "util.h"
 
 /**
@@ -68,28 +70,29 @@ void TcpServer::stop() const
 }
 
 /**
- * @brief Sends a message to a specific client using bytes stream
+ * @brief Sends a packet to a specific client using bytes stream
  */
-void TcpServer::sendMessage(const QUuid& target, const shared::Message& msg) const
+void TcpServer::sendPacket(const QUuid& target, const shared::Packet& packet) const
 {
 	QTcpSocket* socket = m_sockets[target];
-	QByteArray bytes;
-	bytes.append(msg.encode());
-	bytes.append('\x01');
+	QByteArray payload;
+	payload.append(packet.serialize());
+	payload.append(DELIMITER);
 
-	qInfo() << "Sending" << msg.content() << "to" << target.toString();
+	qInfo() << "Sending a packet to" << target.toString();
 
-	if (socket->write(bytes) == -1)
+	if (socket->write(payload) == -1)
 		qCritical() << "Error writing to" << target.toString() << ":" << socket->errorString();
 }
 
 void TcpServer::broadcast(const QString& text) const
 {
-	const shared::Message msg(shared::MessageType::Text, m_uuid, text);
+	const QByteArray msgBytes = shared::Message(shared::MessageType::TEXT, text).serialize();
 
 	for (const auto uuid : m_sockets.keys())
 	{
-		sendMessage(uuid, msg);
+		const shared::Packet packet(shared::PacketType::MESSAGE, m_uuid, uuid, msgBytes);
+		sendPacket(uuid, packet);
 	}
 }
 
@@ -98,19 +101,13 @@ void TcpServer::broadcast(const QString& text) const
  */
 void TcpServer::onNewConnection()
 {
-	QTcpSocket* socket = m_server->nextPendingConnection();
+	const QTcpSocket* socket = m_server->nextPendingConnection();
 	if (!socket) return;
 
 	connect(socket, &QTcpSocket::readyRead, this, &TcpServer::onServerRead);
 	connect(socket, &QTcpSocket::disconnected, this, &TcpServer::onClientDisconnected);
 }
 
-/**
- * @brief Reads available data from a client socket and processes messages.
- *
- * Parses the incoming bytes into Message objects.
- * Connect messages are used to register new clients; other messages are handled normally.
- */
 void TcpServer::onServerRead()
 {
 	auto* socket = qobject_cast<QTcpSocket*>(sender());
@@ -119,17 +116,17 @@ void TcpServer::onServerRead()
     while (socket->bytesAvailable() > 0)
     {
         const QByteArray bytes = socket->readAll();
-        const QList<shared::Message> messages = shared::util::parse(bytes);
+        const QList<shared::Packet> packets = shared::util::parse(bytes);
 
-        for (const auto& msg : messages)
+        for (const auto& packet : packets)
         {
-			if (msg.type() == shared::MessageType::Connect)
+			if (packet.type() == shared::PacketType::CONNECT)
 			{
-				registerClient(socket, msg);
+				registerClient(socket, packet);
 				continue;
 			}
 
-        	handleMessage(msg);
+        	handlePacket(packet);
 		}
     }
 }
@@ -160,51 +157,52 @@ void TcpServer::onClientDisconnected()
  *
  * Removes the client from the socket map, logs the event, and deletes the socket.
  */
-void TcpServer::handleMessage(const shared::Message& msg) const
+void TcpServer::handlePacket(const shared::Packet& packet) const
 {
-	if (msg.sender().isNull())
+	if (packet.sender().isNull())
 	{
 		qWarning() << "Ignoring message with invalid UUID";
 		return;
 	}
 
-	switch (msg.type())
+	switch (packet.type())
 	{
-	case shared::MessageType::Text:
+	case shared::PacketType::MESSAGE:
 		{
-			qInfo() << "Text message from" << msg.sender().toString() << ":" << msg.content();
+			qInfo() << "Received message from" << packet.sender().toString();
 
 			for (const auto& uuid : m_sockets.keys())
 			{
-				if (uuid == msg.sender()) continue;
-				sendMessage(uuid, msg);
+				if (uuid == packet.sender()) continue;
+				sendPacket(uuid, packet);
 			}
 		}
 		break;
-	case shared::MessageType::Command:
+	case shared::PacketType::COMMAND:
 		{
-			qInfo() << "Command from" << msg.sender().toString() << ":" << msg.content();
+			qInfo() << "Command from" << packet.sender().toString();
 		}
 		break;
 	default:
 		{
-			qInfo() << "Unknown or unsupported message from" << msg.sender().toString() << ":" << msg.content();
+			qInfo() << "Unknown or unsupported message from" << packet.sender().toString();
 		}
 		break;
 	}
 }
 
 /**
- * @brief Registers a new client after receiving a connect message.
+ * @brief Registers a new client after receiving a connect packet.
  * Adds the client to the internal socket map and sends a welcome message.
  * @param socket The client's QTcpSocket.
- * @param msg Connect message containing the client's UUID.
+ * @param packet Connect packet containing the client's UUID.
  */
-void TcpServer::registerClient(QTcpSocket* socket, const shared::Message& msg)
+void TcpServer::registerClient(QTcpSocket* socket, const shared::Packet& packet)
 {
 	if (!socket) return;
+	if (packet.type() != shared::PacketType::CONNECT) return;
 
-	const QUuid uuid = msg.sender();
+	const QUuid uuid = packet.sender();
 
 	if (m_sockets.contains(uuid))
 	{
@@ -215,5 +213,6 @@ void TcpServer::registerClient(QTcpSocket* socket, const shared::Message& msg)
 	m_sockets.insert(uuid, socket);
 
 	qInfo() << "New client" << uuid.toString() << "connected";
-	sendMessage(uuid, shared::Message(shared::MessageType::Text, m_uuid, "Hello, client!"));
+	const auto welcomeMessage = shared::PacketFactory::textMessagePacket(m_uuid, uuid, "Hello, client!");
+	sendPacket(uuid, welcomeMessage);
 }

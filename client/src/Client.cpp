@@ -2,7 +2,7 @@
 
 #include <QAbstractSocket>
 
-#include "Message.h"
+#include "Packet.h"
 #include "util.h"
 
 /**
@@ -65,20 +65,10 @@ void Client::disconnect()
  * @param type The type of the message.
  * @param content The content of the message.
  */
-void Client::sendMessage(const shared::MessageType type, QString content)
+void Client::sendMessage(QString content)
 {
-    const shared::Message msg = content.isEmpty()
-        ? shared::Message(type, m_uuid)
-        : shared::Message(type, m_uuid, std::move(content));
-
-    // TODO: добавить какую то принт функцию (operator <<) для сообщения и его типа, чтобы его тут еще выводить
-    qInfo() << "Sending message to server";
-
-    QByteArray bytes;
-    bytes.append(msg.encode());
-    bytes.append('\x01');
-
-    m_socket.write(bytes);
+    const shared::Message message(shared::MessageType::TEXT, std::move(content));
+    sendPacket(shared::PacketType::MESSAGE, message.serialize());
 }
 
 /**
@@ -86,7 +76,7 @@ void Client::sendMessage(const shared::MessageType type, QString content)
  */
 void Client::onConnected()
 {
-    sendMessage(shared::MessageType::Connect);
+    sendPacket(shared::PacketType::CONNECT);
 
     setStatusText("Connected");
     setConnectionStatus(true);
@@ -117,12 +107,54 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
  */
 void Client::onReadyRead()
 {
-    QByteArray bytes = m_socket.readAll();
+    const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
-    const QList<shared::Message> messages = shared::util::parse(bytes);
-    for (const auto& msg : messages)
-        emit messageReceived(msg);
+    const QList<shared::Packet> packets = shared::util::parse(bytes);
+    for (const auto& packet : packets)
+    {
+        switch (packet.type())
+        {
+        case shared::PacketType::MESSAGE:
+            {
+                if (auto data = packet.data())
+                {
+                    const auto msg = shared::Message::deserialize(data.value());
+                    emit messageReceived(packet.sender(), msg);
+                }
+            }
+            break;
+        default:
+            {
+                qWarning() << "Unknown or unsupported packet received";
+            }
+            break;
+        }
+    }
+}
+
+void Client::sendPacket(const shared::PacketType type)
+{
+    qInfo() << "Sending packet to server";
+    const shared::Packet packet(type, m_uuid, QUuid());
+
+    QByteArray payload;
+    payload.append(packet.serialize());
+    payload.append(DELIMITER);
+
+    m_socket.write(payload);
+}
+
+void Client::sendPacket(const shared::PacketType type, QByteArray data)
+{
+    qInfo() << "Sending packet to server";
+    const shared::Packet packet(type, m_uuid, QUuid(), std::move(data));
+
+    QByteArray payload;
+    payload.append(packet.serialize());
+    payload.append(DELIMITER);
+
+    m_socket.write(payload);
 }
 
 /**

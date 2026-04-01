@@ -163,7 +163,7 @@ Util ..> MessageEnvelope
 Protocol ..> MessageEnvelope
 Validation ..> MessageEnvelope
 
-note bottom of Message : Used in client/server code\nencode() adds DELIMITER \x01
-note bottom of Protocol : DELIMITER = \x01 used in TcpServer
+note bottom of Message : Used in client/server code\nencode() adds DELIMITER \xFF
+note bottom of Protocol : DELIMITER = \xFF used in TcpServer
 
 @enduml

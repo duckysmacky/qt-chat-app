@@ -4,13 +4,12 @@
 #include <QTcpSocket>
 #include <QString>
 #include <QHash>
-#include <QUuid>
 
 #include "ConsoleReader.h"
 
 #include <cstdint>
 
-#include "Message.h"
+#include "Packet.h"
 
 /**
  * @class TcpServer
@@ -57,11 +56,11 @@ public:
      */
     void stop() const;
     /**
-     * @brief Sends a message to a specific client.
+     * @brief Sends a packet to a specific client.
      * @param target Client UUID
-     * @param msg Message to send
+     * @param packet Message to send
      */
-    void sendMessage(const QUuid& target, const shared::Message& msg) const;
+    void sendPacket(const QUuid& target, const shared::Packet& packet) const;
     /**
      * @brief Broadcasts a text message to all connected clients.
      * @param text Message content
@@ -92,6 +91,6 @@ public slots:
 
 private:
     explicit TcpServer(QObject* parent = nullptr);
-    void handleMessage(const shared::Message& msg) const;
-    void registerClient(QTcpSocket* socket, const shared::Message& msg);
+    void handlePacket(const shared::Packet& packet) const;
+    void registerClient(QTcpSocket* socket, const shared::Packet& packet);
 };
