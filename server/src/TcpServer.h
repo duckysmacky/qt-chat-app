@@ -4,7 +4,7 @@
 #include <QTcpSocket>
 #include <QString>
 #include <QHash>
-
+#include "UserConnection.h"
 #include "ConsoleReader.h"
 
 #include <cstdint>
@@ -22,7 +22,7 @@ class TcpServer : public QObject
 private:
     const QUuid m_uuid; ///< Server UUID
     QTcpServer* m_server; ///< TCP server
-    QHash<QUuid, QTcpSocket*> m_sockets; ///< Connected clients
+    QHash<QUuid, UserConnection> m_users; ///< Connected clients
     ConsoleReader* m_consoleReader; ///< Console input reader
     bool m_isRunning; ///< Server running state (true/false)
 
@@ -91,6 +91,10 @@ public slots:
 
 private:
     explicit TcpServer(QObject* parent = nullptr);
+    UserConnection* findConnection(const QUuid& sessionId);
+    UserConnection* findConnection(QTcpSocket* clientSocket);
+    void handleRegister(QTcpSocket* clientSocket, const shared::Packet& registerPacket);
+    void handleLogin(QTcpSocket* clientSocket, const shared::Packet& loginPacket);
     void handlePacket(const shared::Packet& packet) const;
     void registerClient(QTcpSocket* socket, const shared::Packet& packet);
 };

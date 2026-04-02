@@ -7,6 +7,8 @@ add_library(shared STATIC
     src/Message.h
     src/PacketFactory.cpp
     src/PacketFactory.h
+    src/AuthInfo.h
+    src/AuthInfo.cpp
 )
 
 target_include_directories(shared PUBLIC

@@ -79,6 +79,54 @@ Database::~Database()
 	m_db = QSqlDatabase();
 	QSqlDatabase::removeDatabase(m_connectionName);
 }
+std::optional<model::User> Database::getUserByUsername(const QString& username) const
+{
+    if (!m_db.isOpen()) return std::nullopt;
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, username, name, password_hash, email "
+        "FROM users WHERE username = :username LIMIT 1"
+        );
+    query.bindValue(":username", username);
+
+    if (!query.exec() || !query.next())
+        return std::nullopt;
+
+    model::User user;
+    user.setId(QUuid(query.value(0).toString()));
+    user.setUsername(query.value(1).toString());
+    user.setName(query.value(2).toString());
+    user.setPasswordHash(query.value(3).toString());
+    user.setEmail(query.value(4).toString());
+    return user;
+}
+
+std::optional<model::User> Database::authenticateUser(const shared::LoginInfo& loginInfo) const
+{
+    if (!m_db.isOpen()) return std::nullopt;
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, username, name, password_hash, email "
+        "FROM users "
+        "WHERE username = :username AND password_hash = :password_hash "
+        "LIMIT 1"
+        );
+    query.bindValue(":username", loginInfo.login());
+    query.bindValue(":password_hash", loginInfo.passwordHash());
+
+    if (!query.exec() || !query.next())
+        return std::nullopt;
+
+    model::User user;
+    user.setId(QUuid(query.value(0).toString()));
+    user.setUsername(query.value(1).toString());
+    user.setName(query.value(2).toString());
+    user.setPasswordHash(query.value(3).toString());
+    user.setEmail(query.value(4).toString());
+    return user;
+}
 
 /** 
  * @brief Runs SQL migrations from migrations directory

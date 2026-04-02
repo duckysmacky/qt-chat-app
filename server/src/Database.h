@@ -5,7 +5,7 @@
 #include <QUuid>
 #include <optional>
 #include "model.h"
-
+#include "AuthInfo.h"
 
 
 /**
@@ -45,6 +45,8 @@ public:
     bool deleteUser(const QUuid& id);
     std::optional<model::User> getUserById(const QUuid& id) const;
     QList<model::User> getAllUsers() const;
+    std::optional<model::User> getUserByUsername(const QString& username) const;
+    std::optional<model::User> authenticateUser(const shared::LoginInfo& loginInfo) const;
 
     bool createContent(const model::Content& content);
     bool deleteContent(const QUuid& id);
