@@ -11,10 +11,10 @@ class User
 {
 public:
     User();
-    User(const QString& username,
-         const QString& name,
-         const QString& password,
-         const QString& email);
+    User(QString username,
+         QString name,
+         QString passwordHash,
+         QString email);
 
     const QUuid& id() const;
     const QString& username() const;
@@ -25,12 +25,8 @@ public:
     void setId(const QUuid& id);
     void setUsername(const QString& username);
     void setName(const QString& name);
-    void setPassword(const QString& password);
     void setPasswordHash(const QString& passwordHash);
     void setEmail(const QString& email);
-
-private:
-    static QString hashPassword(const QString& password);
 
 private:
     QUuid m_id;
@@ -44,8 +40,8 @@ class Content
 {
 public:
     Content();
-    Content(const QString& content,
-            const QString& file,
+    Content(QString content,
+            QString file,
             double fileSize);
 
     const QUuid& id() const;
@@ -69,9 +65,9 @@ class Chat
 {
 public:
     Chat();
-    Chat(const QString& type,
+    Chat(QString type,
          const QUuid& createdBy,
-         const QString& title);
+         QString title);
 
     const QUuid& id() const;
     const QString& type() const;
@@ -153,7 +149,7 @@ public:
     UserStats(const QUuid& userId,
               int messagesSent = 0,
               int chatsJoined = 0,
-              const QStringList& exUsernames = {});
+              QStringList exUsernames = {});
 
     const QUuid& userId() const;
     int messagesSent() const;

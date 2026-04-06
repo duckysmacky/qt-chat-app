@@ -1,20 +1,21 @@
 #include "model.h"
 
 #include <QCryptographicHash>
+#include <utility>
 
 namespace model {
 
 User::User() = default;
 
-User::User(const QString& username,
-           const QString& name,
-           const QString& password,
-           const QString& email)
+User::User(QString username,
+           QString name,
+           QString passwordHash,
+           QString email)
     : m_id(QUuid::createUuid()),
-    m_username(username),
-    m_name(name),
-    m_passwordHash(hashPassword(password)),
-    m_email(email)
+    m_username(std::move(username)),
+    m_name(std::move(name)),
+    m_passwordHash(std::move(passwordHash)),
+    m_email(std::move(email))
 {
 }
 
@@ -58,11 +59,6 @@ void User::setName(const QString& name)
     m_name = name;
 }
 
-void User::setPassword(const QString& password)
-{
-    m_passwordHash = hashPassword(password);
-}
-
 void User::setPasswordHash(const QString& passwordHash)
 {
     m_passwordHash = passwordHash;
@@ -73,21 +69,14 @@ void User::setEmail(const QString& email)
     m_email = email;
 }
 
-QString User::hashPassword(const QString& password)
-{
-    return QString(
-        QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256).toHex()
-        );
-}
-
 Content::Content() = default;
 
-Content::Content(const QString& content,
-                 const QString& file,
-                 double fileSize)
+Content::Content(QString content,
+                 QString file,
+                 const double fileSize)
     : m_id(QUuid::createUuid()),
-    m_content(content),
-    m_file(file),
+    m_content(std::move(content)),
+    m_file(std::move(file)),
     m_fileSize(fileSize)
 {
 }
@@ -127,20 +116,20 @@ void Content::setFile(const QString& file)
     m_file = file;
 }
 
-void Content::setFileSize(double fileSize)
+void Content::setFileSize(const double fileSize)
 {
     m_fileSize = fileSize;
 }
 
 Chat::Chat() = default;
 
-Chat::Chat(const QString& type,
+Chat::Chat(QString type,
            const QUuid& createdBy,
-           const QString& title)
+           QString title)
     : m_id(QUuid::createUuid()),
-    m_type(type),
+    m_type(std::move(type)),
     m_createdBy(createdBy),
-    m_title(title),
+    m_title(std::move(title)),
     m_createdAt(QDateTime::currentDateTime())
 {
 }
@@ -312,13 +301,13 @@ void DbMessage::setUpdatedAt(const QDateTime& updatedAt)
 UserStats::UserStats() = default;
 
 UserStats::UserStats(const QUuid& userId,
-                     int messagesSent,
-                     int chatsJoined,
-                     const QStringList& exUsernames)
+                     const int messagesSent,
+                     const int chatsJoined,
+                     QStringList exUsernames)
     : m_userId(userId),
     m_messagesSent(messagesSent),
     m_chatsJoined(chatsJoined),
-    m_exUsernames(exUsernames)
+    m_exUsernames(std::move(exUsernames))
 {
 }
 

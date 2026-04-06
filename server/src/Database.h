@@ -4,7 +4,7 @@
 #include <QString>
 #include <QUuid>
 #include <optional>
-#include "model.h"
+#include "Model.h"
 #include "AuthInfo.h"
 
 

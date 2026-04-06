@@ -116,12 +116,12 @@ void Server::handleRegister(const QTcpSocket* socket, const shared::Packet& pack
         return;
     }
 
-    model::User user;
-    user.setId(QUuid::createUuid());
-    user.setUsername(registerInfo->username());
-    user.setName(registerInfo->name());
-    user.setPasswordHash(registerInfo->passwordHash());
-    user.setEmail(registerInfo->email());
+    const model::User user(
+        registerInfo->username(),
+        registerInfo->name(),
+        registerInfo->passwordHash(),
+        registerInfo->email()
+    );
 
     if (!db.createUser(user))
     {
@@ -309,11 +309,6 @@ void Server::onClientDisconnected()
     clientSocket->deleteLater();
 }
 
-/**
- * @brief Handles client disconnection.
- *
- * Removes the client from the socket map, logs the event, and deletes the socket.
- */
 void Server::handlePacket(const shared::Packet& packet) const
 {
 	if (packet.sender().isNull())

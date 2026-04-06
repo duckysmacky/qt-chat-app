@@ -10,8 +10,8 @@ qt_add_executable(server_app
 		src/ConsoleReader.h
 		src/middleware.h
 		src/middleware.cpp
-                src/model.cpp
-                src/model.h
+		src/Model.cpp
+		src/Model.h
         src/ClientConnection.h
         src/ClientConnection.cpp
 )
