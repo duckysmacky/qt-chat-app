@@ -1,7 +1,8 @@
 #include "PacketFactory.h"
+#include "ResultInfo.h"
 
 #include "Message.h"
-
+#include "AuthInfo.h"
 namespace shared {
 
 Packet PacketFactory::connectPacket(QUuid sender, QUuid target)
@@ -20,4 +21,26 @@ Packet PacketFactory::mediaMessagePacket(QUuid sender, QUuid target, QString con
     const Message message(MessageType::MEDIA, std::move(content));
     return Packet(PacketType::MESSAGE, std::move(sender), std::move(target), std::move(message.serialize()));
 }
+Packet PacketFactory::registerPacket(QUuid sender, QUuid target, const RegisterInfo& info)
+{
+    return Packet(PacketType::REGISTER, std::move(sender), std::move(target), info.serialize());
+}
+
+Packet PacketFactory::loginPacket(QUuid sender, QUuid target, const LoginInfo& info)
+{
+    return Packet(PacketType::LOGIN, std::move(sender), std::move(target), info.serialize());
+}
+
+Packet PacketFactory::successPacket(QUuid sender, QUuid target, QString message)
+{
+    const ResultInfo result(ResultType::SUCCESS, std::move(message));
+    return Packet(PacketType::RESULT, std::move(sender), std::move(target), result.serialize());
+}
+
+Packet PacketFactory::errorPacket(QUuid sender, QUuid target, QString message)
+{
+    const ResultInfo result(ResultType::ERROR, std::move(message));
+    return Packet(PacketType::RESULT, std::move(sender), std::move(target), result.serialize());
+}
+
 }

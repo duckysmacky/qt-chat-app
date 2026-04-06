@@ -5,6 +5,8 @@
 
 #include <optional>
 
+
+
 namespace shared {
 
 /**
@@ -20,7 +22,13 @@ enum class PacketType
     /// Special command for server
     COMMAND,
     /// Client connection handshake
-    CONNECT
+    CONNECT,
+    // register
+    REGISTER,
+    // login
+    LOGIN,
+    // yspeh
+    RESULT
 };
 
 /**
