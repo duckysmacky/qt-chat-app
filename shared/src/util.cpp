@@ -1,13 +1,14 @@
 #include "util.h"
 
 namespace shared::util {
+
 /**
  * @brief Splits raw byte stream into messages and decodes them.
  * Iterates through the input data, separates messages using a delimiter
- * (DELIMITER), and decodes each segment into a Message object.
+ * and decodes each segment into a Message object.
  * @param bytes Raw data received from the network
  * @return List of decoded messages
- * @note Incomplete trailing data (without delimiter) is ignored
+ * @note Incomplete trailing data without a delimiter is ignored
  */
 QList<Packet> parse(const QByteArray& bytes)
 {
@@ -28,6 +29,14 @@ QList<Packet> parse(const QByteArray& bytes)
     }
 
     return messages;
+}
+
+QByteArray encapsulate(const Packet& packet)
+{
+    QByteArray payload;
+    payload.append(packet.serialize());
+    payload.append(DELIMITER);
+    return payload;
 }
 
 }

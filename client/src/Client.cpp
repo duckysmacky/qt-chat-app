@@ -136,25 +136,17 @@ void Client::onReadyRead()
 void Client::sendPacket(const shared::PacketType type)
 {
     qInfo() << "Sending packet to server";
+
     const shared::Packet packet(type, m_uuid, QUuid());
-
-    QByteArray payload;
-    payload.append(packet.serialize());
-    payload.append(DELIMITER);
-
-    m_socket.write(payload);
+    m_socket.write(shared::util::encapsulate(packet));
 }
 
 void Client::sendPacket(const shared::PacketType type, QByteArray data)
 {
     qInfo() << "Sending packet to server";
+
     const shared::Packet packet(type, m_uuid, QUuid(), std::move(data));
-
-    QByteArray payload;
-    payload.append(packet.serialize());
-    payload.append(DELIMITER);
-
-    m_socket.write(payload);
+    m_socket.write(shared::util::encapsulate(packet));
 }
 
 /**
