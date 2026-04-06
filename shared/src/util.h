@@ -7,7 +7,7 @@
 
 namespace shared::util {
 
-constexpr auto DELIMITER = 0xF0F0;
+constexpr auto DELIMITER = '\xF0';
 
 /**
  * @brief Parses raw byte data into a list of Message objects.
