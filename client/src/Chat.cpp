@@ -1,4 +1,4 @@
-#include "ChatWindow.h"
+#include "Chat.h"
 
 #include <QRegularExpression>
 #include <QTime>
@@ -6,20 +6,20 @@
 #include "Client.h"
 
 /**
- * @brief Constructs the ChatWindow.
+ * @brief Constructs the Chat.
  * @param parent The parent QObject.
  */
-ChatWindow::ChatWindow(QObject* parent)
+Chat::Chat(QObject* parent)
     : QObject(parent)
 {
-    connect(&Client::instance(), &Client::messageReceived, this, &ChatWindow::onMessageReceived);
+    connect(&Client::instance(), &Client::messageReceived, this, &Chat::onMessageReceived);
 }
 
 /**
  * @brief Sends a message to the server.
  * @param text The message text to send.
  */
-void ChatWindow::sendMessage(const QString& text)
+void Chat::sendMessage(const QString& text)
 {
     if (text.trimmed().isEmpty()) return;
 
@@ -37,7 +37,7 @@ void ChatWindow::sendMessage(const QString& text)
  * @param sender The sender of the message
  * @param message The received message.
  */
-void ChatWindow::onMessageReceived(const QUuid& sender, const shared::Message& message)
+void Chat::onMessageReceived(const QUuid& sender, const shared::Message& message)
 {
     if (message.type() == shared::MessageType::TEXT)
     {
@@ -60,7 +60,7 @@ void ChatWindow::onMessageReceived(const QUuid& sender, const shared::Message& m
  * @param sender The sender's identifier.
  * @param text The message text.
  */
-void ChatWindow::appendMessage(const QString& sender, const QString& text)
+void Chat::appendMessage(const QString& sender, const QString& text)
 {
     if (text.isEmpty()) return;
 

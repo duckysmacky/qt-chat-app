@@ -6,8 +6,8 @@
 #include <QMutex>
 #include <QTextStream>
 
-#include "ChatWindow.h"
 #include "Client.h"
+#include "Chat.h"
 
 static QFile g_logFile;
 
@@ -72,10 +72,10 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection
     );
 
-    qmlRegisterSingletonInstance("client", 1, 0, "Client", &Client::instance());
-    qmlRegisterType<ChatWindow>("client", 1, 0, "ChatWindow");
+    qmlRegisterSingletonInstance("ChatApp", 1, 0, "Client", &Client::instance());
+    qmlRegisterType<Chat>("ChatApp", 1, 0, "Chat");
 
-    engine.loadFromModule("client", "Main");
+    engine.loadFromModule("ChatApp", "ChatWindow");
 
     return QGuiApplication::exec();
 }

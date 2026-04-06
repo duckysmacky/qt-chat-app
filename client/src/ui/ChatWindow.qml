@@ -2,15 +2,15 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import client 1.0
+import ChatApp 1.0
 
 Window {
     width: 640
     height: 320
     visible: true
-    title: "Client"
+    title: "Chat app"
 
-    ChatWindow {
+    Chat {
         id: chat
     }
 
@@ -37,13 +37,13 @@ Window {
             }
 
             Button {
-								text: Client.connected ? "Disconnect" : "Connect"
-								onClicked: {
-										if (Client.connected)
-												Client.disconnect()
-										else
-												Client.connectTo(hostField.text, parseInt(portField.text))
-								}
+                text: Client.connected ? "Disconnect" : "Connect"
+                onClicked: {
+                    if (Client.connected)
+                        Client.disconnect()
+                    else
+                        Client.connectTo(hostField.text, parseInt(portField.text))
+                }
             }
 
             Text {
@@ -88,10 +88,10 @@ Window {
                     TextField {
                         id: messageInput
                         placeholderText: "Enter a message..."
-												Layout.fillWidth: true
-												onAccepted: {
-														sendButton.clicked()
-												}
+                        Layout.fillWidth: true
+                        onAccepted: {
+                            sendButton.clicked()
+                        }
                     }
 
                     Button {
