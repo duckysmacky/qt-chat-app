@@ -31,4 +31,12 @@ QList<Packet> parse(const QByteArray& bytes)
     return messages;
 }
 
+QByteArray encapsulate(const Packet& packet)
+{
+    QByteArray payload;
+    payload.append(packet.serialize());
+    payload.append(DELIMITER);
+    return payload;
+}
+
 }
