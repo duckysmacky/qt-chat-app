@@ -13,10 +13,10 @@ public:
     UserConnection();
     UserConnection(const QUuid& sessionId, QTcpSocket* socket);
 
-    const QUuid& sessionId() const;
-    const std::optional<QUuid>& userId() const;
+    const QUuid& sessionId() const { return m_sessionId; }
+    const std::optional<QUuid>& userId() const { return m_userId; }
 
-    bool isAuthorized() const;
+    bool isAuthorized() const { return m_userId.has_value(); }
     void authorize(const QUuid& userId);
     void logout();
 
