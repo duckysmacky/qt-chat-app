@@ -3,24 +3,16 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
+#include <utility>
+
 namespace shared {
 
 LoginInfo::LoginInfo() = default;
 
-LoginInfo::LoginInfo(const QString& login, const QString& passwordHash)
-    : m_login(login),
-    m_passwordHash(passwordHash)
+LoginInfo::LoginInfo(QString login, QString passwordHash)
+    : m_login(std::move(login)),
+    m_passwordHash(std::move(passwordHash))
 {
-}
-
-const QString& LoginInfo::login() const
-{
-    return m_login;
-}
-
-const QString& LoginInfo::passwordHash() const
-{
-    return m_passwordHash;
 }
 
 QByteArray LoginInfo::serialize() const
@@ -53,35 +45,15 @@ std::optional<LoginInfo> LoginInfo::deserialize(const QByteArray& bytes)
 
 RegisterInfo::RegisterInfo() = default;
 
-RegisterInfo::RegisterInfo(const QString& username,
-                           const QString& name,
-                           const QString& email,
-                           const QString& passwordHash)
-    : m_username(username),
-    m_name(name),
-    m_email(email),
-    m_passwordHash(passwordHash)
+RegisterInfo::RegisterInfo(QString username,
+                           QString name,
+                           QString email,
+                           QString passwordHash)
+    : m_username(std::move(username)),
+    m_name(std::move(name)),
+    m_email(std::move(email)),
+    m_passwordHash(std::move(passwordHash))
 {
-}
-
-const QString& RegisterInfo::username() const
-{
-    return m_username;
-}
-
-const QString& RegisterInfo::name() const
-{
-    return m_name;
-}
-
-const QString& RegisterInfo::email() const
-{
-    return m_email;
-}
-
-const QString& RegisterInfo::passwordHash() const
-{
-    return m_passwordHash;
 }
 
 QByteArray RegisterInfo::serialize() const

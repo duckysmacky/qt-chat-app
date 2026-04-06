@@ -11,10 +11,10 @@ class LoginInfo
 {
 public:
     LoginInfo();
-    LoginInfo(const QString& login, const QString& passwordHash);
+    LoginInfo(QString login, QString passwordHash);
 
-    const QString& login() const;
-    const QString& passwordHash() const;
+    const QString& login() const { return m_login; }
+    const QString& passwordHash() const { return m_passwordHash; }
 
     QByteArray serialize() const;
     static std::optional<LoginInfo> deserialize(const QByteArray& bytes);
@@ -28,15 +28,15 @@ class RegisterInfo
 {
 public:
     RegisterInfo();
-    RegisterInfo(const QString& username,
-                 const QString& name,
-                 const QString& email,
-                 const QString& passwordHash);
+    RegisterInfo(QString username,
+                 QString name,
+                 QString email,
+                 QString passwordHash);
 
-    const QString& username() const;
-    const QString& name() const;
-    const QString& email() const;
-    const QString& passwordHash() const;
+    const QString& username() const { return m_username; }
+    const QString& name() const { return m_name; }
+    const QString& email() const { return m_email; }
+    const QString& passwordHash() const { return m_passwordHash; }
 
     QByteArray serialize() const;
     static std::optional<RegisterInfo> deserialize(const QByteArray& bytes);

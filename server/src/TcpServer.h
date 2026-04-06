@@ -91,10 +91,10 @@ public slots:
 
 private:
     explicit TcpServer(QObject* parent = nullptr);
-    UserConnection* findConnection(const QUuid& sessionId);
-    UserConnection* findConnection(QTcpSocket* clientSocket);
+    std::optional<std::reference_wrapper<UserConnection>> findConnection(const QUuid& sessionId);
+    std::optional<std::reference_wrapper<UserConnection>> findConnection(QTcpSocket* clientSocket);
     void handleRegister(QTcpSocket* clientSocket, const shared::Packet& registerPacket);
     void handleLogin(QTcpSocket* clientSocket, const shared::Packet& loginPacket);
     void handlePacket(const shared::Packet& packet) const;
-    void registerClient(QTcpSocket* socket, const shared::Packet& packet);
+    void handleConnect(QTcpSocket* socket, const shared::Packet& connectPacket);
 };

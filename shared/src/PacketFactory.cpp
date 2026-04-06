@@ -1,4 +1,5 @@
 #include "PacketFactory.h"
+#include "ResultInfo.h"
 
 #include "Message.h"
 #include "AuthInfo.h"
@@ -32,12 +33,14 @@ Packet PacketFactory::loginPacket(QUuid sender, QUuid target, const LoginInfo& i
 
 Packet PacketFactory::successPacket(QUuid sender, QUuid target, QString message)
 {
-    return Packet(PacketType::SUCCESS, std::move(sender), std::move(target), message.toUtf8());
+    const ResultInfo result(ResultType::SUCCESS, std::move(message));
+    return Packet(PacketType::RESULT, std::move(sender), std::move(target), result.serialize());
 }
 
 Packet PacketFactory::errorPacket(QUuid sender, QUuid target, QString message)
 {
-    return Packet(PacketType::ERROR, std::move(sender), std::move(target), message.toUtf8());
+    const ResultInfo result(ResultType::ERROR, std::move(message));
+    return Packet(PacketType::RESULT, std::move(sender), std::move(target), result.serialize());
 }
 
 }

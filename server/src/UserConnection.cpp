@@ -1,31 +1,14 @@
 #include "UserConnection.h"
 
-UserConnection::UserConnection() = default;
+#include <QByteArray>
+#include <QDebug>
+
+#include "util.h"
 
 UserConnection::UserConnection(const QUuid& sessionId, QTcpSocket* socket)
     : m_sessionId(sessionId),
     m_socket(socket)
 {
-}
-
-const QUuid& UserConnection::sessionId() const
-{
-    return m_sessionId;
-}
-
-QTcpSocket* UserConnection::socket() const
-{
-    return m_socket;
-}
-
-const std::optional<QUuid>& UserConnection::userId() const
-{
-    return m_userId;
-}
-
-bool UserConnection::isAuthorized() const
-{
-    return m_userId.has_value();
 }
 
 void UserConnection::authorize(const QUuid& userId)
@@ -36,4 +19,28 @@ void UserConnection::authorize(const QUuid& userId)
 void UserConnection::logout()
 {
     m_userId.reset();
+}
+
+bool UserConnection::matchesSocket(const QTcpSocket* socket) const
+{
+    return m_socket == socket;
+}
+
+bool UserConnection::writePacket(const shared::Packet& packet) const
+{
+    if (!m_socket) {
+        qWarning() << "Cannot send packet: socket is null";
+        return false;
+    }
+
+    QByteArray payload;
+    payload.append(packet.serialize());
+    payload.append(DELIMITER);
+
+    if (m_socket->write(payload) == -1) {
+        qCritical() << "Error writing packet:" << m_socket->errorString();
+        return false;
+    }
+
+    return true;
 }

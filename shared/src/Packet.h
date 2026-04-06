@@ -5,6 +5,8 @@
 
 #include <optional>
 
+
+
 namespace shared {
 
 /**
@@ -26,9 +28,7 @@ enum class PacketType
     // login
     LOGIN,
     // yspeh
-    SUCCESS,
-    // oshibka
-    ERROR
+    RESULT
 };
 
 /**
