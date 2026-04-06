@@ -5,54 +5,26 @@ import QtQuick.Layouts
 import ChatApp 1.0
 
 Window {
-    width: 640
-    height: 320
+    width: 920
+    height: 560
     visible: true
     title: "Chat app"
+    color: "#efe4d4"
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 16
+        anchors.margins: 20
+        spacing: 20
 
-        ColumnLayout {
-            spacing: 12
-            Layout.preferredWidth: 200
-
-            TextField {
-                id: hostField
-                placeholderText: "Host"
-                text: "127.0.0.1"
-            }
-
-            TextField {
-                id: portField
-                placeholderText: "Port"
-                text: "8080"
-                inputMethodHints: Qt.ImhDigitsOnly
-            }
-
-            Button {
-                text: Client.connected ? "Disconnect" : "Connect"
-                onClicked: {
-                    if (Client.connected)
-                        Client.disconnect()
-                    else
-                        Client.connectTo(hostField.text, parseInt(portField.text))
-                }
-            }
-
-            Text {
-                text: Client.statusText
-                color: Client.connected ? "green" : "red"
-                wrapMode: Text.Wrap
-            }
+        ConnectionPanel {
+            Layout.preferredWidth: 260
+            Layout.fillHeight: true
         }
 
         ChatBox {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 160
+            Layout.minimumHeight: 220
         }
     }
 }

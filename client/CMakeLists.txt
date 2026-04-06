@@ -13,6 +13,7 @@ qt_add_qml_module(client_app
     VERSION 1.0
     QML_FILES
         src/ui/ChatBox.qml
+        src/ui/ConnectionPanel.qml
         src/ui/ChatWindow.qml
 )
 

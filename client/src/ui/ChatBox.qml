@@ -6,9 +6,10 @@ import ChatApp 1.0
 
 Rectangle {
     id: root
-    color: "#f4f4f4"
-    radius: 6
-    border.color: "#d0d0d0"
+    color: "#f7efe5"
+    radius: 16
+    border.color: "#ddcdb9"
+    border.width: 1
 
     Chat {
         id: chat
@@ -16,25 +17,50 @@ Rectangle {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
+        anchors.margins: 18
+        spacing: 14
 
-        ListView {
-            id: messageList
-            model: chat.messages
-            clip: true
+        Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 80
-            delegate: Text {
-                text: modelData
-                wrapMode: Text.Wrap
+            Layout.minimumHeight: 120
+            radius: 12
+            color: "#fbf7f2"
+            border.color: "#e4d8c7"
+
+            ListView {
+                id: messageList
+                anchors.fill: parent
+                anchors.margins: 12
+                model: chat.messages
+                clip: true
+                spacing: 6
+
+                delegate: Rectangle {
+                    required property string modelData
+
+                    width: ListView.view.width
+                    radius: 10
+                    color: "#efe4d4"
+                    border.color: "#e0cfba"
+
+                    implicitHeight: messageText.implicitHeight + 14
+
+                    Text {
+                        id: messageText
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        text: modelData
+                        wrapMode: Text.Wrap
+                        color: "#3c2f29"
+                    }
+                }
             }
         }
 
         RowLayout {
             id: inputRow
-            spacing: 8
+            spacing: 5
             Layout.fillWidth: true
 
             TextField {
