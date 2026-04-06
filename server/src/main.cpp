@@ -3,7 +3,8 @@
 #include <QTextStream>
 #include <QFile>
 #include <QStringList>
-#include "TcpServer.h"
+
+#include "Server.h"
 #include "Database.h"
 
 /**
@@ -11,7 +12,7 @@
  * Parses key-value pairs in the format KEY=VALUE and sets them
  * using qputenv()
  * @param filePath Path to .emv file
- * @note exisitng enviroment variables may be overwritten
+ * @note existing environment variables may be overwritten
  * @warning Does not support complex parsings
  */
 void loadEnvFile(const QString& filePath)
@@ -61,7 +62,7 @@ int main(int argc, char* argv[])
 	const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 	const uint16_t port = env.contains("PORT") ? env.value("PORT").toUShort() : 8080;
 
-	TcpServer& server = TcpServer::instance();
+	Server& server = Server::instance();
 	if (!server.start(port))
 	{
 		qFatal() << "An error occurred when starting the server";

@@ -24,141 +24,156 @@ Server& Server::instance()
  */
 Server::Server(QObject* parent)
 	: QObject(parent),
-	  m_server(new QServer(this)),
+	  m_server(new QTcpServer(this)),
 	  m_consoleReader(new ConsoleReader(this)),
 	  m_isRunning(false)
 {
-	connect(m_server, &QServer::newConnection, this, &Server::onNewConnection);
+	connect(m_server, &QTcpServer::newConnection, this, &Server::onNewConnection);
 	connect(m_consoleReader, &ConsoleReader::lineRead, this, [this](const QString& line) {
 		if (!line.isEmpty())
 			broadcast(line);
 	}, Qt::QueuedConnection);
 }
+
 std::optional<std::reference_wrapper<ClientConnection>> Server::findConnection(const QUuid& sessionId)
 {
-    auto it = m_clients.find(sessionId);
-    if (it == m_clients.end()) {
+    const auto it = m_clients.find(sessionId);
+
+    if (it == m_clients.end())
         return std::nullopt;
-    }
 
     return it.value();
 }
 
-std::optional<std::reference_wrapper<ClientConnection>> Server::findConnection(QTcpSocket* clientSocket)
+std::optional<std::reference_wrapper<ClientConnection>> Server::findConnection(const QTcpSocket* clientSocket)
 {
-    for (auto it = m_clients.begin(); it != m_clients.end(); ++it) {
-        if (it.value().matchesSocket(clientSocket)) {
+    for (auto it = m_clients.begin(); it != m_clients.end(); ++it)
+    {
+        if (it.value().matchesSocket(clientSocket))
             return it.value();
-        }
     }
 
     return std::nullopt;
 }
 /**
- * @brief Registers a new client after receiving a connect packet.
+ * @brief Connects a new client after receiving a connect packet.
  * Adds the client to the internal socket map and sends a welcome message.
  * @param socket The client's QTcpSocket.
  * @param packet Connect packet containing the client's UUID.
  */
-void Server::handleConnect(QTcpSocket* socket, const shared::Packet& connectPacket)
+void Server::handleConnect(QTcpSocket* socket, const shared::Packet& packet)
 {
-    if (!socket)
-        return;
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::CONNECT) return;
 
-    if (connectPacket.type() != shared::PacketType::CONNECT)
-        return;
+    const QUuid sessionId = packet.sender();
 
-    const QUuid sessionId = connectPacket.sender();
-    if (m_clients.contains(sessionId)) {
-        qWarning() << "Client already registered";
+    if (m_clients.contains(sessionId))
+    {
+        qWarning() << "Client" << sessionId << "already connected";
         return;
     }
 
     m_clients.insert(sessionId, ClientConnection(sessionId, socket));
+    qInfo() << "Connected a new client" << sessionId;
 
     const auto ok = shared::PacketFactory::successPacket(m_uuid, sessionId, "Connected");
     sendPacket(sessionId, ok);
 }
-void Server::handleRegister(QTcpSocket* socket, const shared::Packet& packet)
+
+void Server::handleRegister(const QTcpSocket* socket, const shared::Packet& packet)
 {
-    auto connectionOpt = findConnection(packet.sender());
-    if (!connectionOpt.has_value()) {
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::REGISTER) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+
+    if (!connectionOpt.has_value())
+    {
+        qWarning() << "Client" << packet.sender() << "not yet connected, cannot register unconnected client";
         return;
     }
 
-    ClientConnection& connection = connectionOpt->get();
+    const ClientConnection& connection = connectionOpt->get();
 
-    if (!connection.matchesSocket(socket) || !packet.data().has_value()) {
-        return;
-    }
+    if (!connection.matchesSocket(socket) || !packet.data().has_value()) return;
 
-    const auto info = shared::RegisterInfo::deserialize(packet.data().value());
-    if (!info.has_value()) {
-        sendPacket(connection.sessionId(),
-                   shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Invalid register payload"));
+    const auto registerInfo = shared::RegisterInfo::deserialize(packet.data().value());
+
+    if (!registerInfo.has_value())
+    {
+        qWarning() << "Client" << packet.sender() << "sent invalid register payload";
+        sendPacket(connection.sessionId(), shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Invalid register payload"));
         return;
     }
 
     Database& db = Database::instance();
 
-    if (db.getUserByUsername(info->username()).has_value()) {
-        sendPacket(connection.sessionId(),
-                   shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Username already exists"));
+    if (db.getUserByUsername(registerInfo->username()).has_value())
+    {
+        qWarning() << "Username" << registerInfo->username() << "already exists";
+        sendPacket(connection.sessionId(), shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Username already exists"));
         return;
     }
 
     model::User user;
     user.setId(QUuid::createUuid());
-    user.setUsername(info->username());
-    user.setName(info->name());
-    user.setPasswordHash(info->passwordHash());
-    user.setEmail(info->email());
+    user.setUsername(registerInfo->username());
+    user.setName(registerInfo->name());
+    user.setPasswordHash(registerInfo->passwordHash());
+    user.setEmail(registerInfo->email());
 
-    if (!db.createUser(user)) {
-        sendPacket(connection.sessionId(),
-                   shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Registration failed"));
+    if (!db.createUser(user))
+    {
+        qFatal() << "Registration of client" << packet.sender() << "failed";
+        sendPacket(connection.sessionId(), shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Registration failed"));
         return;
     }
 
-    sendPacket(connection.sessionId(),
-               shared::PacketFactory::successPacket(m_uuid, connection.sessionId(), "Registration successful"));
+    sendPacket(connection.sessionId(), shared::PacketFactory::successPacket(m_uuid, connection.sessionId(), "Registration successful"));
+    qInfo() << "Successfully registered client" << packet.sender() << "as" << registerInfo->username();
 }
-void Server::handleLogin(QTcpSocket* socket, const shared::Packet& packet)
+
+void Server::handleLogin(const QTcpSocket* socket, const shared::Packet& packet)
 {
-    auto connectionOpt = findConnection(packet.sender());
-    if (!connectionOpt.has_value()) {
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::LOGIN) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+
+    if (!connectionOpt.has_value())
+    {
+        qWarning() << "Client" << packet.sender() << "not yet connected, cannot log in unconnected client";
         return;
     }
 
     ClientConnection& connection = connectionOpt->get();
 
-    if (!connection.matchesSocket(socket) || !packet.data().has_value()) {
+    if (!connection.matchesSocket(socket) || !packet.data().has_value()) return;
+
+    const auto loginInfo = shared::LoginInfo::deserialize(packet.data().value());
+
+    if (!loginInfo.has_value())
+    {
+        qWarning() << "Client" << packet.sender() << "sent invalid login payload";
+        sendPacket(connection.sessionId(), shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Invalid login payload"));
         return;
     }
 
+    const Database& db = Database::instance();
+    const auto user = db.authenticateUser(loginInfo.value());
 
-    const auto info = shared::LoginInfo::deserialize(packet.data().value());
-    if (!info.has_value()) {
-        sendPacket(connection.sessionId(),
-                   shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Invalid login payload"));
-        return;
-    }
-
-    Database& db = Database::instance();
-    const auto user = db.authenticateUser(info.value());
-
-    if (!user.has_value()) {
-        sendPacket(connection.sessionId(),
-                   shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Invalid login or password"));
+    if (!user.has_value())
+    {
+        sendPacket(connection.sessionId(), shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Invalid login or password"));
         return;
     }
 
     connection.authorize(user->id());
 
-    sendPacket(connection.sessionId(),
-               shared::PacketFactory::successPacket(m_uuid, connection.sessionId(), "Login successful"));
+    sendPacket(connection.sessionId(), shared::PacketFactory::successPacket(m_uuid, connection.sessionId(), "Login successful"));
+    qInfo() << "Successfully logged in client" << packet.sender();
 }
-
 
 Server::~Server()
 {
@@ -211,7 +226,6 @@ void Server::sendPacket(const QUuid& targetSessionId, const shared::Packet& pack
         qCritical() << "Error writing to" << targetSessionId.toString();
     }
 }
-
 
 void Server::broadcast(const QString& text) const
 {
@@ -333,6 +347,3 @@ void Server::handlePacket(const shared::Packet& packet) const
 		break;
 	}
 }
-
-
-

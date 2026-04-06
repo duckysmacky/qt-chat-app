@@ -12,10 +12,10 @@
 #include "ConsoleReader.h"
 
 /**
- * @class TcpServer
+ * @class Server
  * @brief TCP server with console input and multi-client broadcasting.
  */
-class TcpServer : public QObject
+class Server : public QObject
 {
     Q_OBJECT
 
@@ -28,39 +28,39 @@ private:
 
 public:
      /**
-     * @brief Returns the singleton TcpServer instance
+     * @brief Returns the singleton Server instance
      * @return Reference to the server
      */
-    static TcpServer& instance();
+    static Server& instance();
 
-    /**
-     * @brief Constructors for TCP server
-     */
-    TcpServer(const TcpServer& other) = delete;
-    TcpServer& operator =(const TcpServer& other) = delete;
-    TcpServer(TcpServer&& other) = delete;
-    TcpServer& operator =(TcpServer&& other) = delete;
+    Server(const Server& other) = delete;
+    Server& operator =(const Server& other) = delete;
+    Server(Server&& other) = delete;
+    Server& operator =(Server&& other) = delete;
 
     /**
      * @brief Destructor. Stops the server and console reader.
      */
-    ~TcpServer() override;
+    ~Server() override;
 
     /**
      * @brief Starts the TCP server on the specified port.
      * @param port Port number (default 8080)
      */
 	bool start(uint16_t port = 8080);
+
     /**
      * @brief Stops the server and the console reader.
      */
     void stop() const;
+
     /**
      * @brief Sends a packet to a specific client.
      * @param target Client UUID
      * @param packet Message to send
      */
     void sendPacket(const QUuid& target, const shared::Packet& packet) const;
+
     /**
      * @brief Broadcasts a text message to all connected clients.
      * @param text Message content
@@ -90,11 +90,13 @@ public slots:
     void onServerRead();
 
 private:
-    explicit TcpServer(QObject* parent = nullptr);
+    explicit Server(QObject* parent = nullptr);
+
     std::optional<std::reference_wrapper<ClientConnection>> findConnection(const QUuid& sessionId);
-    std::optional<std::reference_wrapper<ClientConnection>> findConnection(QTcpSocket* clientSocket);
-    void handleRegister(QTcpSocket* clientSocket, const shared::Packet& registerPacket);
-    void handleLogin(QTcpSocket* clientSocket, const shared::Packet& loginPacket);
+    std::optional<std::reference_wrapper<ClientConnection>> findConnection(const QTcpSocket* clientSocket);
+
+    void handleConnect(QTcpSocket* socket, const shared::Packet& packet);
+    void handleRegister(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleLogin(const QTcpSocket* socket, const shared::Packet& packet);
     void handlePacket(const shared::Packet& packet) const;
-    void handleConnect(QTcpSocket* socket, const shared::Packet& connectPacket);
 };

@@ -2,8 +2,8 @@ find_package(Qt6 REQUIRED COMPONENTS Sql)
 
 qt_add_executable(server_app
     src/main.cpp
-		src/TcpServer.cpp
-		src/TcpServer.h
+		src/Server.cpp
+		src/Server.h
 		src/Database.cpp
 		src/Database.h
 		src/ConsoleReader.cpp
