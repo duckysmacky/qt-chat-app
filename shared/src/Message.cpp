@@ -3,10 +3,10 @@
 #include <QDebug>
 #include <QBuffer>
 
+namespace shared {
+
 static constexpr auto MESSAGE_TYPE_SIZE = 1;
 static constexpr auto MESSAGE_HEADER_SIZE = MESSAGE_TYPE_SIZE;
-
-namespace shared {
 
 Message::Message(const MessageType type, QString content)
     : m_type(type),

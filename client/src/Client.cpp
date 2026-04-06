@@ -140,7 +140,7 @@ void Client::sendPacket(const shared::PacketType type)
 
     QByteArray payload;
     payload.append(packet.serialize());
-    payload.append(DELIMITER);
+    payload.append(shared::util::DELIMITER);
 
     m_socket.write(payload);
 }
@@ -152,7 +152,7 @@ void Client::sendPacket(const shared::PacketType type, QByteArray data)
 
     QByteArray payload;
     payload.append(packet.serialize());
-    payload.append(DELIMITER);
+    payload.append(shared::util::DELIMITER);
 
     m_socket.write(payload);
 }

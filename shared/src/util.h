@@ -5,9 +5,10 @@
 
 #include "Packet.h"
 
+namespace shared::util {
+
 constexpr auto DELIMITER = '\xFF';
 
-namespace shared::util {
 /**
  * @brief Parses raw byte data into a list of Message objects.
  */

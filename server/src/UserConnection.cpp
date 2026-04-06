@@ -35,7 +35,7 @@ bool UserConnection::writePacket(const shared::Packet& packet) const
 
     QByteArray payload;
     payload.append(packet.serialize());
-    payload.append(DELIMITER);
+    payload.append(shared::util::DELIMITER);
 
     if (m_socket->write(payload) == -1) {
         qCritical() << "Error writing packet:" << m_socket->errorString();
