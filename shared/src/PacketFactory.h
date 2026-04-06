@@ -1,7 +1,8 @@
 #pragma once
 
-#include <Packet.h>
+#include "Packet.h"
 #include "AuthInfo.h"
+
 namespace shared {
 
 class PacketFactory

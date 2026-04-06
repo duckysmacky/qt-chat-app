@@ -9,8 +9,8 @@ add_library(shared STATIC
     src/PacketFactory.h
     src/AuthInfo.h
     src/AuthInfo.cpp
-    src/ResultInfo.h
-    src/ResultInfo.cpp
+        src/Result.h
+        src/Result.cpp
 )
 
 target_include_directories(shared PUBLIC
