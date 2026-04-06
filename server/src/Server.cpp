@@ -125,7 +125,7 @@ void Server::handleRegister(const QTcpSocket* socket, const shared::Packet& pack
 
     if (!db.createUser(user))
     {
-        qFatal() << "Registration of client" << packet.sender() << "failed";
+        qCritical() << "Registration of client" << packet.sender() << "failed";
         sendPacket(connection.sessionId(), shared::PacketFactory::errorPacket(m_uuid, connection.sessionId(), "Registration failed"));
         return;
     }
