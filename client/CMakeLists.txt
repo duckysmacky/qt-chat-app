@@ -12,6 +12,7 @@ qt_add_qml_module(client_app
     URI ChatApp
     VERSION 1.0
     QML_FILES
+        src/ui/ChatBox.qml
         src/ui/ChatWindow.qml
 )
 
