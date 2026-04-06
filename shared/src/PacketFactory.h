@@ -8,13 +8,13 @@ namespace shared {
 class PacketFactory
 {
 public:
-    static Packet connectPacket(QUuid sender, QUuid target);
-    static Packet textMessagePacket(QUuid sender, QUuid target, QString content);
-    static Packet mediaMessagePacket(QUuid sender, QUuid target, QString content);
-    static Packet registerPacket(QUuid sender, QUuid target, const RegisterInfo& info);
-    static Packet loginPacket(QUuid sender, QUuid target, const LoginInfo& info);
-    static Packet successPacket(QUuid sender, QUuid target, QString message);
-    static Packet errorPacket(QUuid sender, QUuid target, QString message);
+    static Packet connectPacket(const QUuid& sender, const QUuid& target);
+    static Packet textMessagePacket(const QUuid& sender, const QUuid& target, QString content);
+    static Packet mediaMessagePacket(const QUuid& sender, const QUuid& target, QString content);
+    static Packet registerPacket(const QUuid& sender, const QUuid& target, const RegisterInfo& info);
+    static Packet loginPacket(const QUuid& sender, const QUuid& target, const LoginInfo& info);
+    static Packet successPacket(const QUuid& sender, const QUuid& target, QString message);
+    static Packet errorPacket(const QUuid& sender, const QUuid& target, QString message);
 };
 
 }
