@@ -4,8 +4,13 @@
 #include <QString>
 #include <QUuid>
 #include <optional>
-#include "Model.h"
 #include "AuthInfo.h"
+#include "model/Chat.h"
+#include "model/ChatMember.h"
+#include "model/Content.h"
+#include "model/DbMessage.h"
+#include "model/User.h"
+#include "model/UserStats.h"
 
 
 /**
