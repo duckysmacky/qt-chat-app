@@ -1,4 +1,4 @@
-#include "TcpServer.h"
+#include "Server.h"
 
 #include <QByteArray>
 #include <QDebug>
@@ -10,43 +10,43 @@
 #include "util.h"
 
 /**
- * @brief Returns the singleton TcpServer instance
+ * @brief Returns the singleton Server instance
  */
-TcpServer& TcpServer::instance()
+Server& Server::instance()
 {
-	static TcpServer instance;
+	static Server instance;
 	return instance;
 }
 
 /**
- * @brief Constructs the TcpServer object
+ * @brief Constructs the Server object
  * Sets up TCP server, console reader, and signal connections.
  */
-TcpServer::TcpServer(QObject* parent)
+Server::Server(QObject* parent)
 	: QObject(parent),
-	  m_server(new QTcpServer(this)),
+	  m_server(new QServer(this)),
 	  m_consoleReader(new ConsoleReader(this)),
 	  m_isRunning(false)
 {
-	connect(m_server, &QTcpServer::newConnection, this, &TcpServer::onNewConnection);
+	connect(m_server, &QServer::newConnection, this, &Server::onNewConnection);
 	connect(m_consoleReader, &ConsoleReader::lineRead, this, [this](const QString& line) {
 		if (!line.isEmpty())
 			broadcast(line);
 	}, Qt::QueuedConnection);
 }
-std::optional<std::reference_wrapper<UserConnection>> TcpServer::findConnection(const QUuid& sessionId)
+std::optional<std::reference_wrapper<ClientConnection>> Server::findConnection(const QUuid& sessionId)
 {
-    auto it = m_users.find(sessionId);
-    if (it == m_users.end()) {
+    auto it = m_clients.find(sessionId);
+    if (it == m_clients.end()) {
         return std::nullopt;
     }
 
     return it.value();
 }
 
-std::optional<std::reference_wrapper<UserConnection>> TcpServer::findConnection(QTcpSocket* clientSocket)
+std::optional<std::reference_wrapper<ClientConnection>> Server::findConnection(QTcpSocket* clientSocket)
 {
-    for (auto it = m_users.begin(); it != m_users.end(); ++it) {
+    for (auto it = m_clients.begin(); it != m_clients.end(); ++it) {
         if (it.value().matchesSocket(clientSocket)) {
             return it.value();
         }
@@ -60,7 +60,7 @@ std::optional<std::reference_wrapper<UserConnection>> TcpServer::findConnection(
  * @param socket The client's QTcpSocket.
  * @param packet Connect packet containing the client's UUID.
  */
-void TcpServer::handleConnect(QTcpSocket* socket, const shared::Packet& connectPacket)
+void Server::handleConnect(QTcpSocket* socket, const shared::Packet& connectPacket)
 {
     if (!socket)
         return;
@@ -69,24 +69,24 @@ void TcpServer::handleConnect(QTcpSocket* socket, const shared::Packet& connectP
         return;
 
     const QUuid sessionId = connectPacket.sender();
-    if (m_users.contains(sessionId)) {
+    if (m_clients.contains(sessionId)) {
         qWarning() << "Client already registered";
         return;
     }
 
-    m_users.insert(sessionId, UserConnection(sessionId, socket));
+    m_clients.insert(sessionId, ClientConnection(sessionId, socket));
 
     const auto ok = shared::PacketFactory::successPacket(m_uuid, sessionId, "Connected");
     sendPacket(sessionId, ok);
 }
-void TcpServer::handleRegister(QTcpSocket* socket, const shared::Packet& packet)
+void Server::handleRegister(QTcpSocket* socket, const shared::Packet& packet)
 {
     auto connectionOpt = findConnection(packet.sender());
     if (!connectionOpt.has_value()) {
         return;
     }
 
-    UserConnection& connection = connectionOpt->get();
+    ClientConnection& connection = connectionOpt->get();
 
     if (!connection.matchesSocket(socket) || !packet.data().has_value()) {
         return;
@@ -123,14 +123,14 @@ void TcpServer::handleRegister(QTcpSocket* socket, const shared::Packet& packet)
     sendPacket(connection.sessionId(),
                shared::PacketFactory::successPacket(m_uuid, connection.sessionId(), "Registration successful"));
 }
-void TcpServer::handleLogin(QTcpSocket* socket, const shared::Packet& packet)
+void Server::handleLogin(QTcpSocket* socket, const shared::Packet& packet)
 {
     auto connectionOpt = findConnection(packet.sender());
     if (!connectionOpt.has_value()) {
         return;
     }
 
-    UserConnection& connection = connectionOpt->get();
+    ClientConnection& connection = connectionOpt->get();
 
     if (!connection.matchesSocket(socket) || !packet.data().has_value()) {
         return;
@@ -160,7 +160,7 @@ void TcpServer::handleLogin(QTcpSocket* socket, const shared::Packet& packet)
 }
 
 
-TcpServer::~TcpServer()
+Server::~Server()
 {
 	stop();
 }
@@ -170,7 +170,7 @@ TcpServer::~TcpServer()
  * @param port Port number to listen on
  * @return true if server started successfully
  */
-bool TcpServer::start(const uint16_t port)
+bool Server::start(const uint16_t port)
 {
 	m_consoleReader->start();
 
@@ -188,7 +188,7 @@ bool TcpServer::start(const uint16_t port)
 /**
  * @brief Constant function which stops the server and closes the connection
  */
-void TcpServer::stop() const
+void Server::stop() const
 {
 	if (m_isRunning)
 		m_server->close();
@@ -199,23 +199,23 @@ void TcpServer::stop() const
 /**
  * @brief Sends a packet to a specific client using bytes stream
  */
-void TcpServer::sendPacket(const QUuid& targetSessionId, const shared::Packet& packet) const
+void Server::sendPacket(const QUuid& targetSessionId, const shared::Packet& packet) const
 {
-    auto it = m_users.constFind(targetSessionId);
-    if (it == m_users.constEnd()) {
+    auto it = m_clients.constFind(targetSessionId);
+    if (it == m_clients.constEnd()) {
         qWarning() << "Target session not found:" << targetSessionId.toString();
         return;
     }
 
-    if (!it.value().writePacket(packet)) {
+    if (!it.value().sendPacket(packet)) {
         qCritical() << "Error writing to" << targetSessionId.toString();
     }
 }
 
 
-void TcpServer::broadcast(const QString& text) const
+void Server::broadcast(const QString& text) const
 {
-    for (const QUuid& targetSessionId : m_users.keys())
+    for (const QUuid& targetSessionId : m_clients.keys())
     {
         const shared::Packet packet =
             shared::PacketFactory::textMessagePacket(m_uuid, targetSessionId, text);
@@ -227,16 +227,16 @@ void TcpServer::broadcast(const QString& text) const
 /**
  * Handles new incoming TCP connections; returns None if socket is not defined
  */
-void TcpServer::onNewConnection()
+void Server::onNewConnection()
 {
 	const QTcpSocket* socket = m_server->nextPendingConnection();
 	if (!socket) return;
 
-	connect(socket, &QTcpSocket::readyRead, this, &TcpServer::onServerRead);
-	connect(socket, &QTcpSocket::disconnected, this, &TcpServer::onClientDisconnected);
+	connect(socket, &QTcpSocket::readyRead, this, &Server::onServerRead);
+	connect(socket, &QTcpSocket::disconnected, this, &Server::onClientDisconnected);
 }
 
-void TcpServer::onServerRead()
+void Server::onServerRead()
 {
 	auto* socket = qobject_cast<QTcpSocket*>(sender());
 	if (!socket) return;
@@ -274,18 +274,18 @@ void TcpServer::onServerRead()
 /**
  * @brief Handles client disconnection
  */
-void TcpServer::onClientDisconnected()
+void Server::onClientDisconnected()
 {
     auto* clientSocket = qobject_cast<QTcpSocket*>(sender());
     if (!clientSocket)
         return;
 
-    for (auto it = m_users.begin(); it != m_users.end(); ++it)
+    for (auto it = m_clients.begin(); it != m_clients.end(); ++it)
     {
         if (it.value().matchesSocket(clientSocket))
         {
             const QUuid disconnectedSessionId = it.key();
-            m_users.erase(it);
+            m_clients.erase(it);
             qInfo() << "Client session" << disconnectedSessionId.toString() << "disconnected";
             break;
         }
@@ -300,7 +300,7 @@ void TcpServer::onClientDisconnected()
  *
  * Removes the client from the socket map, logs the event, and deletes the socket.
  */
-void TcpServer::handlePacket(const shared::Packet& packet) const
+void Server::handlePacket(const shared::Packet& packet) const
 {
 	if (packet.sender().isNull())
 	{
@@ -314,7 +314,7 @@ void TcpServer::handlePacket(const shared::Packet& packet) const
 		{
 			qInfo() << "Received message from" << packet.sender().toString();
 
-            for (const auto& uuid : m_users.keys())
+            for (const auto& uuid : m_clients.keys())
 			{
 				if (uuid == packet.sender()) continue;
 				sendPacket(uuid, packet);

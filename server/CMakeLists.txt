@@ -12,8 +12,8 @@ qt_add_executable(server_app
 		src/middleware.cpp
                 src/model.cpp
                 src/model.h
-                src/UserConnection.h
-                src/UserConnection.cpp
+        src/ClientConnection.h
+        src/ClientConnection.cpp
 )
 
 target_link_libraries(server_app PRIVATE
