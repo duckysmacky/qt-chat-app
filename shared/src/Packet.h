@@ -20,7 +20,15 @@ enum class PacketType
     /// Special command for server
     COMMAND,
     /// Client connection handshake
-    CONNECT
+    CONNECT,
+    // register
+    REGISTER,
+    // login
+    LOGIN,
+    // yspeh
+    SUCCESS,
+    // oshibka
+    ERROR
 };
 
 /**
