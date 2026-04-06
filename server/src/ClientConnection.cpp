@@ -45,5 +45,5 @@ bool ClientConnection::sendPacket(const shared::Packet& packet) const
 
 bool ClientConnection::matchesSocket(const QTcpSocket* socket) const
 {
-    return socket != nullptr && socket != m_socket;
+    return socket != nullptr && socket == m_socket;
 }
