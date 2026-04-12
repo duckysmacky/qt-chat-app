@@ -29,29 +29,10 @@ Rectangle {
             }
 
             Label {
-                text: "Enter server details to connect / Введите данные сервера, чтобы подключиться"
+                text: "Enter server details to connect"
                 wrapMode: Text.Wrap
                 color: "#6a564d"
                 Layout.fillWidth: true
-            }
-        }
-
-        RowLayout {
-            spacing: 8
-
-            Rectangle {
-                width: 10
-                height: 10
-                radius: 5
-                color: Client.connected ? "#2d8a45" : "#c45454"
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            Label {
-                text: Client.connected ? "Online" : "Offline"
-                font.bold: true
-                color: "#2f241f"
-                Layout.alignment: Qt.AlignVCenter
             }
         }
 
@@ -99,14 +80,12 @@ Rectangle {
         }
 
         Button {
-            text: Client.connected ? "Disconnect" : "Connect"
+            text: "Connect"
             Layout.fillWidth: true
             implicitHeight: 44
+            enabled: !Client.connected
             onClicked: {
-                if (Client.connected)
-                    Client.disconnect()
-                else
-                    Client.connectTo(hostField.text, parseInt(portField.text))
+                Client.connectTo(hostField.text, parseInt(portField.text))
             }
         }
     }

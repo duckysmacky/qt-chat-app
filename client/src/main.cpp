@@ -59,7 +59,8 @@ int main(int argc, char *argv[])
     const QGuiApplication app(argc, argv);
 
     g_logFile.setFileName("client.log");
-    g_logFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate);
+    if (!g_logFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        qWarning() << "Failed to open client log file:" << g_logFile.fileName();
 
     qInstallMessageHandler(handleLogMessage);
 

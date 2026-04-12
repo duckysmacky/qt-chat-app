@@ -14,7 +14,9 @@ qt_add_qml_module(client_app
     QML_FILES
         src/ui/ChatBox.qml
         src/ui/ConnectionPanel.qml
+        src/ui/ConnectionWindow.qml
         src/ui/ChatWindow.qml
+				src/ui/StatusIndicator.qml
 )
 
 target_link_libraries(client_app PRIVATE

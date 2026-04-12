@@ -5,20 +5,44 @@ import QtQuick.Layouts
 import ChatApp 1.0
 
 Window {
+    id: root
+
     width: 920
     height: 560
     visible: true
     title: "Chat app"
     color: "#efe4d4"
 
-    RowLayout {
+    ConnectionWindow {
+        id: connectionWindow
+        transientParent: root
+        x: root.x + Math.round((root.width - width) / 2)
+        y: root.y + Math.round((root.height - height) / 2)
+    }
+
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
-        spacing: 20
+        spacing: 16
 
-        ConnectionPanel {
-            Layout.preferredWidth: 260
-            Layout.fillHeight: true
+        RowLayout {
+						spacing: 16
+            Layout.fillWidth: true
+
+            Button {
+                text: Client.connected ? "Disconnect" : "Connect"
+                onClicked: {
+                    if (Client.connected) {
+                        Client.disconnect()
+										} else {
+												connectionWindow.show()
+												connectionWindow.raise()
+												connectionWindow.requestActivate()
+										}
+                }
+            }
+
+						StatusIndicator { }
         }
 
         ChatBox {
