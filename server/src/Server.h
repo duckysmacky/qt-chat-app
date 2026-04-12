@@ -60,6 +60,9 @@ public:
      * @param packet Message to send
      */
     void sendPacket(const QUuid& target, const shared::Packet& packet) const;
+    
+	void sendError(const QUuid& target, QString message) const;
+	void sendSuccess(const QUuid& target, QString message) const;
 
     /**
      * @brief Broadcasts a text message to all connected clients.
@@ -93,10 +96,12 @@ private:
     explicit Server(QObject* parent = nullptr);
 
     std::optional<std::reference_wrapper<ClientConnection>> findConnection(const QUuid& sessionId);
+    std::optional<std::reference_wrapper<const ClientConnection>> findConnection(const QUuid& sessionId) const;
     std::optional<std::reference_wrapper<ClientConnection>> findConnection(const QTcpSocket* clientSocket);
+	std::optional<std::reference_wrapper<const ClientConnection>> findConnection(const QTcpSocket* clientSocket) const;
 
     void handleConnect(QTcpSocket* socket, const shared::Packet& packet);
     void handleRegister(const QTcpSocket* socket, const shared::Packet& packet);
     void handleLogin(const QTcpSocket* socket, const shared::Packet& packet);
-    void handlePacket(const shared::Packet& packet) const;
+    void handleAuthorizedPacket(const shared::Packet& packet) const;
 };
