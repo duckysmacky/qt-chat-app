@@ -53,8 +53,11 @@ Rectangle {
 
             TextField {
                 id: messageInput
-                placeholderText: "Enter a message..."
+                placeholderText: AccountManager.canSendMessages
+                                 ? "Enter a message..."
+                                 : "Log in to send messages"
                 Layout.fillWidth: true
+                enabled: AccountManager.canSendMessages
                 onAccepted: {
                     sendButton.clicked()
                 }
@@ -63,6 +66,7 @@ Rectangle {
             Button {
                 id: sendButton
                 text: "Send"
+                enabled: AccountManager.canSendMessages
                 onClicked: {
                     chat.submitMessage(messageInput.text)
                     messageInput.text = ""
