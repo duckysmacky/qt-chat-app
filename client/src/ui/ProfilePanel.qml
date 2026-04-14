@@ -5,6 +5,8 @@ import QtQuick.Layouts
 import ChatApp 1.0
 
 Rectangle {
+    signal closeRequested()
+
     color: "#f7efe5"
     radius: 16
     border.color: "#ddcdb9"
@@ -39,6 +41,12 @@ Rectangle {
             text: "Log out"
             Layout.fillWidth: true
             onClicked: AccountManager.logout()
+        }
+
+        Button {
+            text: "Close"
+            Layout.fillWidth: true
+            onClicked: closeRequested()
         }
     }
 }

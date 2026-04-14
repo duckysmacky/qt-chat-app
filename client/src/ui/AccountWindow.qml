@@ -34,7 +34,9 @@ Window {
 
     Component {
         id: profileComponent
-        ProfilePanel { }
+        ProfilePanel {
+            onCloseRequested: close()
+        }
     }
 
     onVisibleChanged: {
