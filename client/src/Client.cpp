@@ -120,7 +120,7 @@ void Client::onReadyRead()
                 if (auto data = packet.data())
                 {
                     const auto msg = shared::Message::deserialize(data.value());
-                    emit messageReceived(packet.sender(), msg);
+                    emit messageReceived(packet.sender().toString(), msg);
                 }
             }
             break;

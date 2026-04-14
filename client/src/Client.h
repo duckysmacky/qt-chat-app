@@ -34,21 +34,25 @@ public:
      * @brief Returns the singleton client instance
      */
     static Client& instance();
+
     /// Copy and move are disabled (singleton)
     Client(const Client&) = delete;
     Client& operator =(const Client&) = delete;
     Client(Client&&) = delete;
     Client& operator =(Client&&) = delete;
+
     /**
      * @brief Connect client to a server
      * @param host Server's host
      * @param port Server's port
      */
     Q_INVOKABLE void connectTo(const QString& host, int port);
+
     /**
      * @brief Disconnects client from a server
      */
     Q_INVOKABLE void disconnect();
+
     /**
      * @brief Sends a message to the server.
      * @param content Message content
@@ -62,7 +66,7 @@ public:
 signals:
     void connectionStatusChanged();
     void statusTextChanged();
-    void messageReceived(const QUuid& sender, const shared::Message& msg);
+    void messageReceived(const QString& sender, const shared::Message& messagePacket);
 
 private slots:
     void onConnected();

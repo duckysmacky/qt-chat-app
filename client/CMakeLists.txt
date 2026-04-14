@@ -2,17 +2,24 @@ find_package(Qt6 REQUIRED COMPONENTS Qml Quick Network)
 
 qt_add_executable(client_app
     src/main.cpp
-        src/Client.cpp
-        src/Client.h
-        src/ChatWindow.cpp
-        src/ChatWindow.h
+    src/Client.cpp
+    src/Client.h
+    src/Chat.cpp
+    src/Chat.h
+	src/ChatMessage.cpp
+	src/ChatMessage.h
 )
 
 qt_add_qml_module(client_app
-    URI client
-		VERSION 1.0
+    URI ChatApp
+    VERSION 1.0
     QML_FILES
-        src/ui/Main.qml
+        src/ui/ChatBox.qml
+        src/ui/ChatMessage.qml
+        src/ui/ConnectionPanel.qml
+        src/ui/ConnectionWindow.qml
+        src/ui/ChatWindow.qml
+        src/ui/StatusIndicator.qml
 )
 
 target_link_libraries(client_app PRIVATE
