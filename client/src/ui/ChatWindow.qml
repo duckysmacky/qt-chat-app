@@ -27,6 +27,14 @@ Window {
         y: root.y + Math.round((root.height - height) / 2)
     }
 
+    Component.onCompleted: {
+        if (!Client.connected) {
+            connectionWindow.show()
+            connectionWindow.raise()
+            connectionWindow.requestActivate()
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
@@ -37,7 +45,8 @@ Window {
             Layout.fillWidth: true
 
             Button {
-                text: "Profile"
+                visible: Client.connected
+                text: AccountManager.loggedIn ? "Profile" : "Log in"
                 onClicked: {
                     accountWindow.show()
                     accountWindow.raise()
