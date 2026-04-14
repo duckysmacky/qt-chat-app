@@ -10,6 +10,7 @@ class AccountManager : public QObject
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(QString currentUser READ currentUser NOTIFY currentUserChanged)
+    Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
 
 public:
     enum Mode
@@ -57,6 +58,7 @@ public:
     bool loggedIn() const { return m_loggedIn; }
     bool busy() const { return m_busy; }
     const QString& currentUser() const { return m_currentUser; }
+    const QString& statusText() const { return m_statusText; }
 
 signals:
     void modeChanged();
@@ -64,6 +66,7 @@ signals:
     void busyChanged();
     void canSendMessagesChanged();
     void currentUserChanged();
+    void statusTextChanged();
 
 private slots:
     void onConnectionStatusChanged();
@@ -76,5 +79,9 @@ private:
     void setLoggedIn(bool loggedIn);
     void setBusy(bool busy);
     void setCurrentUser(QString currentUser);
+    void setStatusText(QString statusText);
     void resetAuthorizationState();
+
+private:
+    QString m_statusText;
 };

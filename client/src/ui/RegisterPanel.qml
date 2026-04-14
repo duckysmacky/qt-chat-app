@@ -66,6 +66,14 @@ Rectangle {
                 enabled: Client.connected && !AccountManager.busy
                 onAccepted: registerButton.clicked()
             }
+
+            Label {
+                text: AccountManager.statusText
+                visible: text.length > 0
+                color: "#6a564d"
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
         }
 
         Item {

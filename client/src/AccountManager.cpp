@@ -26,12 +26,14 @@ AccountManager::AccountManager(QObject* parent)
 void AccountManager::showLogin()
 {
     if (m_busy) return;
+    setStatusText("");
     setMode(m_loggedIn ? AccountMode : LoginMode);
 }
 
 void AccountManager::showRegister()
 {
     if (m_busy || m_loggedIn) return;
+    setStatusText("");
     setMode(RegisterMode);
 }
 
@@ -42,6 +44,7 @@ void AccountManager::login(const QString& login, const QString& password)
 
     m_pendingAction = PendingAction::Login;
     m_pendingUser = login.trimmed();
+    setStatusText("");
     setBusy(true);
 
     Client::instance().login(m_pendingUser, Hasher::sha256(password));
@@ -54,6 +57,7 @@ void AccountManager::registerAccount(const QString& username, const QString& nam
         return;
 
     m_pendingAction = PendingAction::Register;
+    setStatusText("");
     setBusy(true);
 
     Client::instance().registerUser(
@@ -97,10 +101,12 @@ void AccountManager::onResultReceived(const bool success, const QString& message
         if (!success)
         {
             qWarning() << "Login failed:" << message;
+            setStatusText(message);
             return;
         }
 
         qInfo() << "Login succeeded:" << message;
+        setStatusText("");
         setCurrentUser(m_pendingUser);
         setLoggedIn(true);
         setMode(AccountMode);
@@ -114,10 +120,12 @@ void AccountManager::onResultReceived(const bool success, const QString& message
         if (!success)
         {
             qWarning() << "Registration failed:" << message;
+            setStatusText(message);
             return;
         }
 
         qInfo() << "Registration succeeded:" << message;
+        setStatusText("");
         setMode(LoginMode);
         break;
 
@@ -155,9 +163,18 @@ void AccountManager::setCurrentUser(QString currentUser)
     emit currentUserChanged();
 }
 
+void AccountManager::setStatusText(QString statusText)
+{
+    if (m_statusText == statusText) return;
+
+    m_statusText = std::move(statusText);
+    emit statusTextChanged();
+}
+
 void AccountManager::resetAuthorizationState()
 {
     setLoggedIn(false);
     setCurrentUser("");
+    setStatusText("");
     setMode(LoginMode);
 }
