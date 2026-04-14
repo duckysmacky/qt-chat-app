@@ -6,6 +6,8 @@ qt_add_executable(client_app
     src/Client.h
     src/Chat.cpp
     src/Chat.h
+	src/ChatMessage.cpp
+	src/ChatMessage.h
 )
 
 qt_add_qml_module(client_app
@@ -13,10 +15,11 @@ qt_add_qml_module(client_app
     VERSION 1.0
     QML_FILES
         src/ui/ChatBox.qml
+        src/ui/ChatMessage.qml
         src/ui/ConnectionPanel.qml
         src/ui/ConnectionWindow.qml
         src/ui/ChatWindow.qml
-				src/ui/StatusIndicator.qml
+        src/ui/StatusIndicator.qml
 )
 
 target_link_libraries(client_app PRIVATE

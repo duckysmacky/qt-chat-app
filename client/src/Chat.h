@@ -1,9 +1,13 @@
 #pragma once
 
 #include <QObject>
-#include <QStringList>
+#include <QHash>
+#include <QVariantList>
 
-#include "Packet.h"
+#include <functional>
+#include <optional>
+
+#include "ChatMessage.h"
 #include "Message.h"
 
 /**
@@ -14,28 +18,35 @@
 class Chat : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QStringList messages READ messages NOTIFY messagesChanged)
+    Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
 
 private:
-    QStringList m_messages; ///<List of chat messages
+    QHash<QUuid, ChatMessage*> m_messageStorage;
+    QVariantList m_messageList;
 
 public:
-    /**
-     * @brief Constructs the Chat.
-     */
     explicit Chat(QObject* parent = nullptr);
 
-    Q_INVOKABLE void sendMessage(const QString& text);
-    /// @brief Returns the list of messages
-    const QStringList& messages() const { return m_messages; }
+    Q_INVOKABLE void submitMessage(const QString& text);
+
+    const QVariantList& messages() const { return m_messageList; }
 
 signals:
-    /// @brief Signal is emitted when the message list changes
     void messagesChanged();
 
 private slots:
-    void onMessageReceived(const QUuid& sender, const shared::Message& message);
+    void onNewMessage(const QString& sender, const shared::Message& messagePacket);
+
+    void onMessageSent(const QUuid& messageId);
+    void onMessageDelivered(const QUuid& messageId);
+    void onMessageRead(const QUuid& messageId);
+    void onMessageReceived(const QUuid& messageId);
+    void onMessageDeleted(const QUuid& messageId);
 
 private:
-    void appendMessage(const QString& sender, const QString& text);
+    void addChatMessage(ChatMessage* message);
+    void deleteChatMessage(ChatMessage* message);
+    ChatMessage* findChatMessage(const QUuid& id) const;
+    std::optional<const ChatMessage*> findChatMessage(std::function<bool(const ChatMessage*)> predicate) const;
+    std::optional<ChatMessage*> findChatMessage(std::function<bool(const ChatMessage*)> predicate);
 };

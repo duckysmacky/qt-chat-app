@@ -34,26 +34,14 @@ Rectangle {
                 anchors.margins: 12
                 model: chat.messages
                 clip: true
-                spacing: 6
+                spacing: 8
 
-                delegate: Rectangle {
-                    required property string modelData
+                onCountChanged: positionViewAtEnd()
 
+                delegate: ChatMessage {
+                    required property var modelData
                     width: ListView.view.width
-                    radius: 10
-                    color: "#efe4d4"
-                    border.color: "#e0cfba"
-
-                    implicitHeight: messageText.implicitHeight + 14
-
-                    Text {
-                        id: messageText
-                        anchors.fill: parent
-                        anchors.margins: 6
-                        text: modelData
-                        wrapMode: Text.Wrap
-                        color: "#3c2f29"
-                    }
+                    message: modelData
                 }
             }
         }
@@ -76,7 +64,7 @@ Rectangle {
                 id: sendButton
                 text: "Send"
                 onClicked: {
-                    chat.sendMessage(messageInput.text)
+                    chat.submitMessage(messageInput.text)
                     messageInput.text = ""
                 }
             }
