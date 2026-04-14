@@ -59,6 +59,9 @@ public:
      */
     Q_INVOKABLE void sendMessage(QString content);
 
+    void login(QString login, QString passwordHash);
+    void registerUser(QString username, QString name, QString email, QString passwordHash);
+
     const QUuid& uuid() const { return m_uuid; }
     bool connected() const { return m_connected; }
     const QString& statusText() const { return m_statusText; }
@@ -67,6 +70,7 @@ signals:
     void connectionStatusChanged();
     void statusTextChanged();
     void messageReceived(const QString& sender, const shared::Message& messagePacket);
+    void resultReceived(bool success, const QString& message);
 
 private slots:
     void onConnected();

@@ -8,6 +8,7 @@
 
 #include "Client.h"
 #include "Chat.h"
+#include "AccountManager.h"
 
 static QFile g_logFile;
 
@@ -74,6 +75,7 @@ int main(int argc, char *argv[])
     );
 
     qmlRegisterSingletonInstance("ChatApp", 1, 0, "Client", &Client::instance());
+    qmlRegisterSingletonInstance("ChatApp", 1, 0, "AccountManager", &AccountManager::instance());
     qmlRegisterType<Chat>("ChatApp", 1, 0, "Chat");
 
     engine.loadFromModule("ChatApp", "ChatWindow");

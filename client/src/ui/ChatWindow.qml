@@ -20,29 +20,45 @@ Window {
         y: root.y + Math.round((root.height - height) / 2)
     }
 
+    AccountWindow {
+        id: accountWindow
+        transientParent: root
+        x: root.x + Math.round((root.width - width) / 2)
+        y: root.y + Math.round((root.height - height) / 2)
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 16
 
         RowLayout {
-						spacing: 16
+            spacing: 16
             Layout.fillWidth: true
+
+            Button {
+                text: "Profile"
+                onClicked: {
+                    accountWindow.show()
+                    accountWindow.raise()
+                    accountWindow.requestActivate()
+                }
+            }
 
             Button {
                 text: Client.connected ? "Disconnect" : "Connect"
                 onClicked: {
                     if (Client.connected) {
                         Client.disconnect()
-										} else {
-												connectionWindow.show()
-												connectionWindow.raise()
-												connectionWindow.requestActivate()
-										}
+                    } else {
+                        connectionWindow.show()
+                        connectionWindow.raise()
+                        connectionWindow.requestActivate()
+                    }
                 }
             }
 
-						StatusIndicator { }
+            StatusIndicator { }
         }
 
         ChatBox {

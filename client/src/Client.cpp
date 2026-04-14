@@ -2,7 +2,10 @@
 
 #include <QAbstractSocket>
 
+#include "AuthInfo.h"
 #include "Packet.h"
+#include "PacketFactory.h"
+#include "Result.h"
 #include "util.h"
 
 /**
@@ -71,6 +74,23 @@ void Client::sendMessage(QString content)
     sendPacket(shared::PacketType::MESSAGE, message.serialize());
 }
 
+void Client::login(QString login, QString passwordHash)
+{
+    const shared::LoginInfo info(std::move(login), std::move(passwordHash));
+    sendPacket(shared::PacketType::LOGIN, info.serialize());
+}
+
+void Client::registerUser(QString username, QString name, QString email, QString passwordHash)
+{
+    const shared::RegisterInfo info(
+        std::move(username),
+        std::move(name),
+        std::move(email),
+        std::move(passwordHash)
+    );
+    sendPacket(shared::PacketType::REGISTER, info.serialize());
+}
+
 /**
  * @brief Handles the connected signal from the socket.
  */
@@ -122,6 +142,21 @@ void Client::onReadyRead()
                     const auto msg = shared::Message::deserialize(data.value());
                     emit messageReceived(packet.sender().toString(), msg);
                 }
+            }
+            break;
+        case shared::PacketType::RESULT:
+            {
+                if (!packet.data().has_value()) break;
+
+                const shared::Result result = shared::Result::deserialize(packet.data().value());
+                const bool success = result.type() == shared::ResultType::SUCCESS;
+
+                if (success)
+                    qInfo() << "Server result:" << result.text();
+                else
+                    qWarning() << "Server result:" << result.text();
+
+                emit resultReceived(success, result.text());
             }
             break;
         default:

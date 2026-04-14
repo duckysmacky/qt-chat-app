@@ -6,8 +6,12 @@ qt_add_executable(client_app
     src/Client.h
     src/Chat.cpp
     src/Chat.h
-	src/ChatMessage.cpp
-	src/ChatMessage.h
+    src/ChatMessage.cpp
+    src/ChatMessage.h
+    src/Hasher.cpp
+    src/Hasher.h
+	src/AccountManager.cpp
+	src/AccountManager.h
 )
 
 qt_add_qml_module(client_app
@@ -19,6 +23,10 @@ qt_add_qml_module(client_app
         src/ui/ConnectionPanel.qml
         src/ui/ConnectionWindow.qml
         src/ui/ChatWindow.qml
+        src/ui/ProfilePanel.qml
+        src/ui/LoginPanel.qml
+		src/ui/AccountWindow.qml
+        src/ui/RegisterPanel.qml
         src/ui/StatusIndicator.qml
 )
 
