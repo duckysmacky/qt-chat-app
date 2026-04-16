@@ -547,6 +547,36 @@ QList<model::Chat> Database::getAllChats() const
 
     return chats;
 }
+QList<QUuid> Database::getUserIdsByChatId(const QUuid& chatId) const
+{
+    QList<QUuid> userIds;
+
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return userIds;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT user_id "
+        "FROM chat_members "
+        "WHERE chat_id = :chat_id"
+        );
+
+    query.bindValue(":chat_id", chatId.toString(QUuid::WithoutBraces));
+
+    if (!query.exec()) {
+        qCritical() << "Failed to get user ids by chat id:" << query.lastError().text();
+        return userIds;
+    }
+
+    while (query.next()) {
+        userIds.append(QUuid(query.value(0).toString()));
+    }
+
+    return userIds;
+}
+
 bool Database::createChatMember(const model::ChatMember& chatMember)
 {
     if (!m_db.isOpen()) {

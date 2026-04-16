@@ -374,14 +374,65 @@ void Server::handleAuthorizedPacket(const shared::Packet& packet) const
 
 	switch (packet.type())
 	{
-	case shared::PacketType::MESSAGE:
-		qInfo() << "Received message from" << uuid.toString();
-		for (const auto& clientUuid : m_clients.keys())
-		{
-			if (uuid == clientUuid) continue;
-			sendPacket(clientUuid, packet);
-		}
-		break;
+    case shared::PacketType::MESSAGE:
+    {
+        const QUuid& chatId = packet.target();
+
+        if (chatId.isNull())
+        {
+            qWarning() << "Declining message from" << uuid.toString() << "with invalid chat UUID";
+            sendError(uuid, "Invalid chat id");
+            break;
+        }
+
+        if (!connection.userId().has_value())
+        {
+            qWarning() << "Declining message from client without account id";
+            sendError(uuid, "Not authorized");
+            break;
+        }
+
+        const Database& db = Database::instance();
+        const QList<QUuid> memberUserIds = db.getUserIdsByChatId(chatId);
+
+        if (memberUserIds.isEmpty())
+        {
+            qWarning() << "Chat" << chatId.toString() << "not found or has no members";
+            sendError(uuid, "Chat not found");
+            break;
+        }
+
+        const QUuid senderUserId = connection.userId().value();
+
+        if (!memberUserIds.contains(senderUserId))
+        {
+            qWarning() << "User" << senderUserId.toString()
+            << "is not a member of chat" << chatId.toString();
+            sendError(uuid, "You are not a member of this chat");
+            break;
+        }
+
+        qInfo() << "Routing message from session" << uuid.toString()
+                << "to chat" << chatId.toString();
+
+        for (auto it = m_clients.constBegin(); it != m_clients.constEnd(); ++it)
+        {
+            const ClientConnection& targetConnection = it.value();
+
+            if (!targetConnection.isAuthorized() || !targetConnection.userId().has_value())
+                continue;
+
+            if (!memberUserIds.contains(targetConnection.userId().value()))
+                continue;
+
+            if (it.key() == uuid)
+                continue;
+
+            sendPacket(it.key(), packet);
+        }
+    }
+    break;
+
 
 	case shared::PacketType::COMMAND:
 		qInfo() << "Command from" << uuid.toString();
