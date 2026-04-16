@@ -148,6 +148,10 @@ void Server::onServerRead()
                 handleLogin(socket, packet);
                 break;
 
+            case shared::PacketType::LOGOUT:
+                handleLogout(socket, packet);
+                break;
+
             default:
                 handleAuthorizedPacket(packet);
                 break;
@@ -391,3 +395,35 @@ void Server::handleAuthorizedPacket(const shared::Packet& packet) const
 
 	sendSuccess(uuid, "Packet successfully recieved");
 }
+
+void Server::handleLogout(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::LOGOUT) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+
+    if (!connectionOpt.has_value())
+    {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket))
+        return;
+
+    if (!connection.isAuthorized())
+    {
+        qWarning() << "Client" << packet.sender() << "is not authorized";
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    connection.logout();
+
+    sendSuccess(connection.sessionId(), "Logout successful");
+    qInfo() << "Successfully logged out client" << packet.sender();
+}
+

@@ -104,4 +104,6 @@ private:
     void handleRegister(const QTcpSocket* socket, const shared::Packet& packet);
     void handleLogin(const QTcpSocket* socket, const shared::Packet& packet);
     void handleAuthorizedPacket(const shared::Packet& packet) const;
+    void handleLogout(const QTcpSocket* socket, const shared::Packet& packet);
+
 };

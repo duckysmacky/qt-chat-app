@@ -28,7 +28,9 @@ enum class PacketType
     // login
     LOGIN,
     // yspeh
-    RESULT
+    RESULT,
+    // vyshel
+    LOGOUT
 };
 
 /**
