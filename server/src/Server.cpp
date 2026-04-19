@@ -25,14 +25,11 @@ Server& Server::instance()
 Server::Server(QObject* parent)
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
-	  m_consoleReader(new ConsoleReader(this)),
+
 	  m_isRunning(false)
 {
 	connect(m_server, &QTcpServer::newConnection, this, &Server::onNewConnection);
-	connect(m_consoleReader, &ConsoleReader::lineRead, this, [this](const QString& line) {
-		if (!line.isEmpty())
-			broadcast(line);
-	}, Qt::QueuedConnection);
+
 }
 
 Server::~Server()
@@ -47,7 +44,6 @@ Server::~Server()
  */
 bool Server::start(const uint16_t port)
 {
-	m_consoleReader->start();
 
 	if (m_server->listen(QHostAddress::Any, port))
 	{
@@ -68,7 +64,6 @@ void Server::stop() const
 	if (m_isRunning)
 		m_server->close();
 
-	m_consoleReader->stop();
 }
 
 /**
@@ -97,17 +92,6 @@ void Server::sendSuccess(const QUuid& targetSessionId, QString message) const
 {
 	auto packet = shared::PacketFactory::successPacket(m_uuid, targetSessionId, std::move(message));
 	sendPacket(targetSessionId, packet);
-}
-
-void Server::broadcast(const QString& text) const
-{
-    for (const QUuid& targetSessionId : m_clients.keys())
-    {
-        const shared::Packet packet =
-            shared::PacketFactory::textMessagePacket(m_uuid, targetSessionId, text);
-
-        sendPacket(targetSessionId, packet);
-    }
 }
 
 /**
@@ -148,6 +132,10 @@ void Server::onServerRead()
                 handleLogin(socket, packet);
                 break;
 
+            case shared::PacketType::LOGOUT:
+                handleLogout(socket, packet);
+                break;
+
             default:
                 handleAuthorizedPacket(packet);
                 break;
@@ -168,13 +156,29 @@ void Server::onClientDisconnected()
 
     for (auto it = m_clients.begin(); it != m_clients.end(); ++it)
     {
-        if (it.value().matchesSocket(clientSocket))
+        ClientConnection& connection = it.value();
+
+        if (!connection.matchesSocket(clientSocket))
+            continue;
+
+        const QUuid disconnectedSessionId = it.key();
+
+        if (connection.isAuthorized())
         {
-            const QUuid disconnectedSessionId = it.key();
-            m_clients.erase(it);
-            qInfo() << "Client session" << disconnectedSessionId.toString() << "disconnected";
-            break;
+            const QString userIdText = connection.userId().has_value()
+            ? connection.userId().value().toString()
+            : QString("<unknown>");
+
+            qInfo() << "Logging out authorized client before disconnect:"
+                    << "session =" << disconnectedSessionId.toString()
+                    << "user =" << userIdText;
+
+            connection.logout();
         }
+
+        qInfo() << "Client session" << disconnectedSessionId.toString() << "disconnected";
+        m_clients.erase(it);
+        break;
     }
 
     clientSocket->close();
@@ -370,14 +374,10 @@ void Server::handleAuthorizedPacket(const shared::Packet& packet) const
 
 	switch (packet.type())
 	{
-	case shared::PacketType::MESSAGE:
-		qInfo() << "Received message from" << uuid.toString();
-		for (const auto& clientUuid : m_clients.keys())
-		{
-			if (uuid == clientUuid) continue;
-			sendPacket(clientUuid, packet);
-		}
-		break;
+    case shared::PacketType::MESSAGE:
+        handleChatMessage(connection, packet);
+        break;
+
 
 	case shared::PacketType::COMMAND:
 		qInfo() << "Command from" << uuid.toString();
@@ -391,3 +391,97 @@ void Server::handleAuthorizedPacket(const shared::Packet& packet) const
 
 	sendSuccess(uuid, "Packet successfully recieved");
 }
+
+void Server::handleLogout(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::LOGOUT) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+
+    if (!connectionOpt.has_value())
+    {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket))
+        return;
+
+    if (!connection.isAuthorized())
+    {
+        qWarning() << "Client" << packet.sender() << "is not authorized";
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    connection.logout();
+
+    sendSuccess(connection.sessionId(), "Logout successful");
+    qInfo() << "Successfully logged out client" << packet.sender();
+}
+
+
+void Server::handleChatMessage(const ClientConnection& connection, const shared::Packet& packet) const
+{
+    const QUuid& sessionId = packet.sender();
+    const QUuid& chatId = packet.target();
+
+    if (chatId.isNull())
+    {
+        qWarning() << "Declining message from" << sessionId.toString() << "with invalid chat UUID";
+        sendError(sessionId, "Invalid chat id");
+        return;
+    }
+
+    if (!connection.userId().has_value())
+    {
+        qWarning() << "Declining message from client without account id";
+        sendError(sessionId, "Not authorized");
+        return;
+    }
+
+    const Database& db = Database::instance();
+    const QList<QUuid> memberUserIds = db.getUserIdsByChatId(chatId);
+
+    if (memberUserIds.isEmpty())
+    {
+        qWarning() << "Chat" << chatId.toString() << "not found or has no members";
+        sendError(sessionId, "Chat not found");
+        return;
+    }
+
+    const QUuid senderUserId = connection.userId().value();
+
+    if (!memberUserIds.contains(senderUserId))
+    {
+        qWarning() << "User" << senderUserId.toString()
+        << "is not a member of chat" << chatId.toString();
+        sendError(sessionId, "You are not a member of this chat");
+        return;
+    }
+
+    qInfo() << "Routing message from session" << sessionId.toString()
+            << "to chat" << chatId.toString();
+
+    for (auto it = m_clients.constBegin(); it != m_clients.constEnd(); ++it)
+    {
+        const ClientConnection& targetConnection = it.value();
+
+        if (!targetConnection.isAuthorized() || !targetConnection.userId().has_value())
+            continue;
+
+        if (!memberUserIds.contains(targetConnection.userId().value()))
+            continue;
+
+        if (it.key() == sessionId)
+            continue;
+
+        sendPacket(it.key(), packet);
+    }
+
+    sendSuccess(sessionId, "Packet successfully received");
+}
+
