@@ -9,8 +9,6 @@
 
 #include "Packet.h"
 #include "ClientConnection.h"
-#include "ConsoleReader.h"
-
 /**
  * @class Server
  * @brief TCP server with console input and multi-client broadcasting.
@@ -23,7 +21,6 @@ private:
     const QUuid m_uuid; ///< Server UUID
     QTcpServer* m_server; ///< TCP server
     QHash<QUuid, ClientConnection> m_clients; ///< Connected clients
-    ConsoleReader* m_consoleReader; ///< Console input reader
     bool m_isRunning; ///< Server running state (true/false)
 
 public:
@@ -68,7 +65,7 @@ public:
      * @brief Broadcasts a text message to all connected clients.
      * @param text Message content
      */
-    void broadcast(const QString& text) const;
+
 
     /**
      * @brief Checks if the server is currently running.
@@ -101,6 +98,7 @@ private:
 	std::optional<std::reference_wrapper<const ClientConnection>> findConnection(const QTcpSocket* clientSocket) const;
 
     void handleConnect(QTcpSocket* socket, const shared::Packet& packet);
+    void handleChatMessage(const ClientConnection& connection, const shared::Packet& packet) const;
     void handleRegister(const QTcpSocket* socket, const shared::Packet& packet);
     void handleLogin(const QTcpSocket* socket, const shared::Packet& packet);
     void handleAuthorizedPacket(const shared::Packet& packet) const;
