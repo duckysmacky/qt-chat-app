@@ -6,13 +6,20 @@
 
 /// @brief Size of the serialized message type field (in bytes)
 constexpr auto MSG_TYPE_LEN = 1;
+
 /// @brief Size of the serialized sender UUID field (in bytes)
 constexpr auto MSG_SENDER_LEN = 16;
 
 namespace shared {
 
 /**
- * @brief Constructors use 'move' to set up Message without copying attributes
+ * @brief Message constructor.
+ *
+ * Uses move semantics for efficient initialization without copying strings and UUID.
+ *
+ * @param type Message type.
+ * @param sender Sender UUID.
+ * @param content Message text content.
  */
 Message::Message(const MessageType type, QUuid sender, QString content)
     : m_type(type),
@@ -21,6 +28,13 @@ Message::Message(const MessageType type, QUuid sender, QString content)
 {
 }
 
+/**
+ * @brief Move constructor.
+ *
+ * Moves resources from another Message object.
+ *
+ * @param other Source object (will be left in a valid but unspecified state).
+ */
 Message::Message(Message&& other) noexcept
     : m_type(other.m_type),
       m_sender(std::move(other.m_sender)),
@@ -28,19 +42,35 @@ Message::Message(Message&& other) noexcept
 {
 }
 
+/**
+ * @brief Move assignment operator.
+ *
+ * Moves data from another Message object.
+ *
+ * @param other Source object.
+ * @return Reference to this object.
+ */
 Message& Message::operator =(Message&& other) noexcept
 {
     if (this == &other) return *this;
+
     m_type = other.m_type;
     m_sender = std::move(other.m_sender);
     m_content = std::move(other.m_content);
+
     return *this;
 }
 
 /**
- * @brief Decodes messages using utf-8 encoding for message content and Rfc4122 for sender
- * Checks if all bytes have been delivered, warning error otherwise
- * 
+ * @brief Decodes a message from its binary representation.
+ *
+ * Format:
+ * [1 byte message type][16 bytes sender UUID][UTF-8 payload]
+ *
+ * Validates input size and logs a warning if the format is invalid.
+ *
+ * @param bytes Serialized message data.
+ * @return Deserialized Message object.
  */
 Message Message::decode(const QByteArray& bytes)
 {
@@ -63,7 +93,12 @@ Message Message::decode(const QByteArray& bytes)
 }
 
 /**
- * @brief Encodes message using array with bytes
+ * @brief Encodes the message into a binary format.
+ *
+ * Format:
+ * [1 byte message type][16 bytes sender UUID][UTF-8 text]
+ *
+ * @return QByteArray containing the serialized message.
  */
 QByteArray Message::encode() const
 {
@@ -76,4 +111,4 @@ QByteArray Message::encode() const
     return result;
 }
 
-}
+} // namespace shared

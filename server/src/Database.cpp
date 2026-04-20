@@ -157,6 +157,11 @@ bool Database::init(){
 	return true;
 }
 
+/**
+ * @brief Inserts a new user record into the database.
+ * @param user The model::User object containing the data to insert.
+ * @return true if the user was created successfully, false otherwise.
+ */
 bool Database::createUser(const model::User& user)
 {
     if (!m_db.isOpen()) {
@@ -184,6 +189,11 @@ bool Database::createUser(const model::User& user)
     return true;
 }
 
+/**
+ * @brief Deletes a user record from the database by its UUID.
+ * @param id The QUuid of the user to delete.
+ * @return true if at least one row was affected (user existed), false otherwise.
+ */
 bool Database::deleteUser(const QUuid& id)
 {
     if (!m_db.isOpen()) {
@@ -203,6 +213,11 @@ bool Database::deleteUser(const QUuid& id)
     return query.numRowsAffected() > 0;
 }
 
+/**
+ * @brief Retrieves a user from the database by its UUID.
+ * @param id The QUuid of the user to retrieve.
+ * @return An std::optional containing the model::User if found, std::nullopt otherwise.
+ */
 std::optional<model::User> Database::getUserById(const QUuid& id) const
 {
     if (!m_db.isOpen()) {
@@ -239,6 +254,10 @@ std::optional<model::User> Database::getUserById(const QUuid& id) const
     return user;
 }
 
+/**
+ * @brief Retrieves all user records from the database.
+ * @return A QList containing all model::User objects found. Returns an empty list on error.
+ */
 QList<model::User> Database::getAllUsers() const
 {
     QList<model::User> users;
@@ -272,6 +291,11 @@ QList<model::User> Database::getAllUsers() const
     return users;
 }
 
+/**
+ * @brief Inserts a new content record into the database.
+ * @param content The model::Content object containing the data to insert.
+ * @return true if the content was created successfully, false otherwise.
+ */
 bool Database::createContent(const model::Content& content)
 {
     if (!m_db.isOpen()) {
@@ -298,6 +322,11 @@ bool Database::createContent(const model::Content& content)
     return true;
 }
 
+/**
+ * @brief Deletes a content record from the database by its UUID.
+ * @param id The QUuid of the content to delete.
+ * @return true if at least one row was affected, false otherwise.
+ */
 bool Database::deleteContent(const QUuid& id)
 {
     if (!m_db.isOpen()) {
@@ -317,6 +346,11 @@ bool Database::deleteContent(const QUuid& id)
     return query.numRowsAffected() > 0;
 }
 
+/**
+ * @brief Retrieves a content record from the database by its UUID.
+ * @param id The QUuid of the content to retrieve.
+ * @return An std::optional containing the model::Content if found, std::nullopt otherwise.
+ */
 std::optional<model::Content> Database::getContentById(const QUuid& id) const
 {
     if (!m_db.isOpen()) {
@@ -352,6 +386,10 @@ std::optional<model::Content> Database::getContentById(const QUuid& id) const
     return content;
 }
 
+/**
+ * @brief Retrieves all content records from the database.
+ * @return A QList containing all model::Content objects found. Returns an empty list on error.
+ */
 QList<model::Content> Database::getAllContents() const
 {
     QList<model::Content> contents;
@@ -384,6 +422,12 @@ QList<model::Content> Database::getAllContents() const
 
     return contents;
 }
+
+/**
+ * @brief Inserts a new chat record into the database.
+ * @param chat The model::Chat object containing the data to insert.
+ * @return true if the chat was created successfully, false otherwise.
+ */
 bool Database::createChat(const model::Chat& chat)
 {
     if (!m_db.isOpen()) {
@@ -411,6 +455,11 @@ bool Database::createChat(const model::Chat& chat)
     return true;
 }
 
+/**
+ * @brief Deletes a chat record from the database by its UUID.
+ * @param id The QUuid of the chat to delete.
+ * @return true if at least one row was affected, false otherwise.
+ */
 bool Database::deleteChat(const QUuid& id)
 {
     if (!m_db.isOpen()) {
@@ -430,6 +479,11 @@ bool Database::deleteChat(const QUuid& id)
     return query.numRowsAffected() > 0;
 }
 
+/**
+ * @brief Retrieves a chat record from the database by its UUID.
+ * @param id The QUuid of the chat to retrieve.
+ * @return An std::optional containing the model::Chat if found, std::nullopt otherwise.
+ */
 std::optional<model::Chat> Database::getChatById(const QUuid& id) const
 {
     if (!m_db.isOpen()) {
@@ -466,6 +520,10 @@ std::optional<model::Chat> Database::getChatById(const QUuid& id) const
     return chat;
 }
 
+/**
+ * @brief Retrieves all chat records from the database.
+ * @return A QList containing all model::Chat objects found. Returns an empty list on error.
+ */
 QList<model::Chat> Database::getAllChats() const
 {
     QList<model::Chat> chats;
@@ -499,6 +557,12 @@ QList<model::Chat> Database::getAllChats() const
 
     return chats;
 }
+
+/**
+ * @brief Inserts a new chat member record into the database.
+ * @param chatMember The model::ChatMember object containing the chat and user IDs.
+ * @return true if the membership was created successfully, false otherwise.
+ */
 bool Database::createChatMember(const model::ChatMember& chatMember)
 {
     if (!m_db.isOpen()) {
@@ -523,6 +587,12 @@ bool Database::createChatMember(const model::ChatMember& chatMember)
     return true;
 }
 
+/**
+ * @brief Deletes a chat member record from the database.
+ * @param chatId The QUuid of the chat.
+ * @param userId The QUuid of the user.
+ * @return true if at least one row was affected, false otherwise.
+ */
 bool Database::deleteChatMember(const QUuid& chatId, const QUuid& userId)
 {
     if (!m_db.isOpen()) {
@@ -547,6 +617,12 @@ bool Database::deleteChatMember(const QUuid& chatId, const QUuid& userId)
     return query.numRowsAffected() > 0;
 }
 
+/**
+ * @brief Retrieves a specific chat member record from the database.
+ * @param chatId The QUuid of the chat.
+ * @param userId The QUuid of the user.
+ * @return An std::optional containing the model::ChatMember if found, std::nullopt otherwise.
+ */
 std::optional<model::ChatMember> Database::getChatMember(const QUuid& chatId, const QUuid& userId) const
 {
     if (!m_db.isOpen()) {
@@ -581,6 +657,10 @@ std::optional<model::ChatMember> Database::getChatMember(const QUuid& chatId, co
     return chatMember;
 }
 
+/**
+ * @brief Retrieves all chat member records from the database.
+ * @return A QList containing all model::ChatMember objects found. Returns an empty list on error.
+ */
 QList<model::ChatMember> Database::getAllChatMembers() const
 {
     QList<model::ChatMember> chatMembers;
@@ -611,6 +691,12 @@ QList<model::ChatMember> Database::getAllChatMembers() const
 
     return chatMembers;
 }
+
+/**
+ * @brief Inserts a new message record into the database.
+ * @param message The model::DbMessage object containing the data to insert.
+ * @return true if the message was created successfully, false otherwise.
+ */
 bool Database::createMessage(const model::DbMessage& message)
 {
     if (!m_db.isOpen()) {
@@ -648,6 +734,11 @@ bool Database::createMessage(const model::DbMessage& message)
     return true;
 }
 
+/**
+ * @brief Deletes a message record from the database by its UUID.
+ * @param id The QUuid of the message to delete.
+ * @return true if at least one row was affected, false otherwise.
+ */
 bool Database::deleteMessage(const QUuid& id)
 {
     if (!m_db.isOpen()) {
@@ -667,6 +758,11 @@ bool Database::deleteMessage(const QUuid& id)
     return query.numRowsAffected() > 0;
 }
 
+/**
+ * @brief Retrieves a message record from the database by its UUID.
+ * @param id The QUuid of the message to retrieve.
+ * @return An std::optional containing the model::DbMessage if found, std::nullopt otherwise.
+ */
 std::optional<model::DbMessage> Database::getMessageById(const QUuid& id) const
 {
     if (!m_db.isOpen()) {
@@ -718,6 +814,10 @@ std::optional<model::DbMessage> Database::getMessageById(const QUuid& id) const
     return message;
 }
 
+/**
+ * @brief Retrieves all message records from the database.
+ * @return A QList containing all model::DbMessage objects found. Returns an empty list on error.
+ */
 QList<model::DbMessage> Database::getAllMessages() const
 {
     QList<model::DbMessage> messages;
@@ -766,6 +866,12 @@ QList<model::DbMessage> Database::getAllMessages() const
 
     return messages;
 }
+
+/**
+ * @brief Converts a QStringList of usernames to a compact JSON array string.
+ * @param usernames The list of usernames to convert.
+ * @return A QString containing the JSON representation of the array.
+ */
 QString usernamesToJson(const QStringList& usernames)
 {
     QJsonArray array;
@@ -778,6 +884,11 @@ QString usernamesToJson(const QStringList& usernames)
         );
 }
 
+/**
+ * @brief Parses a JSON array string into a QStringList of usernames.
+ * @param json The JSON string to parse.
+ * @return A QStringList containing the extracted usernames. Returns an empty list if parsing fails.
+ */
 QStringList jsonToUsernames(const QString& json)
 {
     QStringList usernames;
@@ -797,6 +908,12 @@ QStringList jsonToUsernames(const QString& json)
 
     return usernames;
 }
+
+/**
+ * @brief Inserts a new user stats record into the database.
+ * @param userStats The model::UserStats object containing the data to insert.
+ * @return true if the user stats were created successfully, false otherwise.
+ */
 bool Database::createUserStats(const model::UserStats& userStats)
 {
     if (!m_db.isOpen()) {
@@ -822,6 +939,12 @@ bool Database::createUserStats(const model::UserStats& userStats)
 
     return true;
 }
+
+/**
+ * @brief Deletes a user stats record from the database by user ID.
+ * @param userId The QUuid of the user whose stats should be deleted.
+ * @return true if at least one row was affected, false otherwise.
+ */
 bool Database::deleteUserStats(const QUuid& userId)
 {
     if (!m_db.isOpen()) {
@@ -840,6 +963,12 @@ bool Database::deleteUserStats(const QUuid& userId)
 
     return query.numRowsAffected() > 0;
 }
+
+/**
+ * @brief Retrieves a user stats record from the database by user ID.
+ * @param userId The QUuid of the user whose stats to retrieve.
+ * @return An std::optional containing the model::UserStats if found, std::nullopt otherwise.
+ */
 std::optional<model::UserStats> Database::getUserStatsById(const QUuid& userId) const
 {
     if (!m_db.isOpen()) {
@@ -878,6 +1007,11 @@ std::optional<model::UserStats> Database::getUserStatsById(const QUuid& userId) 
 
     return userStats;
 }
+
+/**
+ * @brief Retrieves all user stats records from the database.
+ * @return A QList containing all model::UserStats objects found. Returns an empty list on error.
+ */
 QList<model::UserStats> Database::getAllUserStats() const
 {
     QList<model::UserStats> userStatsList;
