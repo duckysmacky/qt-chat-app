@@ -39,7 +39,8 @@ private:
     {
         None,     ///< No pending action
         Login,    ///< Login action pending
-        Register  ///< Registration action pending
+        Register, ///< Registration action pending
+        Logout
     };
 
 private:

@@ -70,7 +70,14 @@ void AccountManager::registerAccount(const QString& username, const QString& nam
 
 void AccountManager::logout()
 {
-    qInfo() << "Logout pressed";
+    if (m_busy || !Client::instance().connected()) return;
+    if (!m_loggedIn) return;
+
+    m_pendingAction = PendingAction::Logout;
+    setStatusText("");
+    setBusy(true);
+
+    Client::instance().logout();
 }
 
 bool AccountManager::canSendMessages() const
@@ -80,8 +87,6 @@ bool AccountManager::canSendMessages() const
 
 void AccountManager::onConnectionStatusChanged()
 {
-    emit canSendMessagesChanged();
-
     if (Client::instance().connected()) return;
 
     setBusy(false);
@@ -127,6 +132,21 @@ void AccountManager::onResultReceived(const bool success, const QString& message
         qInfo() << "Registration succeeded:" << message;
         setStatusText("");
         setMode(LoginMode);
+        break;
+
+    case PendingAction::Logout:
+        setBusy(false);
+        m_pendingAction = PendingAction::None;
+
+        if (!success)
+        {
+            qWarning() << "Logout failed:" << message;
+            setStatusText(message);
+            return;
+        }
+
+        qInfo() << "Logout succeeded:" << message;
+        resetAuthorizationState();
         break;
 
     case PendingAction::None:

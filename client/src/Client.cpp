@@ -70,6 +70,11 @@ void Client::registerUser(QString username, QString name, QString email, QString
     sendPacket(shared::PacketType::REGISTER, info.serialize());
 }
 
+void Client::logout()
+{
+    sendPacket(shared::PacketType::LOGOUT);
+}
+
 void Client::onConnected()
 {
     sendPacket(shared::PacketType::CONNECT);

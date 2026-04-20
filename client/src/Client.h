@@ -86,6 +86,8 @@ public:
      */
     void registerUser(QString username, QString name, QString email, QString passwordHash);
 
+    void logout();
+
     /// @brief Returns the unique identifier of this client.
     /// @return Constant reference to the client UUID.
     const QUuid& uuid() const { return m_uuid; }
