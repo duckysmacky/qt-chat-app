@@ -2,7 +2,10 @@
 
 #include <QAbstractSocket>
 
-#include "Message.h"
+#include "AuthInfo.h"
+#include "Packet.h"
+#include "PacketFactory.h"
+#include "Result.h"
 #include "util.h"
 
 /**
@@ -65,20 +68,27 @@ void Client::disconnect()
  * @param type The type of the message.
  * @param content The content of the message.
  */
-void Client::sendMessage(const shared::MessageType type, QString content)
+void Client::sendMessage(QString content)
 {
-    const shared::Message msg = content.isEmpty()
-        ? shared::Message(type, m_uuid)
-        : shared::Message(type, m_uuid, std::move(content));
+    const shared::Message message(shared::MessageType::TEXT, std::move(content));
+    sendPacket(shared::PacketType::MESSAGE, message.serialize());
+}
 
-    // TODO: добавить какую то принт функцию (operator <<) для сообщения и его типа, чтобы его тут еще выводить
-    qInfo() << "Sending message to server";
+void Client::login(QString login, QString passwordHash)
+{
+    const shared::LoginInfo info(std::move(login), std::move(passwordHash));
+    sendPacket(shared::PacketType::LOGIN, info.serialize());
+}
 
-    QByteArray bytes;
-    bytes.append(msg.encode());
-    bytes.append('\x01');
-
-    m_socket.write(bytes);
+void Client::registerUser(QString username, QString name, QString email, QString passwordHash)
+{
+    const shared::RegisterInfo info(
+        std::move(username),
+        std::move(name),
+        std::move(email),
+        std::move(passwordHash)
+    );
+    sendPacket(shared::PacketType::REGISTER, info.serialize());
 }
 
 /**
@@ -86,7 +96,7 @@ void Client::sendMessage(const shared::MessageType type, QString content)
  */
 void Client::onConnected()
 {
-    sendMessage(shared::MessageType::Connect);
+    sendPacket(shared::PacketType::CONNECT);
 
     setStatusText("Connected");
     setConnectionStatus(true);
@@ -117,12 +127,70 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
  */
 void Client::onReadyRead()
 {
-    QByteArray bytes = m_socket.readAll();
+    const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
-    const QList<shared::Message> messages = shared::util::parse(bytes);
-    for (const auto& msg : messages)
-        emit messageReceived(msg);
+    const QList<shared::Packet> packets = shared::util::parse(bytes);
+    for (const auto& packet : packets)
+    {
+        switch (packet.type())
+        {
+        case shared::PacketType::MESSAGE:
+            {
+                if (auto data = packet.data())
+                {
+                    const auto msg = shared::Message::deserialize(data.value());
+                    emit messageReceived(packet.sender().toString(), msg);
+                }
+            }
+            break;
+        case shared::PacketType::RESULT:
+            {
+                if (!packet.data().has_value()) break;
+
+                const shared::Result result = shared::Result::deserialize(packet.data().value());
+                const bool success = result.type() == shared::ResultType::SUCCESS;
+
+                if (success)
+                    qInfo() << "Server result:" << result.text();
+                else
+                    qWarning() << "Server result:" << result.text();
+
+                emit resultReceived(success, result.text());
+            }
+            break;
+        default:
+            {
+                qWarning() << "Unknown or unsupported packet received";
+            }
+            break;
+        }
+    }
+}
+
+/**
+ * @brief Sends a packet to the server without payload data.
+ * @param type Type of the packet being sent.
+ */
+void Client::sendPacket(const shared::PacketType type)
+{
+    qInfo() << "Sending packet to server";
+
+    const shared::Packet packet(type, m_uuid, QUuid());
+    m_socket.write(shared::util::encapsulate(packet));
+}
+
+/**
+ * @brief Sends a packet to the server with payload data.
+ * @param type Type of the packet being sent.
+ * @param data Raw payload data to include in the packet.
+ */
+void Client::sendPacket(const shared::PacketType type, QByteArray data)
+{
+    qInfo() << "Sending packet to server";
+
+    const shared::Packet packet(type, m_uuid, QUuid(), std::move(data));
+    m_socket.write(shared::util::encapsulate(packet));
 }
 
 /**

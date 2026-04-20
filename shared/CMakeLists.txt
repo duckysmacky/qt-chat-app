@@ -1,8 +1,16 @@
 add_library(shared STATIC
-    src/Message.cpp
-    src/Message.h
     src/util.cpp
     src/util.h
+    src/Packet.cpp
+    src/Packet.h
+    src/Message.cpp
+    src/Message.h
+    src/PacketFactory.cpp
+    src/PacketFactory.h
+    src/AuthInfo.h
+    src/AuthInfo.cpp
+        src/Result.h
+        src/Result.cpp
 )
 
 target_include_directories(shared PUBLIC

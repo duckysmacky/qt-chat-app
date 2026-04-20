@@ -80,6 +80,65 @@ Database::~Database()
 	QSqlDatabase::removeDatabase(m_connectionName);
 }
 
+/**
+ * @brief Retrieves a user from the database by their username.
+ * @param username The username to search for.
+ * @return An std::optional containing the model::User if found, std::nullopt otherwise.
+ */
+std::optional<model::User> Database::getUserByUsername(const QString& username) const
+{
+    if (!m_db.isOpen()) return std::nullopt;
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, username, name, password_hash, email "
+        "FROM users WHERE username = :username LIMIT 1"
+        );
+    query.bindValue(":username", username);
+
+    if (!query.exec() || !query.next())
+        return std::nullopt;
+
+    model::User user;
+    user.setId(QUuid(query.value(0).toString()));
+    user.setUsername(query.value(1).toString());
+    user.setName(query.value(2).toString());
+    user.setPasswordHash(query.value(3).toString());
+    user.setEmail(query.value(4).toString());
+    return user;
+}
+
+/**
+ * @brief Authenticates a user using the provided login credentials.
+ * @param loginInfo The shared::LoginInfo object containing username and password hash.
+ * @return An std::optional containing the authenticated model::User if credentials match, std::nullopt otherwise.
+ */
+std::optional<model::User> Database::authenticateUser(const shared::LoginInfo& loginInfo) const
+{
+    if (!m_db.isOpen()) return std::nullopt;
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, username, name, password_hash, email "
+        "FROM users "
+        "WHERE username = :username AND password_hash = :password_hash "
+        "LIMIT 1"
+        );
+    query.bindValue(":username", loginInfo.login());
+    query.bindValue(":password_hash", loginInfo.passwordHash());
+
+    if (!query.exec() || !query.next())
+        return std::nullopt;
+
+    model::User user;
+    user.setId(QUuid(query.value(0).toString()));
+    user.setUsername(query.value(1).toString());
+    user.setName(query.value(2).toString());
+    user.setPasswordHash(query.value(3).toString());
+    user.setEmail(query.value(4).toString());
+    return user;
+}
+
 /** 
  * @brief Runs SQL migrations from migrations directory
  * and tracks versions into 'schema_migrations' table
@@ -556,6 +615,41 @@ QList<model::Chat> Database::getAllChats() const
     }
 
     return chats;
+}
+
+/**
+ * @brief Retrieves all user IDs associated with a specific chat.
+ * @param chatId The QUuid of the chat.
+ * @return A QList containing QUuid objects for all users in the chat. Returns an empty list on error or if no members found.
+ */
+QList<QUuid> Database::getUserIdsByChatId(const QUuid& chatId) const
+{
+    QList<QUuid> userIds;
+
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return userIds;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT user_id "
+        "FROM chat_members "
+        "WHERE chat_id = :chat_id"
+        );
+
+    query.bindValue(":chat_id", chatId.toString(QUuid::WithoutBraces));
+
+    if (!query.exec()) {
+        qCritical() << "Failed to get user ids by chat id:" << query.lastError().text();
+        return userIds;
+    }
+
+    while (query.next()) {
+        userIds.append(QUuid(query.value(0).toString()));
+    }
+
+    return userIds;
 }
 
 /**

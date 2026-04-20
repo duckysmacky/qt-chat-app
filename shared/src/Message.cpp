@@ -1,6 +1,7 @@
 #include "Message.h"
 
 #include <QDebug>
+<<<<<<< HEAD
 
 #include <utility>
 
@@ -22,11 +23,19 @@ namespace shared {
  * @param content Message text content.
  */
 Message::Message(const MessageType type, QUuid sender, QString content)
+=======
+#include <QBuffer>
+
+namespace shared {
+
+static constexpr auto MESSAGE_TYPE_SIZE = 1;
+static constexpr auto MESSAGE_HEADER_SIZE = MESSAGE_TYPE_SIZE;
+
+Message::Message(const MessageType type, QString content)
+>>>>>>> 7017c698d0b8b90bb82f150f9b42aff160b260a1
     : m_type(type),
-      m_sender(std::move(sender)),
       m_content(std::move(content))
-{
-}
+{}
 
 /**
  * @brief Move constructor.
@@ -37,11 +46,10 @@ Message::Message(const MessageType type, QUuid sender, QString content)
  */
 Message::Message(Message&& other) noexcept
     : m_type(other.m_type),
-      m_sender(std::move(other.m_sender)),
       m_content(std::move(other.m_content))
-{
-}
+{}
 
+<<<<<<< HEAD
 /**
  * @brief Move assignment operator.
  *
@@ -51,16 +59,19 @@ Message::Message(Message&& other) noexcept
  * @return Reference to this object.
  */
 Message& Message::operator =(Message&& other) noexcept
+=======
+Message& Message::operator=(Message&& other) noexcept
+>>>>>>> 7017c698d0b8b90bb82f150f9b42aff160b260a1
 {
     if (this == &other) return *this;
 
     m_type = other.m_type;
-    m_sender = std::move(other.m_sender);
     m_content = std::move(other.m_content);
 
     return *this;
 }
 
+<<<<<<< HEAD
 /**
  * @brief Decodes a message from its binary representation.
  *
@@ -73,25 +84,28 @@ Message& Message::operator =(Message&& other) noexcept
  * @return Deserialized Message object.
  */
 Message Message::decode(const QByteArray& bytes)
+=======
+Message Message::deserialize(QByteArray bytes)
+>>>>>>> 7017c698d0b8b90bb82f150f9b42aff160b260a1
 {
-    if (bytes.size() < MSG_TYPE_LEN + MSG_SENDER_LEN)
+    if (bytes.size() < MESSAGE_HEADER_SIZE)
     {
         qWarning() << "Invalid message payload length:" << bytes.size();
-        return Message(MessageType::Command, QUuid(), "");
+        // we can just ignore this, since message cannot be 0
     }
 
-    const auto type = static_cast<MessageType>(bytes[0]);
-    const auto sender = QUuid::fromRfc4122(bytes.mid(MSG_TYPE_LEN, MSG_SENDER_LEN));
-    const auto contentBytes = bytes.mid(MSG_TYPE_LEN + MSG_SENDER_LEN);
+    QBuffer bytesReader(&bytes);
+    bytesReader.open(QIODevice::ReadOnly);
 
-    if (contentBytes.isEmpty())
-        return Message(type, std::move(sender), "");
+    char messageTypeBuffer[MESSAGE_TYPE_SIZE];
+    bytesReader.read(messageTypeBuffer, MESSAGE_TYPE_SIZE);
+    const auto type = static_cast<MessageType>(messageTypeBuffer[0]);
 
-    const QString content = QString::fromUtf8(contentBytes);
-
-    return Message(type, std::move(sender), std::move(content));
+    bytes.remove(0, MESSAGE_HEADER_SIZE);
+    return Message{type, QString::fromUtf8(bytes)};
 }
 
+<<<<<<< HEAD
 /**
  * @brief Encodes the message into a binary format.
  *
@@ -101,14 +115,20 @@ Message Message::decode(const QByteArray& bytes)
  * @return QByteArray containing the serialized message.
  */
 QByteArray Message::encode() const
+=======
+QByteArray Message::serialize() const
+>>>>>>> 7017c698d0b8b90bb82f150f9b42aff160b260a1
 {
-    QByteArray result;
+    QByteArray bytes;
 
-    result.append(static_cast<char>(m_type));
-    result.append(m_sender.toRfc4122());
-    result.append(m_content.toUtf8());
+    bytes.append(static_cast<char>(m_type));
+    bytes.append(m_content.toUtf8());
 
-    return result;
+    return bytes;
 }
 
+<<<<<<< HEAD
 } // namespace shared
+=======
+} // shared
+>>>>>>> 7017c698d0b8b90bb82f150f9b42aff160b260a1

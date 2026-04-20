@@ -4,7 +4,18 @@
 #include <QString>
 #include <QUuid>
 #include <optional>
+<<<<<<< HEAD
 #include "model.h"
+=======
+#include "AuthInfo.h"
+#include "model/Chat.h"
+#include "model/ChatMember.h"
+#include "model/Content.h"
+#include "model/DbMessage.h"
+#include "model/User.h"
+#include "model/UserStats.h"
+
+>>>>>>> 7017c698d0b8b90bb82f150f9b42aff160b260a1
 
 /**
  * @class Database
@@ -49,7 +60,11 @@ public:
     bool createUser(const model::User& user);
     bool deleteUser(const QUuid& id);
     std::optional<model::User> getUserById(const QUuid& id) const;
+    QList<QUuid> getUserIdsByChatId(const QUuid& chatId) const;
+
     QList<model::User> getAllUsers() const;
+    std::optional<model::User> getUserByUsername(const QString& username) const;
+    std::optional<model::User> authenticateUser(const shared::LoginInfo& loginInfo) const;
 
     // ========================= CONTENT OPERATIONS =========================
 

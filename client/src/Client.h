@@ -4,7 +4,9 @@
 #include <QTcpSocket>
 #include <QUuid>
 
+#include "Packet.h"
 #include "Message.h"
+
 /**
  * @class Client
  * @brief TCP client for connecting to the server and exchanging messages.
@@ -32,27 +34,33 @@ public:
      * @brief Returns the singleton client instance
      */
     static Client& instance();
+
     /// Copy and move are disabled (singleton)
     Client(const Client&) = delete;
     Client& operator =(const Client&) = delete;
     Client(Client&&) = delete;
     Client& operator =(Client&&) = delete;
+
     /**
      * @brief Connect client to a server
      * @param host Server's host
      * @param port Server's port
      */
     Q_INVOKABLE void connectTo(const QString& host, int port);
+
     /**
      * @brief Disconnects client from a server
      */
     Q_INVOKABLE void disconnect();
+
     /**
      * @brief Sends a message to the server.
-     * @param type Message type
-     * @param content Message content (optional)
+     * @param content Message content
      */
-    Q_INVOKABLE void sendMessage(shared::MessageType type, QString content = "");
+    Q_INVOKABLE void sendMessage(QString content);
+
+    void login(QString login, QString passwordHash);
+    void registerUser(QString username, QString name, QString email, QString passwordHash);
 
     const QUuid& uuid() const { return m_uuid; }
     bool connected() const { return m_connected; }
@@ -61,7 +69,8 @@ public:
 signals:
     void connectionStatusChanged();
     void statusTextChanged();
-    void messageReceived(const shared::Message& msg);
+    void messageReceived(const QString& sender, const shared::Message& messagePacket);
+    void resultReceived(bool success, const QString& message);
 
 private slots:
     void onConnected();
@@ -70,6 +79,8 @@ private slots:
     void onReadyRead();
 
 private:
+    void sendPacket(shared::PacketType type);
+    void sendPacket(shared::PacketType type, QByteArray data);
     void setConnectionStatus(bool connected);
     void setStatusText(const QString& text);
 };
