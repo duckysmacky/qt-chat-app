@@ -2,8 +2,9 @@ name: Chat app
 
 services:
   db:
-    image: postgres:17
-    container_name: app-db
+    image: postgres:18
+    container_name: chat-app-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -11,12 +12,13 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
   server:
     build: .
     image: chat-app-server:latest
-    container_name: chat_app_server
+    container_name: chat-app-server
+    restart: unless-stopped
     depends_on:
       - db
     env_file:
