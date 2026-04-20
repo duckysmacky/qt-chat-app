@@ -1,7 +1,7 @@
 #include "Packet.h"
 
-#include <QDebug>
 #include <QBuffer>
+#include <QDebug>
 #include <QByteArrayView>
 
 #include <utility>
@@ -62,9 +62,9 @@ Packet Packet::deserialize(QByteArray bytes)
 
     char uuidBuffer[UUID_SIZE];
     bytesReader.read(uuidBuffer, UUID_SIZE);
-    const auto sender = QUuid::fromBytes(uuidBuffer);
+    const auto sender = QUuid::fromRfc4122(QByteArrayView{uuidBuffer, UUID_SIZE});
     bytesReader.read(uuidBuffer, UUID_SIZE);
-    const auto target = QUuid::fromBytes(uuidBuffer);
+    const auto target = QUuid::fromRfc4122(QByteArrayView{uuidBuffer, UUID_SIZE});
 
     bytes.remove(0, PACKET_HEADER_SIZE);
 

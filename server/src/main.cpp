@@ -41,14 +41,12 @@ int main(int argc, char* argv[])
 	Database& db = Database::instance();
 	if (!db.connect())
 	{
-		qFatal() << "A connection to the database is required for the sever to start";
-		return 1;
+		qFatal("%s", "A connection to the database is required for the sever to start");
 	}
 
 	if (!db.init())
 	{
-		qFatal() << "Failed to initialize the database";
-		return 1;
+		qFatal("%s", "Failed to initialize the database");
 	}
 
 	const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -57,9 +55,8 @@ int main(int argc, char* argv[])
 	Server& server = Server::instance();
 	if (!server.start(port))
 	{
-		qFatal() << "An error occurred when starting the server";
-		return 1;
+		qFatal("%s", "An error occurred when starting the server");
 	}
 
-  return QCoreApplication::exec();
+	return QCoreApplication::exec();
 }
