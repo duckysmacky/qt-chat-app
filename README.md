@@ -1,8 +1,14 @@
 # QT Chat App
 
-This is a client-server application written in C++20 using QT6 framework
+A simple chat application written in C++ using the QT framework
 
-This is an educational university project 
+## About
+
+This is a simple project featuring a client-server chat application, which supports accounts (registration/login), private chats and groups in form of text messages. It runs over pure TCP communaction and utilizes custom packets for inner communication.
+
+This is an educational project being mainly devloped as an university assignment, but still is a passion project with effort being put it to make a functional product and a solid learning experience.
+
+The documentation for the source code can be viewed in the [project's github pages](https://duckysmacky.github.io/qt-chat-app).
 
 ## Build
 
