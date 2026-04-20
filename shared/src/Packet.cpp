@@ -8,11 +8,8 @@
 
 namespace shared {
 
-/// @brief Size of the serialized message type field (in bytes)
 static constexpr auto PACKET_TYPE_SIZE = 1;
-/// @brief Size of the serialized UUID fields (in bytes)
 static constexpr auto UUID_SIZE = 16;
-/// @brief Size of the packet header (all mandatory fields)
 static constexpr auto PACKET_HEADER_SIZE = PACKET_TYPE_SIZE + UUID_SIZE * 2;
 
 Packet::Packet(const PacketType type, QUuid sender, QUuid target)
@@ -76,9 +73,6 @@ Packet Packet::deserialize(QByteArray bytes)
         : Packet{type, sender, target, std::move(bytes)};
 }
 
-/**
- * @brief Encodes message using array with bytes
- */
 QByteArray Packet::serialize() const
 {
     QByteArray bytes;

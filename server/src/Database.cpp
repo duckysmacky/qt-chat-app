@@ -9,26 +9,12 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
-/**
- * @brief Returns the singleton database instance
- */
 Database& Database::instance()
 {
 	static Database instance;
 	return instance;
 }
 
-/**
- * @brief Establishes a PostgreSQL connection using environment variables
- *
- * Expected variables:
- * - DB_HOST
- * - DB_NAME
- * - DB_USER
- * - DB_PASSWORD
- *
- * @return true on successful connection
- */
 bool Database::connect()
 {
 	if (m_initialized)
@@ -54,21 +40,16 @@ bool Database::connect()
 	return false;
 }
 
-/**
- * @brief Checks whether the database is connected
- */
 bool Database::isConnected() const
 {
 	return m_db.isOpen();
 }
 
-/// @brief Construcnts the Database singleton
 Database::Database()
 	: m_connectionName("chat_app_server")
 {
 }
 
-/// @brief Destroys the Database connection
 Database::~Database()
 {
 	if (!m_initialized)
@@ -128,11 +109,6 @@ std::optional<model::User> Database::authenticateUser(const shared::LoginInfo& l
     return user;
 }
 
-/** 
- * @brief Runs SQL migrations from migrations directory
- * and tracks versions into 'schema_migrations' table
- * @note requires an active database connection
- */
 bool Database::init(){
 	if (!m_db.isOpen()){
 		return false;

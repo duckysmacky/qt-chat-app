@@ -7,14 +7,6 @@
 #include "Server.h"
 #include "Database.h"
 
-/**
- * @brief Loads environment variables from .env file
- * Parses key-value pairs in the format KEY=VALUE and sets them
- * using qputenv()
- * @param filePath Path to .emv file
- * @note existing environment variables may be overwritten
- * @warning Does not support complex parsings
- */
 void loadEnvFile(const QString& filePath)
 {
     QFile file(filePath);
