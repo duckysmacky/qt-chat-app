@@ -9,19 +9,12 @@
 #include "PacketFactory.h"
 #include "util.h"
 
-/**
- * @brief Returns the singleton Server instance
- */
 Server& Server::instance()
 {
 	static Server instance;
 	return instance;
 }
 
-/**
- * @brief Constructs the Server object
- * Sets up TCP server, console reader, and signal connections.
- */
 Server::Server(QObject* parent)
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
@@ -37,11 +30,6 @@ Server::~Server()
 	stop();
 }
 
-/**
- * @brief Starts the TCP server
- * @param port Port number to listen on
- * @return true if server started successfully
- */
 bool Server::start(const uint16_t port)
 {
 
@@ -56,9 +44,6 @@ bool Server::start(const uint16_t port)
 	return false;
 }
 
-/**
- * @brief Stops the server and closes the connection
- */
 void Server::stop() const
 {
 	if (m_isRunning)
@@ -66,9 +51,6 @@ void Server::stop() const
 
 }
 
-/**
- * @brief Sends a packet to a specific client
- */
 void Server::sendPacket(const QUuid& targetSessionId, const shared::Packet& packet) const
 {
     auto it = m_clients.constFind(targetSessionId);
@@ -94,9 +76,6 @@ void Server::sendSuccess(const QUuid& targetSessionId, QString message) const
 	sendPacket(targetSessionId, packet);
 }
 
-/**
- * Handles new incoming TCP connections; returns None if socket is not defined
- */
 void Server::onNewConnection()
 {
 	const QTcpSocket* socket = m_server->nextPendingConnection();
@@ -145,9 +124,6 @@ void Server::onServerRead()
     }
 }
 
-/**
- * @brief Handles client disconnection
- */
 void Server::onClientDisconnected()
 {
     auto* clientSocket = qobject_cast<QTcpSocket*>(sender());
@@ -227,12 +203,6 @@ std::optional<std::reference_wrapper<const ClientConnection>> Server::findConnec
     return std::nullopt;
 }
 
-/**
- * @brief Connects a new client after receiving a connect packet.
- * Adds the client to the internal socket map and sends a welcome message.
- * @param socket The client's QTcpSocket.
- * @param packet Connect packet containing the client's UUID.
- */
 void Server::handleConnect(QTcpSocket* socket, const shared::Packet& packet)
 {
     if (!socket) return;
