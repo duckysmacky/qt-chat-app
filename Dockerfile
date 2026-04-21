@@ -30,6 +30,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=builder /src/build/server/server_app /app/server_app
+COPY --from=builder /src/migrations /app/migrations
 
 EXPOSE 8080
 CMD ["/app/server_app"]
