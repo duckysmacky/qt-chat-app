@@ -3,12 +3,14 @@
 #include <QObject>
 #include <QHash>
 #include <QVariantList>
+#include <QThread>
 
 #include <functional>
 #include <optional>
 
 #include "ChatMessage.h"
 #include "Message.h"
+#include "MessageSender.h"
 
 /**
  * @class Chat
@@ -23,6 +25,8 @@ class Chat : public QObject
 private:
     QHash<QUuid, ChatMessage*> m_messageStorage; ///< Hash map storing chat messages by their UUID
     QVariantList m_messageList;                  ///< List of messages exposed to QML
+    QThread m_senderThread;
+    MessageSender* m_messageSender;
 
 public:
     /**
@@ -30,6 +34,7 @@ public:
      * @param parent Parent QObject (default nullptr).
      */
     explicit Chat(QObject* parent = nullptr);
+    ~Chat() override;
 
     /**
      * @brief Submits a new text message to the chat.
@@ -42,6 +47,7 @@ public:
     const QVariantList& messages() const { return m_messageList; }
 
 signals:
+    void messageSubmitted(ChatMessage* message);
     void messagesChanged(); ///< Emitted when the message list changes.
 
 private slots:
@@ -56,25 +62,25 @@ private slots:
      * @brief Handles the event when a message is sent.
      * @param messageId The UUID of the sent message.
      */
-    void onMessageSent(const QUuid& messageId);
+    void onMessageSent(const QUuid& messageId) const;
 
     /**
      * @brief Handles the event when a message is delivered.
      * @param messageId The UUID of the delivered message.
      */
-    void onMessageDelivered(const QUuid& messageId);
+    void onMessageDelivered(const QUuid& messageId) const;
 
     /**
      * @brief Handles the event when a message is read.
      * @param messageId The UUID of the read message.
      */
-    void onMessageRead(const QUuid& messageId);
+    void onMessageRead(const QUuid& messageId) const;
 
     /**
      * @brief Handles the event when a message is received.
      * @param messageId The UUID of the received message.
      */
-    void onMessageReceived(const QUuid& messageId);
+    void onMessageReceived(const QUuid& messageId) const;
 
     /**
      * @brief Handles the event when a message is deleted.
