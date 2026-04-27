@@ -11,6 +11,10 @@
 #include "ClientConnection.h"
 #include "dto\ProfileInfo.h"
 #include "dto\PublicUserInfo.h"
+#include "dto/ChatInfo.h"
+#include "dto/ChatsInfo.h"
+#include "dto/CreateChatInfo.h"
+
 /**
  * @class Server
  * @brief TCP server with console input and multi-client broadcasting.
@@ -110,5 +114,13 @@ private:
     void handleUserInfoRequest(const QTcpSocket* socket, const shared::Packet& packet);
     void sendProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const;
     void sendUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
+
+    void handleChatsRequest(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleChatSearchRequest(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleChatCreateRequest(const QTcpSocket* socket, const shared::Packet& packet);
+
+    void sendChatsData(const QUuid& receiverSessionId, const shared::ChatsInfo& info) const;
+    void sendChatData(const QUuid& receiverSessionId, const shared::ChatInfo& info) const;
+
 
 };

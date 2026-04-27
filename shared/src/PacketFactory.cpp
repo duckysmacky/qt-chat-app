@@ -6,6 +6,9 @@
 #include "dto/ProfileInfo.h"
 #include "dto/ProfileUpdateInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/ChatInfo.h"
+#include "dto/ChatsInfo.h"
+#include "dto/CreateChatInfo.h"
 
 
 
@@ -84,5 +87,31 @@ Packet PacketFactory::errorPacket(const QUuid& sender, const QUuid& receiver, QS
     const Result result(ResultType::ERROR, std::move(message));
     return Packet{PacketType::RESULT, sender, receiver, result.serialize()};
 }
+
+Packet PacketFactory::chatsRequestPacket(const QUuid& sender, const QUuid& receiver)
+{
+    return Packet{PacketType::CHATS_REQUEST, sender, receiver};
+}
+
+Packet PacketFactory::chatsDataPacket(const QUuid& sender, const QUuid& receiver, ChatsInfo info)
+{
+    return Packet{PacketType::CHATS_DATA, sender, receiver, info.serialize()};
+}
+
+Packet PacketFactory::chatSearchRequestPacket(const QUuid& sender, const QUuid& receiver, QString query)
+{
+    return Packet{PacketType::CHAT_SEARCH_REQUEST, sender, receiver, query.toUtf8()};
+}
+
+Packet PacketFactory::chatCreateRequestPacket(const QUuid& sender, const QUuid& receiver, ChatCreateInfo info)
+{
+    return Packet{PacketType::CHAT_CREATE_REQUEST, sender, receiver, info.serialize()};
+}
+
+Packet PacketFactory::chatDataPacket(const QUuid& sender, const QUuid& receiver, ChatInfo info)
+{
+    return Packet{PacketType::CHAT_DATA, sender, receiver, info.serialize()};
+}
+
 
 }

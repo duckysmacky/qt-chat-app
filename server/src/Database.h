@@ -50,6 +50,8 @@ public:
 	bool init();
 
     bool createUser(const model::User& user);
+    QList<model::Chat> searchChats(const QString& query) const;
+
     bool deleteUser(const QUuid& id);
     std::optional<model::User> getUserById(const QUuid& id) const;
     QList<QUuid> getUserIdsByChatId(const QUuid& chatId) const;

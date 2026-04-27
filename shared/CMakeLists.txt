@@ -17,6 +17,12 @@ add_library(shared STATIC
         src/dto/ProfileUpdateInfo.cpp
         src/dto/PublicUserInfo.h
         src/dto/PublicUserInfo.cpp
+        src/dto/ChatInfo.h
+        src/dto/ChatInfo.cpp
+        src/dto/ChatsInfo.h
+        src/dto/ChatsInfo.cpp
+        src/dto/CreateChatInfo.h
+        src/dto/CreateChatInfo.cpp
 )
 
 target_include_directories(shared PUBLIC

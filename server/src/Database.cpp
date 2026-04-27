@@ -380,6 +380,48 @@ QList<model::User> Database::getAllUsers() const
     return users;
 }
 
+QList<model::Chat> Database::searchChats(const QString& queryText) const
+{
+    if (queryText.trimmed().isEmpty())
+        return getAllChats();
+
+    QList<model::Chat> chats;
+
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return chats;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, type, created_by, title, created_at "
+        "FROM chats "
+        "WHERE COALESCE(title, '') ILIKE :query "
+        "ORDER BY created_at DESC"
+        );
+
+    query.bindValue(":query", "%" + queryText + "%");
+
+    if (!query.exec()) {
+        qCritical() << "Failed to search chats:" << query.lastError().text();
+        return chats;
+    }
+
+    while (query.next()) {
+        model::Chat chat;
+        chat.setId(QUuid(query.value(0).toString()));
+        chat.setType(query.value(1).toString());
+        chat.setCreatedBy(QUuid(query.value(2).toString()));
+        chat.setTitle(query.value(3).toString());
+        chat.setCreatedAt(query.value(4).toDateTime());
+
+        chats.append(chat);
+    }
+
+    return chats;
+}
+
+
 std::optional<model::User> Database::updateUserProfile(const QUuid& userId, const shared::ProfileUpdateInfo& updateInfo)
 {
     if (!m_db.isOpen()) {
