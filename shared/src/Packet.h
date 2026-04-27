@@ -33,7 +33,9 @@ enum class PacketType
     LOGOUT,
     PROFILE_REQUEST,
     PROFILE_UPDATE,
-    PROFILE_DATA
+    PROFILE_DATA,
+    USER_INFO_REQUEST,
+    USER_INFO_DATA
 };
 
 /**

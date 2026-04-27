@@ -15,6 +15,8 @@ add_library(shared STATIC
         src/ProfileInfo.cpp
         src/ProfileUpdateInfo.h
         src/ProfileUpdateInfo.cpp
+        src/PublicUserInfo.h
+        src/PublicUserInfo.cpp
 )
 
 target_include_directories(shared PUBLIC

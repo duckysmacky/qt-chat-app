@@ -9,6 +9,8 @@
 
 #include "Packet.h"
 #include "ClientConnection.h"
+#include "ProfileInfo.h"
+#include "PublicUserInfo.h"
 /**
  * @class Server
  * @brief TCP server with console input and multi-client broadcasting.
@@ -103,5 +105,10 @@ private:
     void handleLogin(const QTcpSocket* socket, const shared::Packet& packet);
     void handleAuthorizedPacket(const shared::Packet& packet) const;
     void handleLogout(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleProfileRequest(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleProfileUpdate(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleUserInfoRequest(const QTcpSocket* socket, const shared::Packet& packet);
+    void sendProfileData(const QUuid& targetSessionId, const shared::ProfileInfo& info) const;
+    void sendUserInfoData(const QUuid& targetSessionId, const shared::PublicUserInfo& info) const;
 
 };

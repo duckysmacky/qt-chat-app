@@ -5,6 +5,9 @@
 #include <QUuid>
 #include <optional>
 #include "AuthInfo.h"
+#include "ProfileInfo.h"
+#include "ProfileUpdateInfo.h"
+#include "PublicUserInfo.h"
 #include "model/Chat.h"
 #include "model/ChatMember.h"
 #include "model/Content.h"
@@ -53,6 +56,10 @@ public:
 
     QList<model::User> getAllUsers() const;
     std::optional<model::User> getUserByUsername(const QString& username) const;
+    std::optional<model::User> getUserByEmail(const QString& email) const;
+    std::optional<shared::ProfileInfo> getProfileInfoByUserId(const QUuid& userId) const;
+    std::optional<shared::PublicUserInfo> getPublicUserInfoByUserId(const QUuid& userId) const;
+    std::optional<model::User> updateUserProfile(const QUuid& userId, const shared::ProfileUpdateInfo& updateInfo);
     std::optional<model::User> authenticateUser(const shared::LoginInfo& loginInfo) const;
 
     bool createContent(const model::Content& content);
