@@ -12,6 +12,8 @@ qt_add_executable(client_app
     src/Hasher.h
 	src/AccountManager.cpp
 	src/AccountManager.h
+	src/MessageSender.cpp
+	src/MessageSender.h
 )
 
 qt_add_qml_module(client_app

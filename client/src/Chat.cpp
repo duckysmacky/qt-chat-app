@@ -3,25 +3,37 @@
 #include "Client.h"
 
 Chat::Chat(QObject* parent)
-    : QObject(parent)
+    : QObject(parent),
+      m_messageSender(new MessageSender(this))
 {
+    m_messageSender->moveToThread(&m_senderThread);
+
+    connect(&m_senderThread, &QThread::finished, m_messageSender, &QObject::deleteLater);
+    connect(this, &Chat::messageSubmitted, m_messageSender, &MessageSender::processMessage);
+    connect(m_messageSender, &MessageSender::messageSent, this, &Chat::onMessageSent);
+
     connect(&Client::instance(), &Client::messageReceived, this, &Chat::onNewMessage);
+
+    m_senderThread.start();
+}
+
+Chat::~Chat()
+{
+    m_senderThread.quit();
+    m_senderThread.wait();
 }
 
 void Chat::submitMessage(const QString& text)
 {
     if (text.trimmed().isEmpty()) return;
 
-    Client& client = Client::instance();
+    const Client& client = Client::instance();
     const QString sender = client.uuid().toString();
 
-    ChatMessage* message = new ChatMessage(true, text, sender, this);
+    const auto message = new ChatMessage(true, text, sender, this);
     addChatMessage(message);
 
-    qInfo() << "Sending message:" << text;
-    client.sendMessage(text);
-
-    onMessageSent(message->id());
+    emit messageSubmitted(message);
 }
 
 void Chat::onNewMessage(const QString& sender, const shared::Message& messagePacket)
@@ -36,25 +48,25 @@ void Chat::onNewMessage(const QString& sender, const shared::Message& messagePac
     onMessageReceived(chatMessage->id());
 }
 
-void Chat::onMessageSent(const QUuid& messageId)
+void Chat::onMessageSent(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->markAsSent();
 }
 
-void Chat::onMessageDelivered(const QUuid& messageId)
+void Chat::onMessageDelivered(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->setStatus(ChatMessage::Status::Delivered);
 }
 
-void Chat::onMessageRead(const QUuid& messageId)
+void Chat::onMessageRead(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->setStatus(ChatMessage::Status::Read);
 }
 
-void Chat::onMessageReceived(const QUuid& messageId)
+void Chat::onMessageReceived(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->markAsReceived();
