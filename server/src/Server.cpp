@@ -4,13 +4,13 @@
 #include <QDebug>
 #include <qlogging.h>
 
-#include "AuthInfo.h"
-#include "Database.h"
+#include "dto/AuthInfo.h"
 #include "Message.h"
 #include "PacketFactory.h"
-#include "ProfileInfo.h"
-#include "ProfileUpdateInfo.h"
-#include "PublicUserInfo.h"
+#include "dto/ProfileInfo.h"
+#include "dto/ProfileUpdateInfo.h"
+#include "dto/PublicUserInfo.h"
+
 #include "util.h"
 
 /**
@@ -594,8 +594,7 @@ void Server::handleUserInfoRequest(const QTcpSocket* socket, const shared::Packe
         return;
     }
 
-    const QString userIdText = QString::fromUtf8(packet.data().value()).trimmed();
-    const QUuid requestedUserId(userIdText);
+    const QUuid requestedUserId = QUuid::fromRfc4122(packet.data().value());
 
     if (requestedUserId.isNull()) {
         sendError(connection.sessionId(), "Invalid user id");
@@ -661,7 +660,7 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         return;
     }
 
-    const shared::Message normalizedMessage(
+    shared::Message normalizedMessage(
         senderUserId,
         chatId,
         incomingMessage.type(),
@@ -688,7 +687,7 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         const auto outboundPacket = shared::PacketFactory::messagePacket(
             connection.sessionId(),
             it.key(),
-            normalizedMessage
+            std::move(normalizedMessage)
         );
 
         sendPacket(it.key(), outboundPacket);

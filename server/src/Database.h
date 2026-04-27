@@ -4,10 +4,10 @@
 #include <QString>
 #include <QUuid>
 #include <optional>
-#include "AuthInfo.h"
-#include "ProfileInfo.h"
-#include "ProfileUpdateInfo.h"
-#include "PublicUserInfo.h"
+#include "dto/AuthInfo.h"
+#include "dto/ProfileInfo.h"
+#include "dto/ProfileUpdateInfo.h"
+#include "dto/PublicUserInfo.h"
 #include "model/Chat.h"
 #include "model/ChatMember.h"
 #include "model/Content.h"

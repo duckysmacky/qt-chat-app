@@ -316,12 +316,17 @@ std::optional<shared::ProfileInfo> Database::getProfileInfoByUserId(const QUuid&
     if (!user.has_value())
         return std::nullopt;
 
+    QUuid profileUserId = user->id();
+    QString username = user->username();
+    QString name = user->name();
+    QString email = user->email();
+
     return shared::ProfileInfo(
-        user->id(),
-        user->username(),
-        user->name(),
-        user->email()
-    );
+        std::move(profileUserId),
+        std::move(username),
+        std::move(name),
+        std::move(email)
+        );
 }
 
 std::optional<shared::PublicUserInfo> Database::getPublicUserInfoByUserId(const QUuid& userId) const
@@ -330,11 +335,16 @@ std::optional<shared::PublicUserInfo> Database::getPublicUserInfoByUserId(const 
     if (!user.has_value())
         return std::nullopt;
 
+    QUuid publicUserId = user->id();
+    QString username = user->username();
+    QString name = user->name();
+
     return shared::PublicUserInfo(
-        user->id(),
-        user->username(),
-        user->name()
-    );
+        std::move(publicUserId),
+        std::move(username),
+        std::move(name)
+        );
+
 }
 
 QList<model::User> Database::getAllUsers() const
@@ -383,19 +393,19 @@ std::optional<model::User> Database::updateUserProfile(const QUuid& userId, cons
 
     const model::User currentUser = currentUserOpt.value();
 
-    const QString newUsername = updateInfo.username().has_value()
+    const QString& newUsername = updateInfo.username().has_value()
         ? updateInfo.username().value()
         : currentUser.username();
 
-    const QString newName = updateInfo.name().has_value()
+    const QString& newName = updateInfo.name().has_value()
         ? updateInfo.name().value()
         : currentUser.name();
 
-    const QString newEmail = updateInfo.email().has_value()
+    const QString& newEmail = updateInfo.email().has_value()
         ? updateInfo.email().value()
         : currentUser.email();
 
-    const QString newPasswordHash = updateInfo.passwordHash().has_value()
+    const QString& newPasswordHash = updateInfo.passwordHash().has_value()
         ? updateInfo.passwordHash().value()
         : currentUser.passwordHash();
 

@@ -2,7 +2,7 @@
 
 #include <QAbstractSocket>
 
-#include "AuthInfo.h"
+#include "dto/AuthInfo.h"
 #include "Packet.h"
 #include "PacketFactory.h"
 #include "Result.h"

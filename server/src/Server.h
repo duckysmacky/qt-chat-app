@@ -9,8 +9,8 @@
 
 #include "Packet.h"
 #include "ClientConnection.h"
-#include "ProfileInfo.h"
-#include "PublicUserInfo.h"
+#include "dto\ProfileInfo.h"
+#include "dto\PublicUserInfo.h"
 /**
  * @class Server
  * @brief TCP server with console input and multi-client broadcasting.

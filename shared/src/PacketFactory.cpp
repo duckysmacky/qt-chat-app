@@ -2,10 +2,12 @@
 
 #include "Message.h"
 #include "Result.h"
-#include "AuthInfo.h"
-#include "ProfileInfo.h"
-#include "ProfileUpdateInfo.h"
-#include "PublicUserInfo.h"
+#include "dto/AuthInfo.h"
+#include "dto/ProfileInfo.h"
+#include "dto/ProfileUpdateInfo.h"
+#include "dto/PublicUserInfo.h"
+
+
 
 namespace shared {
 
@@ -14,7 +16,8 @@ Packet PacketFactory::connectPacket(const QUuid& sender, const QUuid& receiver)
     return {PacketType::CONNECT, sender, receiver};
 }
 
-Packet PacketFactory::messagePacket(const QUuid& sender, const QUuid& receiver, const Message& message)
+
+Packet PacketFactory::messagePacket(const QUuid& sender, const QUuid& receiver, Message message)
 {
     return Packet{PacketType::MESSAGE, sender, receiver, message.serialize()};
 }
@@ -31,12 +34,11 @@ Packet PacketFactory::mediaMessagePacket(const QUuid& sender, const QUuid& recei
     return messagePacket(sender, receiver, message);
 }
 
-Packet PacketFactory::registerPacket(const QUuid& sender, const QUuid& receiver, const RegisterInfo& info)
+Packet PacketFactory::registerPacket(const QUuid& sender, const QUuid& receiver, RegisterInfo info)
 {
     return Packet{PacketType::REGISTER, sender, receiver, info.serialize()};
 }
-
-Packet PacketFactory::loginPacket(const QUuid& sender, const QUuid& receiver, const LoginInfo& info)
+Packet PacketFactory::loginPacket(const QUuid& sender, const QUuid& receiver, LoginInfo info)
 {
     return Packet{PacketType::LOGIN, sender, receiver, info.serialize()};
 }
@@ -46,12 +48,12 @@ Packet PacketFactory::profileRequestPacket(const QUuid& sender, const QUuid& rec
     return Packet{PacketType::PROFILE_REQUEST, sender, receiver};
 }
 
-Packet PacketFactory::profileUpdatePacket(const QUuid& sender, const QUuid& receiver, const ProfileUpdateInfo& info)
+Packet PacketFactory::profileUpdatePacket(const QUuid& sender, const QUuid& receiver, ProfileUpdateInfo info)
 {
     return Packet{PacketType::PROFILE_UPDATE, sender, receiver, info.serialize()};
 }
 
-Packet PacketFactory::profileDataPacket(const QUuid& sender, const QUuid& receiver, const ProfileInfo& info)
+Packet PacketFactory::profileDataPacket(const QUuid& sender, const QUuid& receiver, ProfileInfo info)
 {
     return Packet{PacketType::PROFILE_DATA, sender, receiver, info.serialize()};
 }
@@ -62,11 +64,11 @@ Packet PacketFactory::userInfoRequestPacket(const QUuid& sender, const QUuid& re
         PacketType::USER_INFO_REQUEST,
         sender,
         receiver,
-        userId.toString(QUuid::WithoutBraces).toUtf8()
+        userId.toRfc4122()
     };
 }
 
-Packet PacketFactory::userInfoDataPacket(const QUuid& sender, const QUuid& receiver, const PublicUserInfo& info)
+Packet PacketFactory::userInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info)
 {
     return Packet{PacketType::USER_INFO_DATA, sender, receiver, info.serialize()};
 }
