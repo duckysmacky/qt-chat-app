@@ -1,6 +1,9 @@
 #pragma once
 
 #include <QObject>
+#include <QUuid>
+
+#include <optional>
 
 /**
  * @class AccountManager
@@ -44,6 +47,7 @@ private:
     };
 
 private:
+    std::optional<QUuid> m_userId;
     Mode m_mode;                      ///< Current UI mode
     bool m_loggedIn;                  ///< Whether the user is logged in
     bool m_busy;                      ///< Whether an async operation is in progress
@@ -100,6 +104,8 @@ public:
      * @return true if the user is logged in and not busy, false otherwise.
      */
     bool canSendMessages() const;
+
+    const std::optional<QUuid>& userId() const { return m_userId; }
 
     /// @brief Returns the current UI mode.
     Mode mode() const { return m_mode; }

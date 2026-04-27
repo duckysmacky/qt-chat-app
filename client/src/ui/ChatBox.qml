@@ -10,15 +10,13 @@ Rectangle {
     radius: 16
     border.color: "#ddcdb9"
     border.width: 1
-
-    Chat {
-        id: chat
-    }
+    readonly property Chat currentChat: ChatManager.selectedChat
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 18
         spacing: 14
+        visible: root.currentChat !== null
 
         Rectangle {
             Layout.fillWidth: true
@@ -32,7 +30,7 @@ Rectangle {
                 id: messageList
                 anchors.fill: parent
                 anchors.margins: 12
-                model: chat.messages
+                model: root.currentChat ? root.currentChat.messages : []
                 clip: true
                 spacing: 8
 
@@ -53,11 +51,11 @@ Rectangle {
 
             TextField {
                 id: messageInput
-                placeholderText: AccountManager.canSendMessages
+                placeholderText: root.currentChat && AccountManager.canSendMessages
                                  ? "Enter a message..."
-                                 : "Log in to send messages"
+                                 : ""
                 Layout.fillWidth: true
-                enabled: AccountManager.canSendMessages
+                enabled: root.currentChat !== null && AccountManager.canSendMessages
                 onAccepted: {
                     sendButton.clicked()
                 }
@@ -66,9 +64,12 @@ Rectangle {
             Button {
                 id: sendButton
                 text: "Send"
-                enabled: AccountManager.canSendMessages
+                enabled: root.currentChat !== null && AccountManager.canSendMessages
                 onClicked: {
-                    chat.submitMessage(messageInput.text)
+                    if (!root.currentChat)
+                        return
+
+                    root.currentChat.submitMessage(messageInput.text)
                     messageInput.text = ""
                 }
             }

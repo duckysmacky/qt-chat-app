@@ -81,11 +81,13 @@ QString ChatMessage::statusText() const
         return "Delivered";
     case Status::Read:
         return "Read";
+    case Status::Failed:
+        return "Failed";
     case Status::Received:
         return "Received";
+    default:
+        return "";
     }
-
-    return "";
 }
 
 void ChatMessage::setTimeSent(const QTime& time)

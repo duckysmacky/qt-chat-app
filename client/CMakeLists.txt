@@ -14,6 +14,8 @@ qt_add_executable(client_app
 	src/AccountManager.h
 	src/MessageSender.cpp
 	src/MessageSender.h
+	src/ChatManager.cpp
+	src/ChatManager.h
 )
 
 qt_add_qml_module(client_app
@@ -30,6 +32,8 @@ qt_add_qml_module(client_app
 		src/ui/AccountWindow.qml
         src/ui/RegisterPanel.qml
         src/ui/StatusIndicator.qml
+		src/ui/ChatSelectionPanel.qml
+		src/ui/ChatCard.qml
 )
 
 target_link_libraries(client_app PRIVATE
