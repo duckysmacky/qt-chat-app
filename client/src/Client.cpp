@@ -16,7 +16,7 @@ Client& Client::instance()
 
 Client::Client(QObject* parent)
     : QObject(parent),
-      m_uuid(QUuid::createUuid()),
+      m_sessionId(QUuid::createUuid()),
       m_socket(this),
       m_connected(false)
 {
@@ -73,6 +73,12 @@ void Client::registerUser(QString username, QString name, QString email, QString
 void Client::logout()
 {
     sendPacket(shared::PacketType::LOGOUT);
+}
+
+QString Client::resolveUserData(const QUuid &userId) const
+{
+    // TODO
+    return userId.toString();
 }
 
 void Client::onConnected()
@@ -143,7 +149,7 @@ void Client::sendPacket(const shared::PacketType type)
 {
     qInfo() << "Sending packet to server";
 
-    const shared::Packet packet(type, m_uuid, QUuid());
+    const shared::Packet packet(type, m_sessionId, QUuid());
     m_socket.write(shared::util::encapsulate(packet));
 }
 
@@ -151,7 +157,7 @@ void Client::sendPacket(const shared::PacketType type, QByteArray data)
 {
     qInfo() << "Sending packet to server";
 
-    const shared::Packet packet(type, m_uuid, QUuid(), std::move(data));
+    const shared::Packet packet(type, m_sessionId, QUuid(), std::move(data));
     m_socket.write(shared::util::encapsulate(packet));
 }
 

@@ -2,8 +2,10 @@
 
 #include "Client.h"
 
-Chat::Chat(QObject* parent)
+Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     : QObject(parent),
+      m_id(std::move(id)),
+      m_otherMembers(std::move(otherMembers)),
       m_messageSender(new MessageSender(this))
 {
     m_messageSender->moveToThread(&m_senderThread);
@@ -28,12 +30,31 @@ void Chat::submitMessage(const QString& text)
     if (text.trimmed().isEmpty()) return;
 
     const Client& client = Client::instance();
-    const QString sender = client.uuid().toString();
+    const QString sender = client.sessionId().toString();
 
     const auto message = new ChatMessage(true, text, sender, this);
     addChatMessage(message);
 
     emit messageSubmitted(message);
+}
+
+QString Chat::label() const
+{
+    QString label;
+
+    for (const QUuid& userId : m_otherMembers)
+    {
+        // TODO
+        QString userData = Client::instance().resolveUserData(userId);
+
+        if (!label.isEmpty()) {
+            label.append(", ");
+        }
+
+        label.append(userData);
+    }
+
+    return label;
 }
 
 void Chat::onNewMessage(const QString& sender, const shared::Message& messagePacket)

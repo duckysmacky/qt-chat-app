@@ -34,6 +34,7 @@ public:
         Sent,      ///< Message has been sent to the server
         Delivered, ///< Message has been delivered to the recipient's device
         Read,      ///< Message has been read by the recipient
+        Failed,
         Received   ///< Message has been received by the recipient
     };
     Q_ENUM(Status)

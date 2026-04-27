@@ -20,9 +20,13 @@
 class Chat : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(QUuid id READ id CONSTANT)
+    Q_PROPERTY(QString label READ label NOTIFY labelChanged)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
 
 private:
+    const QUuid m_id;
+    QSet<QUuid> m_otherMembers;
     QHash<QUuid, ChatMessage*> m_messageStorage; ///< Hash map storing chat messages by their UUID
     QVariantList m_messageList;                  ///< List of messages exposed to QML
     QThread m_senderThread;
@@ -33,7 +37,7 @@ public:
      * @brief Constructs a Chat object.
      * @param parent Parent QObject (default nullptr).
      */
-    explicit Chat(QObject* parent = nullptr);
+    explicit Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent = nullptr);
     ~Chat() override;
 
     /**
@@ -42,12 +46,17 @@ public:
      */
     Q_INVOKABLE void submitMessage(const QString& text);
 
+    Q_INVOKABLE QString label() const;
+
+    const QUuid& id() const { return m_id; }
     /// @brief Returns the list of messages for QML consumption.
     /// @return Constant reference to the message list.
     const QVariantList& messages() const { return m_messageList; }
 
 signals:
     void messageSubmitted(ChatMessage* message);
+
+    void labelChanged();
     void messagesChanged(); ///< Emitted when the message list changes.
 
 private slots:

@@ -21,7 +21,7 @@ class Client : public QObject
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
 
 private:
-    const QUuid m_uuid;          ///< Unique identifier for this client instance
+    const QUuid m_sessionId;          ///< Unique identifier for this client instance
     QTcpSocket m_socket;         ///< TCP socket for server communication
     bool m_connected;            ///< Current connection state
     QString m_statusText;        ///< Human-readable status message
@@ -88,9 +88,11 @@ public:
 
     void logout();
 
+    QString resolveUserData(const QUuid& userId) const;
+
     /// @brief Returns the unique identifier of this client.
     /// @return Constant reference to the client UUID.
-    const QUuid& uuid() const { return m_uuid; }
+    const QUuid& sessionId() const { return m_sessionId; }
 
     /// @brief Checks if the client is currently connected to the server.
     /// @return true if connected, false otherwise.

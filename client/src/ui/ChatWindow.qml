@@ -70,10 +70,21 @@ Window {
             StatusIndicator { }
         }
 
-        ChatBox {
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 220
+            spacing: 16
+
+            ChatSelectionPanel {
+                Layout.preferredWidth: 240
+                Layout.fillHeight: true
+            }
+
+            ChatBox {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: 220
+            }
         }
     }
 }
