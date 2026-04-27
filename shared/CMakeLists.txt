@@ -11,6 +11,10 @@ add_library(shared STATIC
     src/AuthInfo.cpp
         src/Result.h
         src/Result.cpp
+        src/ProfileInfo.h
+        src/ProfileInfo.cpp
+        src/ProfileUpdateInfo.h
+        src/ProfileUpdateInfo.cpp
 )
 
 target_include_directories(shared PUBLIC

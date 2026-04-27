@@ -30,7 +30,10 @@ enum class PacketType
     // yspeh
     RESULT,
     // vyshel
-    LOGOUT
+    LOGOUT,
+    PROFILE_REQUEST,
+    PROFILE_UPDATE,
+    PROFILE_DATA
 };
 
 /**
