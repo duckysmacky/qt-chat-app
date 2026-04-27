@@ -73,41 +73,41 @@ void Server::stop() const
 /**
  * @brief Sends a packet to a specific client
  */
-void Server::sendPacket(const QUuid& targetSessionId, const shared::Packet& packet) const
+void Server::sendPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const
 {
-    auto it = m_clients.constFind(targetSessionId);
+    auto it = m_clients.constFind(receiverSessionId);
     if (it == m_clients.constEnd()) {
-        qWarning() << "Target session not found:" << targetSessionId.toString();
+        qWarning() << "Receiver session not found:" << receiverSessionId.toString();
         return;
     }
 
     if (!it.value().sendPacket(packet)) {
-        qCritical() << "Error writing to" << targetSessionId.toString();
+        qCritical() << "Error writing to" << receiverSessionId.toString();
     }
 }
 
-void Server::sendError(const QUuid& targetSessionId, QString message) const
+void Server::sendError(const QUuid& receiverSessionId, QString message) const
 {
-	auto packet = shared::PacketFactory::errorPacket(m_uuid, targetSessionId, std::move(message));
-	sendPacket(targetSessionId, packet);
+	auto packet = shared::PacketFactory::errorPacket(m_uuid, receiverSessionId, std::move(message));
+	sendPacket(receiverSessionId, packet);
 }
 
-void Server::sendSuccess(const QUuid& targetSessionId, QString message) const
+void Server::sendSuccess(const QUuid& receiverSessionId, QString message) const
 {
-	auto packet = shared::PacketFactory::successPacket(m_uuid, targetSessionId, std::move(message));
-	sendPacket(targetSessionId, packet);
+	auto packet = shared::PacketFactory::successPacket(m_uuid, receiverSessionId, std::move(message));
+	sendPacket(receiverSessionId, packet);
 }
 
-void Server::sendProfileData(const QUuid& targetSessionId, const shared::ProfileInfo& info) const
+void Server::sendProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const
 {
-    const auto packet = shared::PacketFactory::profileDataPacket(m_uuid, targetSessionId, info);
-    sendPacket(targetSessionId, packet);
+    const auto packet = shared::PacketFactory::profileDataPacket(m_uuid, receiverSessionId, info);
+    sendPacket(receiverSessionId, packet);
 }
 
-void Server::sendUserInfoData(const QUuid& targetSessionId, const shared::PublicUserInfo& info) const
+void Server::sendUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const
 {
-    const auto packet = shared::PacketFactory::userInfoDataPacket(m_uuid, targetSessionId, info);
-    sendPacket(targetSessionId, packet);
+    const auto packet = shared::PacketFactory::userInfoDataPacket(m_uuid, receiverSessionId, info);
+    sendPacket(receiverSessionId, packet);
 }
 
 /**
@@ -625,7 +625,7 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
 
     const QUuid chatId = !incomingMessage.targetChatId().isNull()
         ? incomingMessage.targetChatId()
-        : packet.target();
+        : packet.receiver();
 
     if (chatId.isNull())
     {

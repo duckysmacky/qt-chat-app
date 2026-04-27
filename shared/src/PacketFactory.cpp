@@ -9,78 +9,78 @@
 
 namespace shared {
 
-Packet PacketFactory::connectPacket(const QUuid& sender, const QUuid& target)
+Packet PacketFactory::connectPacket(const QUuid& sender, const QUuid& receiver)
 {
-    return {PacketType::CONNECT, sender, target};
+    return {PacketType::CONNECT, sender, receiver};
 }
 
-Packet PacketFactory::messagePacket(const QUuid& sender, const QUuid& target, const Message& message)
+Packet PacketFactory::messagePacket(const QUuid& sender, const QUuid& receiver, const Message& message)
 {
-    return Packet{PacketType::MESSAGE, sender, target, message.serialize()};
+    return Packet{PacketType::MESSAGE, sender, receiver, message.serialize()};
 }
 
-Packet PacketFactory::textMessagePacket(const QUuid& sender, const QUuid& target, QString content)
+Packet PacketFactory::textMessagePacket(const QUuid& sender, const QUuid& receiver, QString content)
 {
     const Message message(MessageType::TEXT, std::move(content));
-    return messagePacket(sender, target, message);
+    return messagePacket(sender, receiver, message);
 }
 
-Packet PacketFactory::mediaMessagePacket(const QUuid& sender, const QUuid& target, QString content)
+Packet PacketFactory::mediaMessagePacket(const QUuid& sender, const QUuid& receiver, QString content)
 {
     const Message message(MessageType::MEDIA, std::move(content));
-    return messagePacket(sender, target, message);
+    return messagePacket(sender, receiver, message);
 }
 
-Packet PacketFactory::registerPacket(const QUuid& sender, const QUuid& target, const RegisterInfo& info)
+Packet PacketFactory::registerPacket(const QUuid& sender, const QUuid& receiver, const RegisterInfo& info)
 {
-    return Packet{PacketType::REGISTER, sender, target, info.serialize()};
+    return Packet{PacketType::REGISTER, sender, receiver, info.serialize()};
 }
 
-Packet PacketFactory::loginPacket(const QUuid& sender, const QUuid& target, const LoginInfo& info)
+Packet PacketFactory::loginPacket(const QUuid& sender, const QUuid& receiver, const LoginInfo& info)
 {
-    return Packet{PacketType::LOGIN, sender, target, info.serialize()};
+    return Packet{PacketType::LOGIN, sender, receiver, info.serialize()};
 }
 
-Packet PacketFactory::profileRequestPacket(const QUuid& sender, const QUuid& target)
+Packet PacketFactory::profileRequestPacket(const QUuid& sender, const QUuid& receiver)
 {
-    return Packet{PacketType::PROFILE_REQUEST, sender, target};
+    return Packet{PacketType::PROFILE_REQUEST, sender, receiver};
 }
 
-Packet PacketFactory::profileUpdatePacket(const QUuid& sender, const QUuid& target, const ProfileUpdateInfo& info)
+Packet PacketFactory::profileUpdatePacket(const QUuid& sender, const QUuid& receiver, const ProfileUpdateInfo& info)
 {
-    return Packet{PacketType::PROFILE_UPDATE, sender, target, info.serialize()};
+    return Packet{PacketType::PROFILE_UPDATE, sender, receiver, info.serialize()};
 }
 
-Packet PacketFactory::profileDataPacket(const QUuid& sender, const QUuid& target, const ProfileInfo& info)
+Packet PacketFactory::profileDataPacket(const QUuid& sender, const QUuid& receiver, const ProfileInfo& info)
 {
-    return Packet{PacketType::PROFILE_DATA, sender, target, info.serialize()};
+    return Packet{PacketType::PROFILE_DATA, sender, receiver, info.serialize()};
 }
 
-Packet PacketFactory::userInfoRequestPacket(const QUuid& sender, const QUuid& target, const QUuid& userId)
+Packet PacketFactory::userInfoRequestPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId)
 {
     return Packet{
         PacketType::USER_INFO_REQUEST,
         sender,
-        target,
+        receiver,
         userId.toString(QUuid::WithoutBraces).toUtf8()
     };
 }
 
-Packet PacketFactory::userInfoDataPacket(const QUuid& sender, const QUuid& target, const PublicUserInfo& info)
+Packet PacketFactory::userInfoDataPacket(const QUuid& sender, const QUuid& receiver, const PublicUserInfo& info)
 {
-    return Packet{PacketType::USER_INFO_DATA, sender, target, info.serialize()};
+    return Packet{PacketType::USER_INFO_DATA, sender, receiver, info.serialize()};
 }
 
-Packet PacketFactory::successPacket(const QUuid& sender, const QUuid& target, QString message)
+Packet PacketFactory::successPacket(const QUuid& sender, const QUuid& receiver, QString message)
 {
     const Result result(ResultType::SUCCESS, std::move(message));
-    return Packet{PacketType::RESULT, sender, target, result.serialize()};
+    return Packet{PacketType::RESULT, sender, receiver, result.serialize()};
 }
 
-Packet PacketFactory::errorPacket(const QUuid& sender, const QUuid& target, QString message)
+Packet PacketFactory::errorPacket(const QUuid& sender, const QUuid& receiver, QString message)
 {
     const Result result(ResultType::ERROR, std::move(message));
-    return Packet{PacketType::RESULT, sender, target, result.serialize()};
+    return Packet{PacketType::RESULT, sender, receiver, result.serialize()};
 }
 
 }

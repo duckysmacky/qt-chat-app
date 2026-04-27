@@ -55,13 +55,13 @@ public:
 
     /**
      * @brief Sends a packet to a specific client.
-     * @param target Client UUID
+     * @param receiver Client UUID
      * @param packet Message to send
      */
-    void sendPacket(const QUuid& target, const shared::Packet& packet) const;
+    void sendPacket(const QUuid& receiver, const shared::Packet& packet) const;
     
-	void sendError(const QUuid& target, QString message) const;
-	void sendSuccess(const QUuid& target, QString message) const;
+	void sendError(const QUuid& receiver, QString message) const;
+	void sendSuccess(const QUuid& receiver, QString message) const;
 
     /**
      * @brief Broadcasts a text message to all connected clients.
@@ -108,7 +108,7 @@ private:
     void handleProfileRequest(const QTcpSocket* socket, const shared::Packet& packet);
     void handleProfileUpdate(const QTcpSocket* socket, const shared::Packet& packet);
     void handleUserInfoRequest(const QTcpSocket* socket, const shared::Packet& packet);
-    void sendProfileData(const QUuid& targetSessionId, const shared::ProfileInfo& info) const;
-    void sendUserInfoData(const QUuid& targetSessionId, const shared::PublicUserInfo& info) const;
+    void sendProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const;
+    void sendUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
 
 };
