@@ -14,6 +14,10 @@
 
 namespace shared {
 
+/**
+ * @class PacketFactory
+ * @brief Factory class for creating various types of network packets.
+ */
 class PacketFactory
 {
 public:
@@ -39,4 +43,4 @@ public:
 
 };
 
-}
+} // namespace shared

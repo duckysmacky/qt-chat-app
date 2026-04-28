@@ -8,20 +8,12 @@
 #include "Result.h"
 #include "util.h"
 
-/**
- * @brief Returns the singleton client instance.
- * @return Reference to the Client instance.
- */
 Client& Client::instance()
 {
     static Client instance;
     return instance;
 }
 
-/**
- * @brief Constructs the Client.
- * @param parent The parent QObject.
- */
 Client::Client(QObject* parent)
     : QObject(parent),
       m_uuid(QUuid::createUuid()),
@@ -34,11 +26,6 @@ Client::Client(QObject* parent)
     connect(&m_socket, &QTcpSocket::readyRead, this, &Client::onReadyRead);
 }
 
-/**
- * @brief Connects the client to a server.
- * @param host The server's host address.
- * @param port The server's port number.
- */
 void Client::connectTo(const QString& host, const int port)
 {
     if (host.isEmpty() || port <= 0 || port > 65535)
@@ -54,20 +41,12 @@ void Client::connectTo(const QString& host, const int port)
     m_socket.connectToHost(host, static_cast<quint16>(port));
 }
 
-/**
- * @brief Disconnects the client from the server.
- */
 void Client::disconnect()
 {
     setStatusText("Disconnecting...");
     m_socket.disconnectFromHost();
 }
 
-/**
- * @brief Sends a message to the server.
- * @param type The type of the message.
- * @param content The content of the message.
- */
 void Client::sendMessage(QString content)
 {
     const shared::Message message(shared::MessageType::TEXT, std::move(content));
@@ -91,9 +70,11 @@ void Client::registerUser(QString username, QString name, QString email, QString
     sendPacket(shared::PacketType::REGISTER, info.serialize());
 }
 
-/**
- * @brief Handles the connected signal from the socket.
- */
+void Client::logout()
+{
+    sendPacket(shared::PacketType::LOGOUT);
+}
+
 void Client::onConnected()
 {
     sendPacket(shared::PacketType::CONNECT);
@@ -102,19 +83,12 @@ void Client::onConnected()
     setConnectionStatus(true);
 }
 
-/**
- * @brief Handles the disconnected signal from the socket.
- */
 void Client::onDisconnected()
 {
     setStatusText("Disconnected");
     setConnectionStatus(false);
 }
 
-/**
- * @brief Handles socket errors.
- * @param error The socket error type.
- */
 void Client::onErrorOccurred(QAbstractSocket::SocketError)
 {
     setStatusText(m_socket.errorString());
@@ -122,9 +96,6 @@ void Client::onErrorOccurred(QAbstractSocket::SocketError)
         setConnectionStatus(false);
 }
 
-/**
- * @brief Handles incoming data from the socket.
- */
 void Client::onReadyRead()
 {
     const QByteArray bytes = m_socket.readAll();
@@ -184,10 +155,6 @@ void Client::sendPacket(const shared::PacketType type, QByteArray data)
     m_socket.write(shared::util::encapsulate(packet));
 }
 
-/**
- * @brief Sets the status text.
- * @param text The new status text.
- */
 void Client::setStatusText(const QString& text)
 {
     if (m_statusText == text) return;
@@ -196,10 +163,6 @@ void Client::setStatusText(const QString& text)
     emit statusTextChanged();
 }
 
-/**
- * @brief Sets the connection status.
- * @param connected The new connection status.
- */
 void Client::setConnectionStatus(bool connected)
 {
     m_connected = connected;

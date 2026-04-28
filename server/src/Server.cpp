@@ -64,10 +64,6 @@ Server& Server::instance()
 	return instance;
 }
 
-/**
- * @brief Constructs the Server object
- * Sets up TCP server, console reader, and signal connections.
- */
 Server::Server(QObject* parent)
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
@@ -83,11 +79,6 @@ Server::~Server()
 	stop();
 }
 
-/**
- * @brief Starts the TCP server
- * @param port Port number to listen on
- * @return true if server started successfully
- */
 bool Server::start(const uint16_t port)
 {
 
@@ -102,9 +93,6 @@ bool Server::start(const uint16_t port)
 	return false;
 }
 
-/**
- * @brief Stops the server and closes the connection
- */
 void Server::stop() const
 {
 	if (m_isRunning)
@@ -347,12 +335,6 @@ std::optional<std::reference_wrapper<const ClientConnection>> Server::findConnec
     return std::nullopt;
 }
 
-/**
- * @brief Connects a new client after receiving a connect packet.
- * Adds the client to the internal socket map and sends a welcome message.
- * @param socket The client's QTcpSocket.
- * @param packet Connect packet containing the client's UUID.
- */
 void Server::handleConnect(QTcpSocket* socket, const shared::Packet& packet)
 {
     if (!socket) return;

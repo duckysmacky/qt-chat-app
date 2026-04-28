@@ -2,14 +2,6 @@
 
 namespace shared::util {
 
-/**
- * @brief Splits raw byte stream into messages and decodes them.
- * Iterates through the input data, separates messages using a delimiter
- * and decodes each segment into a Message object.
- * @param bytes Raw data received from the network
- * @return List of decoded messages
- * @note Incomplete trailing data without a delimiter is ignored
- */
 QList<Packet> parse(const QByteArray& bytes)
 {
     QList<Packet> messages;

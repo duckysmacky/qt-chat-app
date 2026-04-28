@@ -1,18 +1,15 @@
 #include "Packet.h"
 
-#include <QDebug>
 #include <QBuffer>
+#include <QDebug>
 #include <QByteArrayView>
 
 #include <utility>
 
 namespace shared {
 
-/// @brief Size of the serialized message type field (in bytes)
 static constexpr auto PACKET_TYPE_SIZE = 1;
-/// @brief Size of the serialized UUID fields (in bytes)
 static constexpr auto UUID_SIZE = 16;
-/// @brief Size of the packet header (all mandatory fields)
 static constexpr auto PACKET_HEADER_SIZE = PACKET_TYPE_SIZE + UUID_SIZE * 2;
 
 Packet::Packet(const PacketType type, QUuid sender, QUuid receiver)
@@ -65,7 +62,7 @@ Packet Packet::deserialize(QByteArray bytes)
 
     char uuidBuffer[UUID_SIZE];
     bytesReader.read(uuidBuffer, UUID_SIZE);
-    const auto sender = QUuid::fromBytes(uuidBuffer);
+    const auto sender = QUuid::fromRfc4122(QByteArrayView{uuidBuffer, UUID_SIZE});
     bytesReader.read(uuidBuffer, UUID_SIZE);
     const auto receiver = QUuid::fromBytes(uuidBuffer);
 
@@ -76,9 +73,6 @@ Packet Packet::deserialize(QByteArray bytes)
         : Packet{type, sender, receiver, std::move(bytes)};
 }
 
-/**
- * @brief Encodes message using array with bytes
- */
 QByteArray Packet::serialize() const
 {
     QByteArray bytes;
