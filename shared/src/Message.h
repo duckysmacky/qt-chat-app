@@ -1,7 +1,8 @@
 #pragma once
 
-#include <QString>
 #include <QByteArray>
+#include <QString>
+#include <QUuid>
 
 namespace shared {
 
@@ -22,8 +23,10 @@ enum class MessageType
 class Message
 {
 private:
-    MessageType m_type;    ///< Type of the message (text or media)
-    QString m_content;     ///< Content of the message
+    QUuid m_senderUserId;
+    QUuid m_targetChatId;
+    MessageType m_type;
+    QString m_content;
 
 public:
     /**
@@ -32,6 +35,7 @@ public:
      * @param content The content of the message.
      */
     Message(MessageType type, QString content);
+    Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QString content);
 
     /// @brief Default copy constructor.
     Message(const Message& other) = default;
@@ -61,8 +65,8 @@ public:
      */
     QByteArray serialize() const;
 
-    /// @brief Returns the type of the message.
-    /// @return Constant reference to the MessageType.
+    const QUuid& senderUserId() const { return m_senderUserId; }
+    const QUuid& targetChatId() const { return m_targetChatId; }
     const MessageType& type() const { return m_type; }
 
     /// @brief Returns the content of the message.
@@ -70,4 +74,4 @@ public:
     const QString& content() const { return m_content; }
 };
 
-} // namespace shared
+} // shared

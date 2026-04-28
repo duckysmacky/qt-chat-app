@@ -83,6 +83,29 @@ std::optional<model::User> Database::getUserByUsername(const QString& username) 
     return user;
 }
 
+std::optional<model::User> Database::getUserByEmail(const QString& email) const
+{
+    if (!m_db.isOpen()) return std::nullopt;
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, username, name, password_hash, email "
+        "FROM users WHERE email = :email LIMIT 1"
+    );
+    query.bindValue(":email", email);
+
+    if (!query.exec() || !query.next())
+        return std::nullopt;
+
+    model::User user;
+    user.setId(QUuid(query.value(0).toString()));
+    user.setUsername(query.value(1).toString());
+    user.setName(query.value(2).toString());
+    user.setPasswordHash(query.value(3).toString());
+    user.setEmail(query.value(4).toString());
+    return user;
+}
+
 std::optional<model::User> Database::authenticateUser(const shared::LoginInfo& loginInfo) const
 {
     if (!m_db.isOpen()) return std::nullopt;
@@ -263,6 +286,43 @@ std::optional<model::User> Database::getUserById(const QUuid& id) const
     return user;
 }
 
+std::optional<shared::ProfileInfo> Database::getProfileInfoByUserId(const QUuid& userId) const
+{
+    const auto user = getUserById(userId);
+    if (!user.has_value())
+        return std::nullopt;
+
+    QUuid profileUserId = user->id();
+    QString username = user->username();
+    QString name = user->name();
+    QString email = user->email();
+
+    return shared::ProfileInfo(
+        std::move(profileUserId),
+        std::move(username),
+        std::move(name),
+        std::move(email)
+        );
+}
+
+std::optional<shared::PublicUserInfo> Database::getPublicUserInfoByUserId(const QUuid& userId) const
+{
+    const auto user = getUserById(userId);
+    if (!user.has_value())
+        return std::nullopt;
+
+    QUuid publicUserId = user->id();
+    QString username = user->username();
+    QString name = user->name();
+
+    return shared::PublicUserInfo(
+        std::move(publicUserId),
+        std::move(username),
+        std::move(name)
+        );
+
+}
+
 QList<model::User> Database::getAllUsers() const
 {
     QList<model::User> users;
@@ -294,6 +354,180 @@ QList<model::User> Database::getAllUsers() const
     }
 
     return users;
+}
+
+QList<model::Chat> Database::searchChats(const QString& queryText) const
+{
+    if (queryText.trimmed().isEmpty())
+        return getAllChats();
+
+    QList<model::Chat> chats;
+
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return chats;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT id, type, created_by, title, created_at "
+        "FROM chats "
+        "WHERE COALESCE(title, '') ILIKE :query "
+        "ORDER BY created_at DESC"
+        );
+
+    query.bindValue(":query", "%" + queryText + "%");
+
+    if (!query.exec()) {
+        qCritical() << "Failed to search chats:" << query.lastError().text();
+        return chats;
+    }
+
+    while (query.next()) {
+        model::Chat chat;
+        chat.setId(QUuid(query.value(0).toString()));
+        chat.setType(query.value(1).toString());
+        chat.setCreatedBy(QUuid(query.value(2).toString()));
+        chat.setTitle(query.value(3).toString());
+        chat.setCreatedAt(query.value(4).toDateTime());
+
+        chats.append(chat);
+    }
+
+    return chats;
+}
+
+
+std::optional<model::User> Database::updateUserProfile(const QUuid& userId, const shared::ProfileUpdateInfo& updateInfo)
+{
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return std::nullopt;
+    }
+
+    const auto currentUserOpt = getUserById(userId);
+    if (!currentUserOpt.has_value())
+        return std::nullopt;
+
+    const model::User currentUser = currentUserOpt.value();
+
+    const QString& newUsername = updateInfo.username().has_value()
+        ? updateInfo.username().value()
+        : currentUser.username();
+
+    const QString& newName = updateInfo.name().has_value()
+        ? updateInfo.name().value()
+        : currentUser.name();
+
+    const QString& newEmail = updateInfo.email().has_value()
+        ? updateInfo.email().value()
+        : currentUser.email();
+
+    const QString& newPasswordHash = updateInfo.passwordHash().has_value()
+        ? updateInfo.passwordHash().value()
+        : currentUser.passwordHash();
+
+    if (!m_db.transaction()) {
+        qCritical() << "Failed to start transaction for profile update";
+        return std::nullopt;
+    }
+
+    QSqlQuery updateQuery(m_db);
+    updateQuery.prepare(
+        "UPDATE users "
+        "SET username = :username, "
+        "    name = :name, "
+        "    email = :email, "
+        "    password_hash = :password_hash "
+        "WHERE id = :id"
+    );
+    updateQuery.bindValue(":username", newUsername);
+    updateQuery.bindValue(":name", newName);
+    updateQuery.bindValue(":email", newEmail);
+    updateQuery.bindValue(":password_hash", newPasswordHash);
+    updateQuery.bindValue(":id", userId.toString(QUuid::WithoutBraces));
+
+    if (!updateQuery.exec()) {
+        qCritical() << "Failed to update user profile:" << updateQuery.lastError().text();
+        m_db.rollback();
+        return std::nullopt;
+    }
+
+    if (newUsername != currentUser.username())
+    {
+        QStringList exUsernames;
+
+        QSqlQuery readStatsQuery(m_db);
+        readStatsQuery.prepare(
+            "SELECT ex_usernames::text "
+            "FROM user_stats "
+            "WHERE user_id = :user_id "
+            "LIMIT 1"
+        );
+        readStatsQuery.bindValue(":user_id", userId.toString(QUuid::WithoutBraces));
+
+        bool hasStatsRow = false;
+
+        if (!readStatsQuery.exec()) {
+            qCritical() << "Failed to read user stats during profile update:" << readStatsQuery.lastError().text();
+            m_db.rollback();
+            return std::nullopt;
+        }
+
+        if (readStatsQuery.next()) {
+            hasStatsRow = true;
+
+            if (!readStatsQuery.value(0).isNull()) {
+                const QJsonDocument doc = QJsonDocument::fromJson(readStatsQuery.value(0).toString().toUtf8());
+                if (doc.isArray()) {
+                    for (const auto& value : doc.array())
+                        exUsernames.append(value.toString());
+                }
+            }
+        }
+
+        if (!exUsernames.contains(currentUser.username()))
+            exUsernames.append(currentUser.username());
+
+        QJsonArray exUsernamesArray;
+        for (const auto& username : exUsernames)
+            exUsernamesArray.append(username);
+
+        const QString exUsernamesJson = QString::fromUtf8(
+            QJsonDocument(exUsernamesArray).toJson(QJsonDocument::Compact)
+        );
+
+        QSqlQuery writeStatsQuery(m_db);
+
+        if (hasStatsRow) {
+            writeStatsQuery.prepare(
+                "UPDATE user_stats "
+                "SET ex_usernames = CAST(:ex_usernames AS jsonb) "
+                "WHERE user_id = :user_id"
+            );
+        } else {
+            writeStatsQuery.prepare(
+                "INSERT INTO user_stats (user_id, ex_usernames) "
+                "VALUES (:user_id, CAST(:ex_usernames AS jsonb))"
+            );
+        }
+
+        writeStatsQuery.bindValue(":user_id", userId.toString(QUuid::WithoutBraces));
+        writeStatsQuery.bindValue(":ex_usernames", exUsernamesJson);
+
+        if (!writeStatsQuery.exec()) {
+            qCritical() << "Failed to update username history:" << writeStatsQuery.lastError().text();
+            m_db.rollback();
+            return std::nullopt;
+        }
+    }
+
+    if (!m_db.commit()) {
+        qCritical() << "Failed to commit profile update";
+        return std::nullopt;
+    }
+
+    return getUserById(userId);
 }
 
 bool Database::createContent(const model::Content& content)

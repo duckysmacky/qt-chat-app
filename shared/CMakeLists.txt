@@ -7,10 +7,22 @@ add_library(shared STATIC
     src/Message.h
     src/PacketFactory.cpp
     src/PacketFactory.h
-    src/AuthInfo.h
-    src/AuthInfo.cpp
+    src/dto/AuthInfo.h
+    src/dto/AuthInfo.cpp
         src/Result.h
         src/Result.cpp
+        src/dto/ProfileInfo.h
+        src/dto/ProfileInfo.cpp
+        src/dto/ProfileUpdateInfo.h
+        src/dto/ProfileUpdateInfo.cpp
+        src/dto/PublicUserInfo.h
+        src/dto/PublicUserInfo.cpp
+        src/dto/ChatInfo.h
+        src/dto/ChatInfo.cpp
+        src/dto/ChatsInfo.h
+        src/dto/ChatsInfo.cpp
+        src/dto/CreateChatInfo.h
+        src/dto/CreateChatInfo.cpp
 )
 
 target_include_directories(shared PUBLIC

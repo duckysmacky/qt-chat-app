@@ -4,11 +4,60 @@
 #include <QDebug>
 #include <qlogging.h>
 
-#include "AuthInfo.h"
+#include "dto/AuthInfo.h"
+#include "Message.h"
 #include "Database.h"
 #include "PacketFactory.h"
+#include "dto/ProfileInfo.h"
+#include "dto/ProfileUpdateInfo.h"
+#include "dto/PublicUserInfo.h"
+#include "dto/ChatInfo.h"
+#include "dto/ChatsInfo.h"
+#include "dto/CreateChatInfo.h"
+#include "model/ChatMember.h"
+#include "model/Chat.h"
+
+
+
 #include "util.h"
 
+
+namespace {
+
+shared::ChatInfo makeChatInfo(const model::Chat& chat)
+{
+    QUuid id = chat.id();
+    QString type = chat.type();
+    QUuid createdBy = chat.createdBy();
+    QString title = chat.title();
+    QDateTime createdAt = chat.createdAt();
+
+    return shared::ChatInfo(
+        std::move(id),
+        std::move(type),
+        std::move(createdBy),
+        std::move(title),
+        std::move(createdAt)
+        );
+}
+
+shared::ChatsInfo makeChatsInfo(const QList<model::Chat>& chats)
+{
+    QList<shared::ChatInfo> chatInfos;
+    chatInfos.reserve(chats.size());
+
+    for (const auto& chat : chats)
+        chatInfos.append(makeChatInfo(chat));
+
+    return shared::ChatsInfo(std::move(chatInfos));
+}
+
+}
+
+
+/**
+ * @brief Returns the singleton Server instance
+ */
 Server& Server::instance()
 {
 	static Server instance;
@@ -51,31 +100,62 @@ void Server::stop() const
 
 }
 
-void Server::sendPacket(const QUuid& targetSessionId, const shared::Packet& packet) const
+/**
+ * @brief Sends a packet to a specific client
+ */
+void Server::sendPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const
 {
-    auto it = m_clients.constFind(targetSessionId);
+    auto it = m_clients.constFind(receiverSessionId);
     if (it == m_clients.constEnd()) {
-        qWarning() << "Target session not found:" << targetSessionId.toString();
+        qWarning() << "Receiver session not found:" << receiverSessionId.toString();
         return;
     }
 
     if (!it.value().sendPacket(packet)) {
-        qCritical() << "Error writing to" << targetSessionId.toString();
+        qCritical() << "Error writing to" << receiverSessionId.toString();
     }
 }
 
-void Server::sendError(const QUuid& targetSessionId, QString message) const
+void Server::sendChatsData(const QUuid& receiverSessionId, const shared::ChatsInfo& info) const
 {
-	auto packet = shared::PacketFactory::errorPacket(m_uuid, targetSessionId, std::move(message));
-	sendPacket(targetSessionId, packet);
+    const auto packet = shared::PacketFactory::chatsDataPacket(m_uuid, receiverSessionId, info);
+    sendPacket(receiverSessionId, packet);
 }
 
-void Server::sendSuccess(const QUuid& targetSessionId, QString message) const
+void Server::sendChatData(const QUuid& receiverSessionId, const shared::ChatInfo& info) const
 {
-	auto packet = shared::PacketFactory::successPacket(m_uuid, targetSessionId, std::move(message));
-	sendPacket(targetSessionId, packet);
+    const auto packet = shared::PacketFactory::chatDataPacket(m_uuid, receiverSessionId, info);
+    sendPacket(receiverSessionId, packet);
 }
 
+
+void Server::sendError(const QUuid& receiverSessionId, QString message) const
+{
+	auto packet = shared::PacketFactory::errorPacket(m_uuid, receiverSessionId, std::move(message));
+	sendPacket(receiverSessionId, packet);
+}
+
+void Server::sendSuccess(const QUuid& receiverSessionId, QString message) const
+{
+	auto packet = shared::PacketFactory::successPacket(m_uuid, receiverSessionId, std::move(message));
+	sendPacket(receiverSessionId, packet);
+}
+
+void Server::sendProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const
+{
+    const auto packet = shared::PacketFactory::profileDataPacket(m_uuid, receiverSessionId, info);
+    sendPacket(receiverSessionId, packet);
+}
+
+void Server::sendUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const
+{
+    const auto packet = shared::PacketFactory::userInfoDataPacket(m_uuid, receiverSessionId, info);
+    sendPacket(receiverSessionId, packet);
+}
+
+/**
+ * Handles new incoming TCP connections; returns None if socket is not defined
+ */
 void Server::onNewConnection()
 {
 	const QTcpSocket* socket = m_server->nextPendingConnection();
@@ -115,6 +195,30 @@ void Server::onServerRead()
                 handleLogout(socket, packet);
                 break;
 
+            case shared::PacketType::PROFILE_REQUEST:
+                handleProfileRequest(socket, packet);
+                break;
+
+            case shared::PacketType::PROFILE_UPDATE:
+                handleProfileUpdate(socket, packet);
+                break;
+
+            case shared::PacketType::USER_INFO_REQUEST:
+                handleUserInfoRequest(socket, packet);
+                break;
+
+            case shared::PacketType::CHATS_REQUEST:
+                handleChatsRequest(socket, packet);
+                break;
+
+            case shared::PacketType::CHAT_SEARCH_REQUEST:
+                handleChatSearchRequest(socket, packet);
+                break;
+
+            case shared::PacketType::CHAT_CREATE_REQUEST:
+                handleChatCreateRequest(socket, packet);
+                break;
+
             default:
                 handleAuthorizedPacket(packet);
                 break;
@@ -124,6 +228,34 @@ void Server::onServerRead()
     }
 }
 
+void Server::handleChatsRequest(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::CHATS_REQUEST) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value()) {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    const ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized()) {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    const Database& db = Database::instance();
+    const QList<model::Chat> chats = db.getAllChats();
+
+    sendChatsData(connection.sessionId(), makeChatsInfo(chats));
+}
+
+
+/**
+ * @brief Handles client disconnection
+ */
 void Server::onClientDisconnected()
 {
     auto* clientSocket = qobject_cast<QTcpSocket*>(sender());
@@ -318,48 +450,44 @@ void Server::handleLogin(const QTcpSocket* socket, const shared::Packet& packet)
 
 void Server::handleAuthorizedPacket(const shared::Packet& packet) const
 {
-	const QUuid& uuid = packet.sender();
+    const QUuid& sessionId = packet.sender();
 
-	if (uuid.isNull())
-	{
-		qWarning() << "Ignoring packet with invalid UUID";
-		return;
-	}
+    if (sessionId.isNull())
+    {
+        qWarning() << "Ignoring packet with invalid UUID";
+        return;
+    }
 
-	auto connectionOpt = findConnection(uuid);
-	if (!connectionOpt)
-	{
-		qWarning() << "Ignoring packet from unconnected client";
-		return;
-	}
+    auto connectionOpt = findConnection(sessionId);
+    if (!connectionOpt.has_value())
+    {
+        qWarning() << "Ignoring packet from unconnected client";
+        return;
+    }
 
-	const ClientConnection& connection = connectionOpt.value().get();
+    const ClientConnection& connection = connectionOpt.value().get();
 
-	if (!connection.isAuthorized())
-	{
-		qWarning() << "Declining a packet from unauthorized client";
-		sendError(uuid, "Not authorized");
-		return;
-	}
+    if (!connection.isAuthorized())
+    {
+        qWarning() << "Declining a packet from unauthorized client";
+        sendError(sessionId, "Not authorized");
+        return;
+    }
 
-	switch (packet.type())
-	{
+    switch (packet.type())
+    {
     case shared::PacketType::MESSAGE:
         handleChatMessage(connection, packet);
         break;
 
+    case shared::PacketType::COMMAND:
+        qInfo() << "Command from" << sessionId.toString();
+        break;
 
-	case shared::PacketType::COMMAND:
-		qInfo() << "Command from" << uuid.toString();
-		break;
-
-	default:
-		qInfo() << "Unknown or unsupported message from" << uuid.toString();
-		break;
-
-	}
-
-	sendSuccess(uuid, "Packet successfully recieved");
+    default:
+        qInfo() << "Unknown or unsupported message from" << sessionId.toString();
+        break;
+    }
 }
 
 void Server::handleLogout(const QTcpSocket* socket, const shared::Packet& packet)
@@ -393,23 +521,287 @@ void Server::handleLogout(const QTcpSocket* socket, const shared::Packet& packet
     qInfo() << "Successfully logged out client" << packet.sender();
 }
 
+void Server::handleChatSearchRequest(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::CHAT_SEARCH_REQUEST) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value()) {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    const ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized()) {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    if (!packet.data().has_value()) {
+        sendError(connection.sessionId(), "Chat search payload is missing");
+        return;
+    }
+
+    const QString queryText = QString::fromUtf8(packet.data().value()).trimmed();
+
+    const Database& db = Database::instance();
+    const QList<model::Chat> chats = db.searchChats(queryText);
+
+    sendChatsData(connection.sessionId(), makeChatsInfo(chats));
+}
+
+void Server::handleChatCreateRequest(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::CHAT_CREATE_REQUEST) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value()) {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    const ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized() || !connection.userId().has_value()) {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    if (!packet.data().has_value()) {
+        sendError(connection.sessionId(), "Chat create payload is missing");
+        return;
+    }
+
+    const auto createInfoOpt = shared::ChatCreateInfo::deserialize(packet.data().value());
+    if (!createInfoOpt.has_value()) {
+        sendError(connection.sessionId(), "Invalid chat create payload");
+        return;
+    }
+
+    const QString type = createInfoOpt->type().trimmed();
+    const QString title = createInfoOpt->title().trimmed();
+
+    if (type.isEmpty()) {
+        sendError(connection.sessionId(), "Chat type must not be empty");
+        return;
+    }
+
+    const QUuid creatorUserId = connection.userId().value();
+
+    model::Chat chat(type, creatorUserId, title);
+
+    Database& db = Database::instance();
+
+    if (!db.createChat(chat)) {
+        sendError(connection.sessionId(), "Failed to create chat");
+        return;
+    }
+
+    const model::ChatMember creatorMembership(chat.id(), creatorUserId);
+
+    if (!db.createChatMember(creatorMembership)) {
+        sendError(connection.sessionId(), "Failed to add creator to chat");
+        return;
+    }
+
+    sendSuccess(connection.sessionId(), "Chat created successfully");
+    sendChatData(connection.sessionId(), makeChatInfo(chat));
+}
+
+
+void Server::handleProfileRequest(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::PROFILE_REQUEST) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value()) {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    const ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized() || !connection.userId().has_value()) {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    const Database& db = Database::instance();
+    const auto profileInfo = db.getProfileInfoByUserId(connection.userId().value());
+
+    if (!profileInfo.has_value()) {
+        sendError(connection.sessionId(), "User not found");
+        return;
+    }
+
+    sendProfileData(connection.sessionId(), profileInfo.value());
+}
+
+void Server::handleProfileUpdate(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::PROFILE_UPDATE) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value()) {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    const ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized() || !connection.userId().has_value()) {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    if (!packet.data().has_value()) {
+        sendError(connection.sessionId(), "Profile update payload is missing");
+        return;
+    }
+
+    const auto updateInfoOpt = shared::ProfileUpdateInfo::deserialize(packet.data().value());
+    if (!updateInfoOpt.has_value()) {
+        sendError(connection.sessionId(), "Invalid profile update payload");
+        return;
+    }
+
+    shared::ProfileUpdateInfo updateInfo = updateInfoOpt.value();
+
+    if (updateInfo.username().has_value()) {
+        const QString username = updateInfo.username().value().trimmed();
+
+        if (username.isEmpty()) {
+            sendError(connection.sessionId(), "Username must not be empty");
+            return;
+        }
+
+        updateInfo.setUsername(username);
+    }
+
+    if (updateInfo.email().has_value()) {
+        const QString email = updateInfo.email().value().trimmed();
+
+        if (email.isEmpty()) {
+            sendError(connection.sessionId(), "Email must not be empty");
+            return;
+        }
+
+        updateInfo.setEmail(email);
+    }
+
+    if (updateInfo.passwordHash().has_value() && updateInfo.passwordHash().value().isEmpty()) {
+        sendError(connection.sessionId(), "Password hash must not be empty");
+        return;
+    }
+
+    const Database& readDb = Database::instance();
+    const QUuid userId = connection.userId().value();
+
+    if (updateInfo.username().has_value()) {
+        const auto existingUser = readDb.getUserByUsername(updateInfo.username().value());
+        if (existingUser.has_value() && existingUser->id() != userId) {
+            sendError(connection.sessionId(), "Username already exists");
+            return;
+        }
+    }
+
+    if (updateInfo.email().has_value()) {
+        const auto existingUser = readDb.getUserByEmail(updateInfo.email().value());
+        if (existingUser.has_value() && existingUser->id() != userId) {
+            sendError(connection.sessionId(), "Email already exists");
+            return;
+        }
+    }
+
+    Database& db = Database::instance();
+    const auto updatedUser = db.updateUserProfile(userId, updateInfo);
+
+    if (!updatedUser.has_value()) {
+        sendError(connection.sessionId(), "Failed to update profile");
+        return;
+    }
+
+    const auto updatedProfileInfo = db.getProfileInfoByUserId(userId);
+    if (!updatedProfileInfo.has_value()) {
+        sendError(connection.sessionId(), "Failed to read updated profile");
+        return;
+    }
+
+    sendSuccess(connection.sessionId(), "Profile updated successfully");
+    sendProfileData(connection.sessionId(), updatedProfileInfo.value());
+}
+
+void Server::handleUserInfoRequest(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::USER_INFO_REQUEST) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value()) {
+        qWarning() << "Client" << packet.sender() << "not yet connected";
+        return;
+    }
+
+    const ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized()) {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    if (!packet.data().has_value()) {
+        sendError(connection.sessionId(), "User info request payload is missing");
+        return;
+    }
+
+    const QUuid requestedUserId = QUuid::fromRfc4122(packet.data().value());
+
+    if (requestedUserId.isNull()) {
+        sendError(connection.sessionId(), "Invalid user id");
+        return;
+    }
+
+    const Database& db = Database::instance();
+    const auto publicUserInfo = db.getPublicUserInfoByUserId(requestedUserId);
+
+    if (!publicUserInfo.has_value()) {
+        sendError(connection.sessionId(), "User not found");
+        return;
+    }
+
+    sendUserInfoData(connection.sessionId(), publicUserInfo.value());
+}
 
 void Server::handleChatMessage(const ClientConnection& connection, const shared::Packet& packet) const
 {
-    const QUuid& sessionId = packet.sender();
-    const QUuid& chatId = packet.target();
+    if (!packet.data().has_value())
+    {
+        sendError(connection.sessionId(), "Message payload is missing");
+        return;
+    }
+
+    const shared::Message incomingMessage = shared::Message::deserialize(packet.data().value());
+
+    const QUuid chatId = !incomingMessage.targetChatId().isNull()
+        ? incomingMessage.targetChatId()
+        : packet.receiver();
 
     if (chatId.isNull())
     {
-        qWarning() << "Declining message from" << sessionId.toString() << "with invalid chat UUID";
-        sendError(sessionId, "Invalid chat id");
+        qWarning() << "Declining message from" << connection.sessionId().toString() << "with invalid chat UUID";
+        sendError(connection.sessionId(), "Invalid chat id");
         return;
     }
 
     if (!connection.userId().has_value())
     {
         qWarning() << "Declining message from client without account id";
-        sendError(sessionId, "Not authorized");
+        sendError(connection.sessionId(), "Not authorized");
         return;
     }
 
@@ -419,7 +811,7 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
     if (memberUserIds.isEmpty())
     {
         qWarning() << "Chat" << chatId.toString() << "not found or has no members";
-        sendError(sessionId, "Chat not found");
+        sendError(connection.sessionId(), "Chat not found");
         return;
     }
 
@@ -428,12 +820,20 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
     if (!memberUserIds.contains(senderUserId))
     {
         qWarning() << "User" << senderUserId.toString()
-        << "is not a member of chat" << chatId.toString();
-        sendError(sessionId, "You are not a member of this chat");
+                   << "is not a member of chat" << chatId.toString();
+        sendError(connection.sessionId(), "You are not a member of this chat");
         return;
     }
 
-    qInfo() << "Routing message from session" << sessionId.toString()
+    shared::Message normalizedMessage(
+        senderUserId,
+        chatId,
+        incomingMessage.type(),
+        incomingMessage.content()
+    );
+
+    qInfo() << "Routing message from session" << connection.sessionId().toString()
+            << "user" << senderUserId.toString()
             << "to chat" << chatId.toString();
 
     for (auto it = m_clients.constBegin(); it != m_clients.constEnd(); ++it)
@@ -446,12 +846,16 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         if (!memberUserIds.contains(targetConnection.userId().value()))
             continue;
 
-        if (it.key() == sessionId)
+        if (it.key() == connection.sessionId())
             continue;
 
-        sendPacket(it.key(), packet);
-    }
+        const auto outboundPacket = shared::PacketFactory::messagePacket(
+            connection.sessionId(),
+            it.key(),
+            std::move(normalizedMessage)
+        );
 
-    sendSuccess(sessionId, "Packet successfully received");
+        sendPacket(it.key(), outboundPacket);
+    }
 }
 

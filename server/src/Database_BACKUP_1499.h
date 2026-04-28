@@ -53,8 +53,15 @@ public:
 	/// @param user The user object to create.
 	/// @return true on success, false otherwise.
     bool createUser(const model::User& user);
+<<<<<<< HEAD
     QList<model::Chat> searchChats(const QString& query) const;
 
+=======
+
+	/// @brief Deletes a user by their unique identifier.
+	/// @param id The UUID of the user to delete.
+	/// @return true on success, false otherwise.
+>>>>>>> 9f8c1da8535780c04a6f6eb391ad61002d4082cf
     bool deleteUser(const QUuid& id);
 
 	/// @brief Retrieves a user by their unique identifier.
@@ -75,10 +82,17 @@ public:
 	/// @param username The username to search for.
 	/// @return An optional containing the user if found, std::nullopt otherwise.
     std::optional<model::User> getUserByUsername(const QString& username) const;
+<<<<<<< HEAD
     std::optional<model::User> getUserByEmail(const QString& email) const;
     std::optional<shared::ProfileInfo> getProfileInfoByUserId(const QUuid& userId) const;
     std::optional<shared::PublicUserInfo> getPublicUserInfoByUserId(const QUuid& userId) const;
     std::optional<model::User> updateUserProfile(const QUuid& userId, const shared::ProfileUpdateInfo& updateInfo);
+=======
+
+	/// @brief Authenticates a user based on login information.
+	/// @param loginInfo The login credentials.
+	/// @return An optional containing the authenticated user if successful, std::nullopt otherwise.
+>>>>>>> 9f8c1da8535780c04a6f6eb391ad61002d4082cf
     std::optional<model::User> authenticateUser(const shared::LoginInfo& loginInfo) const;
 
 	/// @brief Creates a new content entry in the database.

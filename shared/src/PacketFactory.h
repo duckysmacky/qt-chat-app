@@ -1,7 +1,16 @@
 #pragma once
 
 #include "Packet.h"
-#include "AuthInfo.h"
+#include "Message.h"
+#include "dto/AuthInfo.h"
+#include "dto/ProfileInfo.h"
+#include "dto/ProfileUpdateInfo.h"
+#include "dto/ChatInfo.h"
+#include "dto/ChatsInfo.h"
+#include "dto/CreateChatInfo.h"
+
+#include "dto/PublicUserInfo.h"
+
 
 namespace shared {
 
@@ -12,67 +21,26 @@ namespace shared {
 class PacketFactory
 {
 public:
-    /**
-     * @brief Creates a CONNECT packet for establishing a connection.
-     * @param sender The UUID of the sender.
-     * @param target The UUID of the target recipient.
-     * @return A Packet object of type CONNECT.
-     */
-    static Packet connectPacket(const QUuid& sender, const QUuid& target);
+    static Packet connectPacket(const QUuid& sender, const QUuid& receiver);
+    static Packet messagePacket(const QUuid& sender, const QUuid& receiver, Message message);
+    static Packet textMessagePacket(const QUuid& sender, const QUuid& receiver, QString content);
+    static Packet mediaMessagePacket(const QUuid& sender, const QUuid& receiver, QString content);
+    static Packet registerPacket(const QUuid& sender, const QUuid& receiver, RegisterInfo info);
+    static Packet loginPacket(const QUuid& sender, const QUuid& receiver, LoginInfo info);
+    static Packet profileRequestPacket(const QUuid& sender, const QUuid& receiver);
+    static Packet profileUpdatePacket(const QUuid& sender, const QUuid& receiver, ProfileUpdateInfo info);
+    static Packet profileDataPacket(const QUuid& sender, const QUuid& receiver, ProfileInfo info);
+    static Packet userInfoRequestPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId);
+    static Packet userInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info);
+    static Packet successPacket(const QUuid& sender, const QUuid& receiver, QString message);
+    static Packet errorPacket(const QUuid& sender, const QUuid& receiver, QString message);
+    static Packet chatsRequestPacket(const QUuid& sender, const QUuid& receiver);
+    static Packet chatsDataPacket(const QUuid& sender, const QUuid& receiver, ChatsInfo info);
+    static Packet chatSearchRequestPacket(const QUuid& sender, const QUuid& receiver, QString query);
+    static Packet chatCreateRequestPacket(const QUuid& sender, const QUuid& receiver, ChatCreateInfo info);
+    static Packet chatDataPacket(const QUuid& sender, const QUuid& receiver, ChatInfo info);
 
-    /**
-     * @brief Creates a TEXT_MESSAGE packet for sending text messages.
-     * @param sender The UUID of the sender.
-     * @param target The UUID of the target recipient.
-     * @param content The text content of the message.
-     * @return A Packet object of type TEXT_MESSAGE.
-     */
-    static Packet textMessagePacket(const QUuid& sender, const QUuid& target, QString content);
 
-    /**
-     * @brief Creates a MEDIA_MESSAGE packet for sending media messages.
-     * @param sender The UUID of the sender.
-     * @param target The UUID of the target recipient.
-     * @param content The media content or path.
-     * @return A Packet object of type MEDIA_MESSAGE.
-     */
-    static Packet mediaMessagePacket(const QUuid& sender, const QUuid& target, QString content);
-
-    /**
-     * @brief Creates a REGISTER packet for user registration.
-     * @param sender The UUID of the sender.
-     * @param target The UUID of the target recipient.
-     * @param info The registration information.
-     * @return A Packet object of type REGISTER.
-     */
-    static Packet registerPacket(const QUuid& sender, const QUuid& target, const RegisterInfo& info);
-
-    /**
-     * @brief Creates a LOGIN packet for user authentication.
-     * @param sender The UUID of the sender.
-     * @param target The UUID of the target recipient.
-     * @param info The login credentials.
-     * @return A Packet object of type LOGIN.
-     */
-    static Packet loginPacket(const QUuid& sender, const QUuid& target, const LoginInfo& info);
-
-    /**
-     * @brief Creates a SUCCESS packet indicating a successful operation.
-     * @param sender The UUID of the sender.
-     * @param target The UUID of the target recipient.
-     * @param message A success message.
-     * @return A Packet object of type SUCCESS.
-     */
-    static Packet successPacket(const QUuid& sender, const QUuid& target, QString message);
-
-    /**
-     * @brief Creates an ERROR packet indicating an error condition.
-     * @param sender The UUID of the sender.
-     * @param target The UUID of the target recipient.
-     * @param message An error message describing the issue.
-     * @return A Packet object of type ERROR.
-     */
-    static Packet errorPacket(const QUuid& sender, const QUuid& target, QString message);
 };
 
 } // namespace shared

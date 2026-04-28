@@ -1,58 +1,89 @@
 #include "Message.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QDebug>
-#include <QBuffer>
+
+#include <utility>
 
 namespace shared {
 
-static constexpr auto MESSAGE_TYPE_SIZE = 1;
-static constexpr auto MESSAGE_HEADER_SIZE = MESSAGE_TYPE_SIZE;
+Message::Message(MessageType type, QString content)
+    : Message(QUuid(), QUuid(), type, std::move(content))
+{
+}
 
-Message::Message(const MessageType type, QString content)
-    : m_type(type),
+Message::Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QString content)
+    : m_senderUserId(std::move(senderUserId)),
+      m_targetChatId(std::move(targetChatId)),
+      m_type(type),
       m_content(std::move(content))
-{}
+{
+}
 
 Message::Message(Message&& other) noexcept
-    : m_type(other.m_type),
+    : m_senderUserId(std::move(other.m_senderUserId)),
+      m_targetChatId(std::move(other.m_targetChatId)),
+      m_type(other.m_type),
       m_content(std::move(other.m_content))
-{}
+{
+}
 
 Message& Message::operator=(Message&& other) noexcept
 {
-    if (this == &other) return *this;
+    if (this == &other)
+        return *this;
+
+    m_senderUserId = std::move(other.m_senderUserId);
+    m_targetChatId = std::move(other.m_targetChatId);
     m_type = other.m_type;
     m_content = std::move(other.m_content);
+
     return *this;
 }
 
 Message Message::deserialize(QByteArray bytes)
 {
-    if (bytes.size() < MESSAGE_HEADER_SIZE)
+    const QJsonDocument doc = QJsonDocument::fromJson(bytes);
+    if (doc.isObject())
     {
-        qWarning() << "Invalid message payload length:" << bytes.size();
-        // we can just ignore this, since message cannot be 0
+        const QJsonObject obj = doc.object();
+
+        if (obj.contains("senderUserId") &&
+            obj.contains("targetChatId") &&
+            obj.contains("type") &&
+            obj.contains("content"))
+        {
+            return Message(
+                QUuid(obj["senderUserId"].toString()),
+                QUuid(obj["targetChatId"].toString()),
+                static_cast<MessageType>(obj["type"].toInt()),
+                obj["content"].toString()
+            );
+        }
     }
 
-    QBuffer bytesReader(&bytes);
-    bytesReader.open(QIODevice::ReadOnly);
+    if (bytes.isEmpty())
+    {
+        qWarning() << "Invalid empty message payload";
+        return Message(MessageType::TEXT, "");
+    }
 
-    char messageTypeBuffer[MESSAGE_TYPE_SIZE];
-    bytesReader.read(messageTypeBuffer, MESSAGE_TYPE_SIZE);
-    const auto type = static_cast<MessageType>(messageTypeBuffer[0]);
+    const auto type = static_cast<MessageType>(bytes[0]);
+    bytes.remove(0, 1);
 
-    bytes.remove(0, MESSAGE_HEADER_SIZE);
-    return Message{type, QString::fromUtf8(bytes)};
+    return Message(QUuid(), QUuid(), type, QString::fromUtf8(bytes));
 }
 
 QByteArray Message::serialize() const
 {
-    QByteArray bytes;
+    QJsonObject obj;
+    obj["senderUserId"] = m_senderUserId.toString(QUuid::WithoutBraces);
+    obj["targetChatId"] = m_targetChatId.toString(QUuid::WithoutBraces);
+    obj["type"] = static_cast<int>(m_type);
+    obj["content"] = m_content;
 
-    bytes.append(static_cast<char>(m_type));
-    bytes.append(m_content.toUtf8());
-
-    return bytes;
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
 
 } // shared

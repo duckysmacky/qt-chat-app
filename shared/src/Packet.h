@@ -30,7 +30,17 @@ enum class PacketType
     // yspeh
     RESULT,
     // vyshel
-    LOGOUT
+    LOGOUT,
+    PROFILE_REQUEST,
+    PROFILE_UPDATE,
+    PROFILE_DATA,
+    USER_INFO_REQUEST,
+    USER_INFO_DATA,
+    CHATS_REQUEST,
+    CHATS_DATA,
+    CHAT_SEARCH_REQUEST,
+    CHAT_CREATE_REQUEST,
+    CHAT_DATA
 };
 
 /**
@@ -44,12 +54,12 @@ class Packet
 private:
     PacketType m_type;  ///< Packet type
     QUuid m_sender;     ///< Sender UUID
-    QUuid m_target;     ///< Target (receiver) UUID
+    QUuid m_receiver;   ///< Receiver UUID
     std::optional<QByteArray> m_data;
 
 public:
-    Packet(PacketType type, QUuid sender, QUuid target);
-    Packet(PacketType type, QUuid sender, QUuid target, QByteArray data);
+    Packet(PacketType type, QUuid sender, QUuid receiver);
+    Packet(PacketType type, QUuid sender, QUuid receiver, QByteArray data);
 
     Packet(const Packet& other) = default;
     Packet& operator =(const Packet& other) = default;
@@ -73,7 +83,7 @@ public:
 
     const PacketType& type() const { return m_type; }
     const QUuid& sender() const { return m_sender; }
-    const QUuid& target() const { return m_target; }
+    const QUuid& receiver() const { return m_receiver; }
     const std::optional<QByteArray>& data() const { return m_data; }
 };
 
