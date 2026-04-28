@@ -9,8 +9,8 @@
 
 #include "Packet.h"
 #include "ClientConnection.h"
-#include "dto\ProfileInfo.h"
-#include "dto\PublicUserInfo.h"
+#include "dto/ProfileInfo.h"
+#include "dto/PublicUserInfo.h"
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
