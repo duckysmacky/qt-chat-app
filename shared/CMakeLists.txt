@@ -23,6 +23,8 @@ add_library(shared STATIC
         src/dto/ChatsInfo.cpp
         src/dto/CreateChatInfo.h
         src/dto/CreateChatInfo.cpp
+        src/KeyStore.h
+        src/KeyStore.cpp
 )
 
 target_include_directories(shared PUBLIC
