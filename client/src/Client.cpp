@@ -17,7 +17,6 @@ Client& Client::instance()
 Client::Client(QObject* parent)
     : QObject(parent),
       m_sessionId(QUuid::createUuid()),
-      m_serverId(QUuid{}),
       m_socket(this),
       m_connected(false)
 {
@@ -92,6 +91,13 @@ void Client::sendBytes(QByteArray bytes)
         },
         Qt::QueuedConnection
     );
+}
+
+void Client::updateServerId(const QUuid& serverId)
+{
+    if (serverId.isNull() || m_serverId == serverId) return;
+
+    m_serverId = serverId;
 }
 
 void Client::writeBytes(const QByteArray& bytes)

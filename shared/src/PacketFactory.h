@@ -23,8 +23,8 @@ class PacketFactory
 public:
     static Packet connectClientPacket(const QUuid& sender, const QUuid& receiver);
     static Packet chatMessagePacket(const QUuid& sender, const QUuid& receiver, Message message);
-    static Packet textChatMessagePacket(const QUuid& sender, const QUuid& receiver, QString content);
-    static Packet mediaChatMessagePacket(const QUuid& sender, const QUuid& receiver, QString content);
+    static Packet textChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content);
+    static Packet mediaChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content);
     static Packet registerUserPacket(const QUuid& sender, const QUuid& receiver, RegisterInfo info);
     static Packet loginUserPacket(const QUuid& sender, const QUuid& receiver, LoginInfo info);
     static Packet getUserProfilePacket(const QUuid& sender, const QUuid& receiver);

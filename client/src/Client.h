@@ -20,7 +20,7 @@ class Client : public QObject
 
 private:
     const QUuid m_sessionId;     ///< Unique identifier for this client instance
-    const QUuid m_serverId;      ///< Server session ID
+    QUuid m_serverId;            ///< Server session ID
     QTcpSocket m_socket;         ///< TCP socket for server communication
     bool m_connected;            ///< Current connection state
     QString m_statusText;        ///< Human-readable status message
@@ -64,6 +64,8 @@ public:
     Q_INVOKABLE void disconnect();
 
     QString resolveUserData(const QUuid& userId) const;
+
+    void updateServerId(const QUuid& serverId);
 
     /// @brief Returns the unique identifier of this client.
     /// @return Constant reference to the client UUID.

@@ -38,8 +38,8 @@ public:
     void sendServerCommand() const;
     void sendServerCommand(QByteArray data) const;
     void sendChatMessage(shared::Message message) const;
-    void sendTextChatMessage(QString content) const;
-    void sendMediaChatMessage(QString content) const;
+    void sendTextChatMessage(const QUuid& targetChatId, QString content) const;
+    void sendMediaChatMessage(const QUuid& targetChatId, QString content) const;
     void loginUser(QString login, QString passwordHash) const;
     void registerUser(QString username, QString name, QString email, QString passwordHash) const;
     void logoutCurrentUser() const;

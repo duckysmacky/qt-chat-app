@@ -5,6 +5,7 @@
 
 #include <utility>
 
+#include "AccountManager.h"
 #include "Client.h"
 #include "PacketFactory.h"
 #include "dto/AuthInfo.h"
@@ -29,6 +30,8 @@ void RequestManager::processBytes(const QByteArray& bytes)
 
 void RequestManager::processPacket(const shared::Packet& packet)
 {
+    Client::instance().updateServerId(packet.sender());
+
     switch (packet.type())
     {
     case shared::PacketType::INVALID:
@@ -160,14 +163,22 @@ void RequestManager::sendChatMessage(shared::Message message) const
     sendPacket(shared::PacketFactory::chatMessagePacket(client.sessionId(), client.serverId(), std::move(message)));
 }
 
-void RequestManager::sendTextChatMessage(QString content) const
+void RequestManager::sendTextChatMessage(const QUuid& targetChatId, QString content) const
 {
-    sendChatMessage(shared::Message(shared::MessageType::TEXT, std::move(content)));
+    QUuid senderUserId;
+    if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
+        senderUserId = userId.value();
+
+    sendChatMessage(shared::Message(senderUserId, targetChatId, shared::MessageType::TEXT, std::move(content)));
 }
 
-void RequestManager::sendMediaChatMessage(QString content) const
+void RequestManager::sendMediaChatMessage(const QUuid& targetChatId, QString content) const
 {
-    sendChatMessage(shared::Message(shared::MessageType::MEDIA, std::move(content)));
+    QUuid senderUserId;
+    if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
+        senderUserId = userId.value();
+
+    sendChatMessage(shared::Message(senderUserId, targetChatId, shared::MessageType::MEDIA, std::move(content)));
 }
 
 void RequestManager::loginUser(QString login, QString passwordHash) const

@@ -784,10 +784,7 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
     }
 
     const shared::Message incomingMessage = shared::Message::deserialize(packet.data().value());
-
-    const QUuid chatId = !incomingMessage.targetChatId().isNull()
-        ? incomingMessage.targetChatId()
-        : packet.receiver();
+    const QUuid chatId = incomingMessage.targetChatId();
 
     if (chatId.isNull())
     {
@@ -813,11 +810,22 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         return;
     }
 
-    const QUuid senderUserId = connection.userId().value();
+    const QUuid authenticatedUserId = connection.userId().value();
+    const QUuid senderUserId = incomingMessage.senderUserId().isNull()
+        ? authenticatedUserId
+        : incomingMessage.senderUserId();
 
-    if (!memberUserIds.contains(senderUserId))
+    if (senderUserId != authenticatedUserId)
     {
-        qWarning() << "User" << senderUserId.toString()
+        qWarning() << "Client" << connection.sessionId().toString()
+                   << "tried to send message as user" << senderUserId.toString();
+        sendError(connection.sessionId(), "Invalid sender user id");
+        return;
+    }
+
+    if (!memberUserIds.contains(authenticatedUserId))
+    {
+        qWarning() << "User" << authenticatedUserId.toString()
                    << "is not a member of chat" << chatId.toString();
         sendError(connection.sessionId(), "You are not a member of this chat");
         return;
@@ -848,9 +856,9 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
             continue;
 
         const auto outboundPacket = shared::PacketFactory::chatMessagePacket(
-            connection.sessionId(),
+            m_uuid,
             it.key(),
-            std::move(normalizedMessage)
+            normalizedMessage
         );
 
         sendPacket(it.key(), outboundPacket);

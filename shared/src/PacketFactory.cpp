@@ -25,15 +25,15 @@ Packet PacketFactory::chatMessagePacket(const QUuid& sender, const QUuid& receiv
     return Packet{PacketType::CHAT_MESSAGE, sender, receiver, message.serialize()};
 }
 
-Packet PacketFactory::textChatMessagePacket(const QUuid& sender, const QUuid& receiver, QString content)
+Packet PacketFactory::textChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content)
 {
-    const Message message(MessageType::TEXT, std::move(content));
+    const Message message(senderUserId, targetChatId, MessageType::TEXT, std::move(content));
     return chatMessagePacket(sender, receiver, message);
 }
 
-Packet PacketFactory::mediaChatMessagePacket(const QUuid& sender, const QUuid& receiver, QString content)
+Packet PacketFactory::mediaChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content)
 {
-    const Message message(MessageType::MEDIA, std::move(content));
+    const Message message(senderUserId, targetChatId, MessageType::MEDIA, std::move(content));
     return chatMessagePacket(sender, receiver, message);
 }
 

@@ -7,7 +7,7 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     : QObject(parent),
       m_id(std::move(id)),
       m_otherMembers(std::move(otherMembers)),
-      m_messageSender(new MessageSender(this))
+      m_messageSender(new MessageSender(m_id))
 {
     m_messageSender->moveToThread(&m_senderThread);
 
@@ -60,6 +60,7 @@ QString Chat::label() const
 
 void Chat::onNewMessage(const shared::Message& messagePacket)
 {
+    if (messagePacket.targetChatId() != m_id) return;
     if (messagePacket.type() != shared::MessageType::TEXT) return;
 
     const QString sender = messagePacket.senderUserId().toString();
