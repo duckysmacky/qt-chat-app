@@ -358,10 +358,10 @@ QList<model::User> Database::getAllUsers() const
 
 QList<model::Chat> Database::searchChats(const QString& queryText) const
 {
-    if (queryText.trimmed().isEmpty())
-        return getAllChats();
-
     QList<model::Chat> chats;
+
+    if (queryText.trimmed().isEmpty())
+        return chats;
 
     if (!m_db.isOpen()) {
         qWarning() << "Database is not connected";
@@ -724,7 +724,7 @@ std::optional<model::Chat> Database::getChatById(const QUuid& id) const
     return chat;
 }
 
-QList<model::Chat> Database::getAllChats() const
+QList<model::Chat> Database::getChatsByUserId(const QUuid& userId) const
 {
     QList<model::Chat> chats;
 
@@ -735,12 +735,17 @@ QList<model::Chat> Database::getAllChats() const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, type, created_by, title, created_at "
-        "FROM chats"
+        "SELECT c.id, c.type, c.created_by, c.title, c.created_at "
+        "FROM chats c "
+        "JOIN chat_members cm ON cm.chat_id = c.id "
+        "WHERE cm.user_id = :user_id "
+        "ORDER BY c.created_at DESC"
         );
 
+    query.bindValue(":user_id", userId.toString(QUuid::WithoutBraces));
+
     if (!query.exec()) {
-        qCritical() << "Failed to get all chats:" << query.lastError().text();
+        qCritical() << "Failed to get chats by user id:" << query.lastError().text();
         return chats;
     }
 
@@ -757,6 +762,7 @@ QList<model::Chat> Database::getAllChats() const
 
     return chats;
 }
+
 QList<QUuid> Database::getUserIdsByChatId(const QUuid& chatId) const
 {
     QList<QUuid> userIds;

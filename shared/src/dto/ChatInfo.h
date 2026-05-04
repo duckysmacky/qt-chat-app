@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QList>
 #include <QString>
 #include <QUuid>
 
@@ -14,12 +15,14 @@ class ChatInfo
 public:
     ChatInfo();
     ChatInfo(QUuid id, QString type, QUuid createdBy, QString title, QDateTime createdAt);
+    ChatInfo(QUuid id, QString type, QUuid createdBy, QString title, QDateTime createdAt, QList<QUuid> memberIds);
 
     const QUuid& id() const { return m_id; }
     const QString& type() const { return m_type; }
     const QUuid& createdBy() const { return m_createdBy; }
     const QString& title() const { return m_title; }
     const QDateTime& createdAt() const { return m_createdAt; }
+    const QList<QUuid>& memberIds() const { return m_memberIds; }
 
     QByteArray serialize() const;
     static std::optional<ChatInfo> deserialize(const QByteArray& bytes);
@@ -30,6 +33,7 @@ private:
     QUuid m_createdBy;
     QString m_title;
     QDateTime m_createdAt;
+    QList<QUuid> m_memberIds;
 };
 
 }

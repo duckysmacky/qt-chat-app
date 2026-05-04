@@ -17,43 +17,41 @@
 #include "model/ChatMember.h"
 #include "model/Chat.h"
 
-
-
 #include "util.h"
-
 
 namespace {
 
-shared::ChatInfo makeChatInfo(const model::Chat& chat)
+shared::ChatInfo makeChatInfo(const Database& db, const model::Chat& chat)
 {
     QUuid id = chat.id();
     QString type = chat.type();
     QUuid createdBy = chat.createdBy();
     QString title = chat.title();
     QDateTime createdAt = chat.createdAt();
+    QList<QUuid> memberIds = db.getUserIdsByChatId(id);
 
     return shared::ChatInfo(
         std::move(id),
         std::move(type),
         std::move(createdBy),
         std::move(title),
-        std::move(createdAt)
-        );
+        std::move(createdAt),
+        std::move(memberIds)
+    );
 }
 
-shared::ChatsInfo makeChatsInfo(const QList<model::Chat>& chats)
+shared::ChatsInfo makeChatsInfo(const Database& db, const QList<model::Chat>& chats)
 {
     QList<shared::ChatInfo> chatInfos;
     chatInfos.reserve(chats.size());
 
     for (const auto& chat : chats)
-        chatInfos.append(makeChatInfo(chat));
+        chatInfos.append(makeChatInfo(db, chat));
 
     return shared::ChatsInfo(std::move(chatInfos));
 }
 
 }
-
 
 /**
  * @brief Returns the singleton Server instance
@@ -241,15 +239,15 @@ void Server::handleGetChats(const QTcpSocket* socket, const shared::Packet& pack
 
     const ClientConnection& connection = connectionOpt->get();
 
-    if (!connection.matchesSocket(socket) || !connection.isAuthorized()) {
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized() || !connection.userId().has_value()) {
         sendError(connection.sessionId(), "Not authorized");
         return;
     }
 
     const Database& db = Database::instance();
-    const QList<model::Chat> chats = db.getAllChats();
+    const QList<model::Chat> chats = db.getChatsByUserId(connection.userId().value());
 
-    sendChatListData(connection.sessionId(), makeChatsInfo(chats));
+    sendChatListData(connection.sessionId(), makeChatsInfo(db, chats));
 }
 
 
@@ -549,7 +547,7 @@ void Server::handleSearchChats(const QTcpSocket* socket, const shared::Packet& p
     const Database& db = Database::instance();
     const QList<model::Chat> chats = db.searchChats(queryText);
 
-    sendChatListData(connection.sessionId(), makeChatsInfo(chats));
+    sendChatListData(connection.sessionId(), makeChatsInfo(db, chats));
 }
 
 void Server::handleCreateChat(const QTcpSocket* socket, const shared::Packet& packet)
@@ -608,7 +606,7 @@ void Server::handleCreateChat(const QTcpSocket* socket, const shared::Packet& pa
     }
 
     sendSuccess(connection.sessionId(), "Chat created successfully");
-    sendChatInfoData(connection.sessionId(), makeChatInfo(chat));
+    sendChatInfoData(connection.sessionId(), makeChatInfo(db, chat));
 }
 
 

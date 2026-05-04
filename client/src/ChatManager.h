@@ -5,6 +5,7 @@
 #include <QUuid>
 
 #include "Chat.h"
+#include "dto/ChatsInfo.h"
 
 class ChatManager : public QObject
 {
@@ -16,9 +17,6 @@ private:
     QHash<QUuid, Chat*> m_chatStorage;
     QList<Chat*> m_chatList;
     Chat* m_selectedChat;
-
-private:
-    explicit ChatManager(QObject* parent = nullptr);
 
 public:
     static ChatManager& instance();
@@ -43,8 +41,11 @@ signals:
 
 private slots:
     void onLoggedInChanged();
+    void onChatListReceived(const shared::ChatsInfo& chats);
 
 private:
+    explicit ChatManager(QObject* parent = nullptr);
+
     void fetchChatList();
     void clearChatList();
 };

@@ -1,13 +1,19 @@
 #include "ChatManager.h"
 
+#include <QSet>
+
+#include <utility>
+
 #include "AccountManager.h"
 #include "Chat.h"
+#include "RequestManager.h"
 
 ChatManager::ChatManager(QObject* parent)
     : QObject(parent),
       m_selectedChat(nullptr)
 {
     connect(&AccountManager::instance(), &AccountManager::loggedInChanged, this, &ChatManager::onLoggedInChanged);
+    connect(&RequestManager::instance(), &RequestManager::chatListReceived, this, &ChatManager::onChatListReceived);
 }
 
 ChatManager& ChatManager::instance()
@@ -74,13 +80,26 @@ void ChatManager::onLoggedInChanged()
     }
 }
 
+void ChatManager::onChatListReceived(const shared::ChatsInfo& chats)
+{
+    clearChatList();
+
+    for (const auto& chat : chats.chats())
+    {
+        QSet<QUuid> memberIds;
+        for (const QUuid& memberId : chat.memberIds())
+            memberIds.insert(memberId);
+
+        if (const auto& currentUserId = AccountManager::instance().userId(); currentUserId.has_value())
+            memberIds.remove(currentUserId.value());
+
+        addChat(new Chat(chat.id(), std::move(memberIds), this));
+    }
+}
+
 void ChatManager::fetchChatList()
 {
-    // TODO
-    for (int i = 0; i < 5; i++)
-    {
-        addChat(new Chat(QUuid::createUuid(), QSet({QUuid::createUuid()}), this));
-    }
+    RequestManager::instance().getCurrentUserChats();
 }
 
 void ChatManager::clearChatList()
