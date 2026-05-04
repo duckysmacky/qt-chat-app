@@ -1,17 +1,15 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QTcpSocket>
 #include <QUuid>
 
-#include "Packet.h"
-#include "Message.h"
-
 /**
  * @class Client
- * @brief TCP client for connecting to the server and exchanging messages.
+ * @brief TCP client for connecting to the server and exchanging bytes.
  * @details
- * Provides connection management, message sending, and receiving.
+ * Provides connection management and raw byte transport.
  * @note Uses singleton pattern; access via instance().
  */
 class Client : public QObject
@@ -21,7 +19,8 @@ class Client : public QObject
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
 
 private:
-    const QUuid m_sessionId;          ///< Unique identifier for this client instance
+    const QUuid m_sessionId;     ///< Unique identifier for this client instance
+    const QUuid m_serverId;      ///< Server session ID
     QTcpSocket m_socket;         ///< TCP socket for server communication
     bool m_connected;            ///< Current connection state
     QString m_statusText;        ///< Human-readable status message
@@ -64,35 +63,13 @@ public:
      */
     Q_INVOKABLE void disconnect();
 
-    /**
-     * @brief Sends a text message to the server.
-     * @param content Message content.
-     */
-    Q_INVOKABLE void sendMessage(QString content);
-
-    /**
-     * @brief Authenticates a user with the server.
-     * @param login Username or email.
-     * @param passwordHash Hashed password.
-     */
-    void login(QString login, QString passwordHash);
-
-    /**
-     * @brief Registers a new user account with the server.
-     * @param username Desired username.
-     * @param name Display name.
-     * @param email Email address.
-     * @param passwordHash Hashed password.
-     */
-    void registerUser(QString username, QString name, QString email, QString passwordHash);
-
-    void logout();
-
     QString resolveUserData(const QUuid& userId) const;
 
     /// @brief Returns the unique identifier of this client.
     /// @return Constant reference to the client UUID.
     const QUuid& sessionId() const { return m_sessionId; }
+
+    const QUuid& serverId() const { return m_serverId; }
 
     /// @brief Checks if the client is currently connected to the server.
     /// @return true if connected, false otherwise.
@@ -102,11 +79,11 @@ public:
     /// @return Constant reference to the status string.
     const QString& statusText() const { return m_statusText; }
 
+    void sendBytes(QByteArray bytes);
+
 signals:
     void connectionStatusChanged();                           ///< Emitted when connection state changes.
     void statusTextChanged();                                 ///< Emitted when status text changes.
-    void messageReceived(const QString& sender, const shared::Message& messagePacket); ///< Emitted when a new message is received.
-    void resultReceived(bool success, const QString& message); ///< Emitted when an operation result is received.
 
 private slots:
     void onConnected();          ///< Handles successful connection to the server.
@@ -115,18 +92,7 @@ private slots:
     void onReadyRead();          ///< Handles incoming data from the server.
 
 private:
-    /**
-     * @brief Sends a packet with only a type (no data).
-     * @param type The packet type to send.
-     */
-    void sendPacket(shared::PacketType type);
-
-    /**
-     * @brief Sends a packet with type and data.
-     * @param type The packet type to send.
-     * @param data The serialized data to attach.
-     */
-    void sendPacket(shared::PacketType type, QByteArray data);
+    void writeBytes(const QByteArray& bytes);
 
     /**
      * @brief Sets the connection state and emits the appropriate signal.

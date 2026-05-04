@@ -1,6 +1,7 @@
 #include "Chat.h"
 
 #include "Client.h"
+#include "RequestManager.h"
 
 Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     : QObject(parent),
@@ -14,7 +15,7 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     connect(this, &Chat::messageSubmitted, m_messageSender, &MessageSender::processMessage);
     connect(m_messageSender, &MessageSender::messageSent, this, &Chat::onMessageSent);
 
-    connect(&Client::instance(), &Client::messageReceived, this, &Chat::onNewMessage);
+    connect(&RequestManager::instance(), &RequestManager::messageReceived, this, &Chat::onNewMessage);
 
     m_senderThread.start();
 }
@@ -57,10 +58,11 @@ QString Chat::label() const
     return label;
 }
 
-void Chat::onNewMessage(const QString& sender, const shared::Message& messagePacket)
+void Chat::onNewMessage(const shared::Message& messagePacket)
 {
     if (messagePacket.type() != shared::MessageType::TEXT) return;
 
+    const QString sender = messagePacket.senderUserId().toString();
     qInfo() << "Incoming text message from" << sender;
 
     ChatMessage* chatMessage = new ChatMessage(false, messagePacket.content(), sender, this);

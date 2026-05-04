@@ -4,6 +4,8 @@ qt_add_executable(client_app
     src/main.cpp
     src/Client.cpp
     src/Client.h
+    src/RequestManager.cpp
+    src/RequestManager.h
     src/Chat.cpp
     src/Chat.h
     src/ChatMessage.cpp

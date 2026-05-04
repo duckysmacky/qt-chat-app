@@ -62,10 +62,9 @@ signals:
 private slots:
     /**
      * @brief Handles a new incoming message from the network.
-     * @param sender The username of the message sender.
      * @param messagePacket The received message packet.
      */
-    void onNewMessage(const QString& sender, const shared::Message& messagePacket);
+    void onNewMessage(const shared::Message& messagePacket);
 
     /**
      * @brief Handles the event when a message is sent.

@@ -4,6 +4,7 @@
 
 #include "Client.h"
 #include "Hasher.h"
+#include "RequestManager.h"
 
 AccountManager& AccountManager::instance()
 {
@@ -20,7 +21,7 @@ AccountManager::AccountManager(QObject* parent)
 {
     Client& client = Client::instance();
     connect(&client, &Client::connectionStatusChanged, this, &AccountManager::onConnectionStatusChanged);
-    connect(&client, &Client::resultReceived, this, &AccountManager::onResultReceived);
+    connect(&RequestManager::instance(), &RequestManager::resultReceived, this, &AccountManager::onResultReceived);
 }
 
 void AccountManager::showLogin()
@@ -47,7 +48,7 @@ void AccountManager::login(const QString& login, const QString& password)
     setStatusText("");
     setBusy(true);
 
-    Client::instance().login(m_pendingUser, Hasher::sha256(password));
+    RequestManager::instance().login(m_pendingUser, Hasher::sha256(password));
 }
 
 void AccountManager::registerAccount(const QString& username, const QString& name, const QString& email, const QString& password)
@@ -60,7 +61,7 @@ void AccountManager::registerAccount(const QString& username, const QString& nam
     setStatusText("");
     setBusy(true);
 
-    Client::instance().registerUser(
+    RequestManager::instance().registerUser(
         username.trimmed(),
         name.trimmed(),
         email.trimmed(),
@@ -77,7 +78,7 @@ void AccountManager::logout()
     setStatusText("");
     setBusy(true);
 
-    Client::instance().logout();
+    RequestManager::instance().logout();
 }
 
 bool AccountManager::canSendMessages() const
@@ -95,8 +96,11 @@ void AccountManager::onConnectionStatusChanged()
     resetAuthorizationState();
 }
 
-void AccountManager::onResultReceived(const bool success, const QString& message)
+void AccountManager::onResultReceived(const shared::Result& result)
 {
+    const bool success = result.type() == shared::ResultType::SUCCESS;
+    const QString& message = result.text();
+
     switch (m_pendingAction)
     {
     case PendingAction::Login:

@@ -1,6 +1,8 @@
 #include "MessageSender.h"
 
 #include "Client.h"
+#include "Message.h"
+#include "RequestManager.h"
 
 MessageSender::MessageSender(QObject* parent)
     : QObject(parent)
@@ -10,11 +12,11 @@ void MessageSender::processMessage(const ChatMessage* message) const
 {
     qDebug() << "Processing message:" << message->content();
 
-    Client& client = Client::instance();
+    while (!Client::instance().connected()) {}
 
-    while (!client.connected()) {}
-
-    client.sendMessage(message->content());
+    RequestManager::instance().sendMessage(
+        shared::Message(shared::MessageType::TEXT, message->content())
+    );
 
     emit messageSent(message->id());
 }

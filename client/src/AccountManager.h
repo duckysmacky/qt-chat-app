@@ -5,6 +5,8 @@
 
 #include <optional>
 
+#include "Result.h"
+
 /**
  * @class AccountManager
  * @brief Manages user account operations including login, registration, and logout.
@@ -132,7 +134,7 @@ signals:
 
 private slots:
     void onConnectionStatusChanged();  ///< Handles changes in server connection status.
-    void onResultReceived(bool success, const QString& message);  ///< Handles result from async operations.
+    void onResultReceived(const shared::Result& result);  ///< Handles result from async operations.
 
 private:
     /**
