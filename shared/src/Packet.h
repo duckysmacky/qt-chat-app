@@ -5,8 +5,6 @@
 
 #include <optional>
 
-
-
 namespace shared {
 
 /**
@@ -15,32 +13,42 @@ namespace shared {
  */
 enum class PacketType
 {
-    /// Invalid packet
+    /// Invalid or malformed packet.
     INVALID,
-    /// Text message
-    MESSAGE,
-    /// Special command for server
-    COMMAND,
-    /// Client connection handshake
-    CONNECT,
-    // register
-    REGISTER,
-    // login
-    LOGIN,
-    // yspeh
-    RESULT,
-    // vyshel
-    LOGOUT,
-    PROFILE_REQUEST,
-    PROFILE_UPDATE,
-    PROFILE_DATA,
-    USER_INFO_REQUEST,
-    USER_INFO_DATA,
-    CHATS_REQUEST,
-    CHATS_DATA,
-    CHAT_SEARCH_REQUEST,
-    CHAT_CREATE_REQUEST,
-    CHAT_DATA
+    /// Success or error response.
+    OPERATION_RESULT,
+    /// Chat message payload.
+    CHAT_MESSAGE,
+    /// Command sent to the server.
+    SERVER_COMMAND,
+    /// Client connection handshake.
+    CONNECT_CLIENT,
+    /// Register a new user account.
+    REGISTER_USER,
+    /// Log in an existing user.
+    LOGIN_USER,
+    /// Log out the current user.
+    LOGOUT_USER,
+    /// Request the authorized user's profile.
+    GET_USER_PROFILE,
+    /// Update the authorized user's profile.
+    UPDATE_USER_PROFILE,
+    /// Authorized user's profile data.
+    USER_PROFILE_DATA,
+    /// Request public information for a user.
+    GET_PUBLIC_USER_INFO,
+    /// Public user information data.
+    PUBLIC_USER_INFO_DATA,
+    /// Request available chats.
+    GET_CHATS,
+    /// Chat list data.
+    CHAT_LIST_DATA,
+    /// Search chats by query.
+    SEARCH_CHATS,
+    /// Create a new chat.
+    CREATE_CHAT,
+    /// Single chat information data.
+    CHAT_INFO_DATA
 };
 
 /**

@@ -31,7 +31,7 @@ void RequestManager::processPacket(const shared::Packet& packet)
 {
     switch (packet.type())
     {
-    case shared::PacketType::MESSAGE:
+    case shared::PacketType::CHAT_MESSAGE:
         {
             if (const auto& data = packet.data())
             {
@@ -40,12 +40,12 @@ void RequestManager::processPacket(const shared::Packet& packet)
             }
         }
         break;
-    case shared::PacketType::RESULT:
+    case shared::PacketType::OPERATION_RESULT:
         {
             if (!packet.data().has_value()) break;
 
-            const shared::Result result = shared::Result::deserialize(packet.data().value());
-            const bool success = result.type() == shared::ResultType::SUCCESS;
+            const shared::OperationResult result = shared::OperationResult::deserialize(packet.data().value());
+            const bool success = result.type() == shared::OperationResultType::SUCCESS;
 
             if (success)
                 qInfo() << "Server result:" << result.text();
@@ -63,28 +63,28 @@ void RequestManager::processPacket(const shared::Packet& packet)
     }
 }
 
-void RequestManager::sendConnect() const
+void RequestManager::connectClient() const
 {
     const Client& client = Client::instance();
-    sendPacket(shared::PacketFactory::connectPacket(client.sessionId(), client.serverId()));
+    sendPacket(shared::PacketFactory::connectClientPacket(client.sessionId(), client.serverId()));
 }
 
-void RequestManager::sendMessage(shared::Message message) const
+void RequestManager::sendChatMessage(shared::Message message) const
 {
     const Client& client = Client::instance();
-    sendPacket(shared::PacketFactory::messagePacket(client.sessionId(), client.serverId(), std::move(message)));
+    sendPacket(shared::PacketFactory::chatMessagePacket(client.sessionId(), client.serverId(), std::move(message)));
 }
 
-void RequestManager::sendTextMessage(QString content) const
+void RequestManager::sendTextChatMessage(QString content) const
 {
-    sendMessage(shared::Message(shared::MessageType::TEXT, std::move(content)));
+    sendChatMessage(shared::Message(shared::MessageType::TEXT, std::move(content)));
 }
 
-void RequestManager::login(QString login, QString passwordHash) const
+void RequestManager::loginUser(QString login, QString passwordHash) const
 {
     const Client& client = Client::instance();
     const shared::LoginInfo info(std::move(login), std::move(passwordHash));
-    sendPacket(shared::PacketFactory::loginPacket(client.sessionId(), client.serverId(), info));
+    sendPacket(shared::PacketFactory::loginUserPacket(client.sessionId(), client.serverId(), info));
 }
 
 void RequestManager::registerUser(QString username, QString name, QString email, QString passwordHash) const
@@ -96,13 +96,13 @@ void RequestManager::registerUser(QString username, QString name, QString email,
         std::move(email),
         std::move(passwordHash)
     );
-    sendPacket(shared::PacketFactory::registerPacket(client.sessionId(), client.serverId(), info));
+    sendPacket(shared::PacketFactory::registerUserPacket(client.sessionId(), client.serverId(), info));
 }
 
-void RequestManager::logout() const
+void RequestManager::logoutUser() const
 {
     const Client& client = Client::instance();
-    sendPacket(shared::Packet(shared::PacketType::LOGOUT, client.sessionId(), client.serverId()));
+    sendPacket(shared::Packet(shared::PacketType::LOGOUT_USER, client.sessionId(), client.serverId()));
 }
 
 void RequestManager::sendPacket(shared::Packet packet) const

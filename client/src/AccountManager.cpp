@@ -48,7 +48,7 @@ void AccountManager::login(const QString& login, const QString& password)
     setStatusText("");
     setBusy(true);
 
-    RequestManager::instance().login(m_pendingUser, Hasher::sha256(password));
+    RequestManager::instance().loginUser(m_pendingUser, Hasher::sha256(password));
 }
 
 void AccountManager::registerAccount(const QString& username, const QString& name, const QString& email, const QString& password)
@@ -78,7 +78,7 @@ void AccountManager::logout()
     setStatusText("");
     setBusy(true);
 
-    RequestManager::instance().logout();
+    RequestManager::instance().logoutUser();
 }
 
 bool AccountManager::canSendMessages() const
@@ -96,9 +96,9 @@ void AccountManager::onConnectionStatusChanged()
     resetAuthorizationState();
 }
 
-void AccountManager::onResultReceived(const shared::Result& result)
+void AccountManager::onResultReceived(const shared::OperationResult& result)
 {
-    const bool success = result.type() == shared::ResultType::SUCCESS;
+    const bool success = result.type() == shared::OperationResultType::SUCCESS;
     const QString& message = result.text();
 
     switch (m_pendingAction)

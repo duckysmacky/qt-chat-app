@@ -5,7 +5,7 @@
 
 #include <optional>
 
-#include "Result.h"
+#include "OperationResult.h"
 
 /**
  * @class AccountManager
@@ -134,7 +134,7 @@ signals:
 
 private slots:
     void onConnectionStatusChanged();  ///< Handles changes in server connection status.
-    void onResultReceived(const shared::Result& result);  ///< Handles result from async operations.
+    void onResultReceived(const shared::OperationResult& result);  ///< Handles result from async operations.
 
 private:
     /**

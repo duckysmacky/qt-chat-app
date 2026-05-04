@@ -6,7 +6,7 @@
 
 #include "Message.h"
 #include "Packet.h"
-#include "Result.h"
+#include "OperationResult.h"
 
 /**
  * @class RequestManager
@@ -27,16 +27,16 @@ public:
 
     void processBytes(const QByteArray& bytes);
 
-    void sendConnect() const;
-    void sendMessage(shared::Message message) const;
-    void sendTextMessage(QString content) const;
-    void login(QString login, QString passwordHash) const;
+    void connectClient() const;
+    void sendChatMessage(shared::Message message) const;
+    void sendTextChatMessage(QString content) const;
+    void loginUser(QString login, QString passwordHash) const;
     void registerUser(QString username, QString name, QString email, QString passwordHash) const;
-    void logout() const;
+    void logoutUser() const;
 
 signals:
     void messageReceived(const shared::Message& message);
-    void resultReceived(const shared::Result& result);
+    void resultReceived(const shared::OperationResult& result);
 
 private:
     explicit RequestManager(QObject* parent = nullptr);

@@ -128,46 +128,58 @@ private:
     /// @return An optional reference to the const ClientConnection if found.
     std::optional<std::reference_wrapper<const ClientConnection>> findConnection(const QTcpSocket* clientSocket) const;
 
-    /// @brief Handles a CONNECT packet from a client.
+    /// @brief Handles a CONNECT_CLIENT packet.
     /// @param socket The client socket.
     /// @param packet The received packet.
-    void handleConnect(QTcpSocket* socket, const shared::Packet& packet);
+    void handleConnectClient(QTcpSocket* socket, const shared::Packet& packet);
 
     /// @brief Handles a chat message packet from an authenticated client.
     /// @param connection The client connection.
     /// @param packet The received packet.
     void handleChatMessage(const ClientConnection& connection, const shared::Packet& packet) const;
 
-    /// @brief Handles a REGISTER packet for new user registration.
+    /// @brief Handles a REGISTER_USER packet.
     /// @param socket The client socket.
     /// @param packet The received packet.
-    void handleRegister(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleRegisterUser(const QTcpSocket* socket, const shared::Packet& packet);
 
-    /// @brief Handles a LOGIN packet for user authentication.
+    /// @brief Handles a LOGIN_USER packet.
     /// @param socket The client socket.
     /// @param packet The received packet.
-    void handleLogin(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleLoginUser(const QTcpSocket* socket, const shared::Packet& packet);
 
     /// @brief Handles an authorized packet (requires authentication).
     /// @param packet The received packet.
     void handleAuthorizedPacket(const shared::Packet& packet) const;
 
-    /// @brief Handles a LOGOUT packet to disconnect a client.
+    /// @brief Handles a LOGOUT_USER packet.
     /// @param socket The client socket.
     /// @param packet The received packet.
-    void handleLogout(const QTcpSocket* socket, const shared::Packet& packet);
-    void handleProfileRequest(const QTcpSocket* socket, const shared::Packet& packet);
-    void handleProfileUpdate(const QTcpSocket* socket, const shared::Packet& packet);
-    void handleUserInfoRequest(const QTcpSocket* socket, const shared::Packet& packet);
-    void sendProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const;
-    void sendUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
+    void handleLogoutUser(const QTcpSocket* socket, const shared::Packet& packet);
 
-    void handleChatsRequest(const QTcpSocket* socket, const shared::Packet& packet);
-    void handleChatSearchRequest(const QTcpSocket* socket, const shared::Packet& packet);
-    void handleChatCreateRequest(const QTcpSocket* socket, const shared::Packet& packet);
+    /// @brief Handles a GET_USER_PROFILE packet.
+    void handleGetUserProfile(const QTcpSocket* socket, const shared::Packet& packet);
 
-    void sendChatsData(const QUuid& receiverSessionId, const shared::ChatsInfo& info) const;
-    void sendChatData(const QUuid& receiverSessionId, const shared::ChatInfo& info) const;
+    /// @brief Handles an UPDATE_USER_PROFILE packet.
+    void handleUpdateUserProfile(const QTcpSocket* socket, const shared::Packet& packet);
+
+    /// @brief Handles a GET_PUBLIC_USER_INFO packet.
+    void handleGetPublicUserInfo(const QTcpSocket* socket, const shared::Packet& packet);
+
+    void sendUserProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const;
+    void sendPublicUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
+
+    /// @brief Handles a GET_CHATS packet.
+    void handleGetChats(const QTcpSocket* socket, const shared::Packet& packet);
+
+    /// @brief Handles a SEARCH_CHATS packet.
+    void handleSearchChats(const QTcpSocket* socket, const shared::Packet& packet);
+
+    /// @brief Handles a CREATE_CHAT packet.
+    void handleCreateChat(const QTcpSocket* socket, const shared::Packet& packet);
+
+    void sendChatListData(const QUuid& receiverSessionId, const shared::ChatsInfo& info) const;
+    void sendChatInfoData(const QUuid& receiverSessionId, const shared::ChatInfo& info) const;
 
 
 };

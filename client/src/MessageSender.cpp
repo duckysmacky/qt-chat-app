@@ -14,7 +14,7 @@ void MessageSender::processMessage(const ChatMessage* message) const
 
     while (!Client::instance().connected()) {}
 
-    RequestManager::instance().sendMessage(
+    RequestManager::instance().sendChatMessage(
         shared::Message(shared::MessageType::TEXT, message->content())
     );
 

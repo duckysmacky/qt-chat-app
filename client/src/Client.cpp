@@ -56,7 +56,7 @@ QString Client::resolveUserData(const QUuid &userId) const
 
 void Client::onConnected()
 {
-    RequestManager::instance().sendConnect();
+    RequestManager::instance().connectClient();
 
     setStatusText("Connected");
     setConnectionStatus(true);
