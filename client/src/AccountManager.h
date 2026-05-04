@@ -134,7 +134,7 @@ signals:
 
 private slots:
     void onConnectionStatusChanged();  ///< Handles changes in server connection status.
-    void onResultReceived(const shared::OperationResult& result);  ///< Handles result from async operations.
+    void onOperationResultReceived(const shared::OperationResult& result);  ///< Handles result from async operations.
 
 private:
     /**

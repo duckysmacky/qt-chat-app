@@ -21,7 +21,7 @@ AccountManager::AccountManager(QObject* parent)
 {
     Client& client = Client::instance();
     connect(&client, &Client::connectionStatusChanged, this, &AccountManager::onConnectionStatusChanged);
-    connect(&RequestManager::instance(), &RequestManager::resultReceived, this, &AccountManager::onResultReceived);
+    connect(&RequestManager::instance(), &RequestManager::operationResultReceived, this, &AccountManager::onOperationResultReceived);
 }
 
 void AccountManager::showLogin()
@@ -78,7 +78,7 @@ void AccountManager::logout()
     setStatusText("");
     setBusy(true);
 
-    RequestManager::instance().logoutUser();
+    RequestManager::instance().logoutCurrentUser();
 }
 
 bool AccountManager::canSendMessages() const
@@ -96,7 +96,7 @@ void AccountManager::onConnectionStatusChanged()
     resetAuthorizationState();
 }
 
-void AccountManager::onResultReceived(const shared::OperationResult& result)
+void AccountManager::onOperationResultReceived(const shared::OperationResult& result)
 {
     const bool success = result.type() == shared::OperationResultType::SUCCESS;
     const QString& message = result.text();

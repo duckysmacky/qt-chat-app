@@ -15,7 +15,7 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     connect(this, &Chat::messageSubmitted, m_messageSender, &MessageSender::processMessage);
     connect(m_messageSender, &MessageSender::messageSent, this, &Chat::onMessageSent);
 
-    connect(&RequestManager::instance(), &RequestManager::messageReceived, this, &Chat::onNewMessage);
+    connect(&RequestManager::instance(), &RequestManager::chatMessageReceived, this, &Chat::onNewMessage);
 
     m_senderThread.start();
 }

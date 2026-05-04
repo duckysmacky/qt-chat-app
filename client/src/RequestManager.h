@@ -3,10 +3,17 @@
 #include <QByteArray>
 #include <QObject>
 #include <QString>
+#include <QUuid>
 
 #include "Message.h"
-#include "Packet.h"
 #include "OperationResult.h"
+#include "Packet.h"
+#include "dto/ChatInfo.h"
+#include "dto/ChatsInfo.h"
+#include "dto/CreateChatInfo.h"
+#include "dto/ProfileInfo.h"
+#include "dto/ProfileUpdateInfo.h"
+#include "dto/PublicUserInfo.h"
 
 /**
  * @class RequestManager
@@ -28,15 +35,31 @@ public:
     void processBytes(const QByteArray& bytes);
 
     void connectClient() const;
+    void sendServerCommand() const;
+    void sendServerCommand(QByteArray data) const;
     void sendChatMessage(shared::Message message) const;
     void sendTextChatMessage(QString content) const;
+    void sendMediaChatMessage(QString content) const;
     void loginUser(QString login, QString passwordHash) const;
     void registerUser(QString username, QString name, QString email, QString passwordHash) const;
-    void logoutUser() const;
+    void logoutCurrentUser() const;
+    void getCurrentUserProfile() const;
+    void updateCurrentUserProfile(shared::ProfileUpdateInfo info) const;
+    void getPublicUserInfo(const QUuid& userId) const;
+    void getCurrentUserChats() const;
+    void searchChats(QString query) const;
+    void createChat(shared::ChatCreateInfo info) const;
+    void createChat(QString type, QString title) const;
 
 signals:
-    void messageReceived(const shared::Message& message);
-    void resultReceived(const shared::OperationResult& result);
+    void chatMessageReceived(const shared::Message& message);
+    void operationResultReceived(const shared::OperationResult& result);
+    void currentUserProfileReceived(const shared::ProfileInfo& profile);
+    void publicUserInfoReceived(const shared::PublicUserInfo& userInfo);
+    void chatListReceived(const shared::ChatsInfo& chats);
+    void chatInfoReceived(const shared::ChatInfo& chat);
+    void invalidPacketReceived(const shared::Packet& packet);
+    void unsupportedPacketReceived(const shared::Packet& packet);
 
 private:
     explicit RequestManager(QObject* parent = nullptr);

@@ -31,15 +31,20 @@ void RequestManager::processPacket(const shared::Packet& packet)
 {
     switch (packet.type())
     {
+    case shared::PacketType::INVALID:
+        emit invalidPacketReceived(packet);
+        break;
+
     case shared::PacketType::CHAT_MESSAGE:
         {
             if (const auto& data = packet.data())
             {
                 const auto message = shared::Message::deserialize(data.value());
-                emit messageReceived(message);
+                emit chatMessageReceived(message);
             }
         }
         break;
+
     case shared::PacketType::OPERATION_RESULT:
         {
             if (!packet.data().has_value()) break;
@@ -52,13 +57,81 @@ void RequestManager::processPacket(const shared::Packet& packet)
             else
                 qWarning() << "Server result:" << result.text();
 
-            emit resultReceived(result);
+            emit operationResultReceived(result);
         }
         break;
-    default:
+
+    case shared::PacketType::USER_PROFILE_DATA:
         {
-            qWarning() << "Unknown or unsupported packet received";
+            if (!packet.data().has_value()) {
+                qWarning() << "User profile data payload is missing";
+                break;
+            }
+
+            const auto profile = shared::ProfileInfo::deserialize(packet.data().value());
+            if (!profile.has_value()) {
+                qWarning() << "Invalid user profile data payload";
+                break;
+            }
+
+            emit currentUserProfileReceived(profile.value());
         }
+        break;
+
+    case shared::PacketType::PUBLIC_USER_INFO_DATA:
+        {
+            if (!packet.data().has_value()) {
+                qWarning() << "Public user info data payload is missing";
+                break;
+            }
+
+            const auto userInfo = shared::PublicUserInfo::deserialize(packet.data().value());
+            if (!userInfo.has_value()) {
+                qWarning() << "Invalid public user info data payload";
+                break;
+            }
+
+            emit publicUserInfoReceived(userInfo.value());
+        }
+        break;
+
+    case shared::PacketType::CHAT_LIST_DATA:
+        {
+            if (!packet.data().has_value()) {
+                qWarning() << "Chat list data payload is missing";
+                break;
+            }
+
+            const auto chats = shared::ChatsInfo::deserialize(packet.data().value());
+            if (!chats.has_value()) {
+                qWarning() << "Invalid chat list data payload";
+                break;
+            }
+
+            emit chatListReceived(chats.value());
+        }
+        break;
+
+    case shared::PacketType::CHAT_INFO_DATA:
+        {
+            if (!packet.data().has_value()) {
+                qWarning() << "Chat info data payload is missing";
+                break;
+            }
+
+            const auto chat = shared::ChatInfo::deserialize(packet.data().value());
+            if (!chat.has_value()) {
+                qWarning() << "Invalid chat info data payload";
+                break;
+            }
+
+            emit chatInfoReceived(chat.value());
+        }
+        break;
+
+    default:
+        qWarning() << "Unknown or unsupported packet received";
+        emit unsupportedPacketReceived(packet);
         break;
     }
 }
@@ -67,6 +140,18 @@ void RequestManager::connectClient() const
 {
     const Client& client = Client::instance();
     sendPacket(shared::PacketFactory::connectClientPacket(client.sessionId(), client.serverId()));
+}
+
+void RequestManager::sendServerCommand() const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::Packet(shared::PacketType::SERVER_COMMAND, client.sessionId(), client.serverId()));
+}
+
+void RequestManager::sendServerCommand(QByteArray data) const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::Packet(shared::PacketType::SERVER_COMMAND, client.sessionId(), client.serverId(), std::move(data)));
 }
 
 void RequestManager::sendChatMessage(shared::Message message) const
@@ -78,6 +163,11 @@ void RequestManager::sendChatMessage(shared::Message message) const
 void RequestManager::sendTextChatMessage(QString content) const
 {
     sendChatMessage(shared::Message(shared::MessageType::TEXT, std::move(content)));
+}
+
+void RequestManager::sendMediaChatMessage(QString content) const
+{
+    sendChatMessage(shared::Message(shared::MessageType::MEDIA, std::move(content)));
 }
 
 void RequestManager::loginUser(QString login, QString passwordHash) const
@@ -99,10 +189,51 @@ void RequestManager::registerUser(QString username, QString name, QString email,
     sendPacket(shared::PacketFactory::registerUserPacket(client.sessionId(), client.serverId(), info));
 }
 
-void RequestManager::logoutUser() const
+void RequestManager::logoutCurrentUser() const
 {
     const Client& client = Client::instance();
     sendPacket(shared::Packet(shared::PacketType::LOGOUT_USER, client.sessionId(), client.serverId()));
+}
+
+void RequestManager::getCurrentUserProfile() const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::PacketFactory::getUserProfilePacket(client.sessionId(), client.serverId()));
+}
+
+void RequestManager::updateCurrentUserProfile(shared::ProfileUpdateInfo info) const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::PacketFactory::updateUserProfilePacket(client.sessionId(), client.serverId(), std::move(info)));
+}
+
+void RequestManager::getPublicUserInfo(const QUuid& userId) const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::PacketFactory::getPublicUserInfoPacket(client.sessionId(), client.serverId(), userId));
+}
+
+void RequestManager::getCurrentUserChats() const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::PacketFactory::getChatsPacket(client.sessionId(), client.serverId()));
+}
+
+void RequestManager::searchChats(QString query) const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::PacketFactory::searchChatsPacket(client.sessionId(), client.serverId(), std::move(query)));
+}
+
+void RequestManager::createChat(shared::ChatCreateInfo info) const
+{
+    const Client& client = Client::instance();
+    sendPacket(shared::PacketFactory::createChatPacket(client.sessionId(), client.serverId(), std::move(info)));
+}
+
+void RequestManager::createChat(QString type, QString title) const
+{
+    createChat(shared::ChatCreateInfo(std::move(type), std::move(title)));
 }
 
 void RequestManager::sendPacket(shared::Packet packet) const
