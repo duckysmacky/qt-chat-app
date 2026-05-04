@@ -32,4 +32,5 @@ target_include_directories(shared PUBLIC
 target_link_libraries(shared PUBLIC
     Qt6::Core
     Qt6::Network
+    Qt-Secret
 )

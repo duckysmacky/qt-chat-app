@@ -11,6 +11,19 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
+include(FetchContent)
+
+FetchContent_Declare(
+    qt_secret
+    GIT_REPOSITORY https://github.com/quasarapp/qt-secret.git
+    GIT_TAG main
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+    GIT_SUBMODULES_RECURSE TRUE
+)
+
+FetchContent_MakeAvailable(qt_secret)
+
 option(BUILD_CLIENT "Build the client app" ON)
 option(BUILD_SERVER "Build the server server" ON)
 
