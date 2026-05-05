@@ -156,9 +156,10 @@ void Server::sendPublicUserInfoData(const QUuid& receiverSessionId, const shared
  */
 void Server::onNewConnection()
 {
-	const QTcpSocket* socket = m_server->nextPendingConnection();
+	QTcpSocket* socket = m_server->nextPendingConnection();
 	if (!socket) return;
 
+    m_socketBuffers.insert(socket, {});
 	connect(socket, &QTcpSocket::readyRead, this, &Server::onServerRead);
 	connect(socket, &QTcpSocket::disconnected, this, &Server::onClientDisconnected);
 }
@@ -171,7 +172,9 @@ void Server::onServerRead()
     while (socket->bytesAvailable() > 0)
     {
         const QByteArray bytes = socket->readAll();
-        const QList<shared::Packet> packets = shared::util::parse(bytes);
+        QByteArray& buffer = m_socketBuffers[socket];
+        buffer.append(bytes);
+        const QList<shared::Packet> packets = shared::util::parseStream(buffer);
 
         for (const auto& packet : packets)
         {
@@ -259,6 +262,8 @@ void Server::onClientDisconnected()
     auto* clientSocket = qobject_cast<QTcpSocket*>(sender());
     if (!clientSocket)
         return;
+
+    m_socketBuffers.remove(clientSocket);
 
     for (auto it = m_clients.begin(); it != m_clients.end(); ++it)
     {
@@ -864,4 +869,3 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         sendPacket(it.key(), outboundPacket);
     }
 }
-

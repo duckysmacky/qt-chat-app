@@ -8,11 +8,15 @@
 namespace shared::util {
 
 constexpr auto DELIMITER = '\xF0';
+constexpr auto ESCAPE = '\xF1';
+constexpr auto ESCAPED_DELIMITER = '\x00';
+constexpr auto ESCAPED_ESCAPE = '\x01';
 
 /**
  * @brief Parses raw byte data into a list of Message objects.
  */
 QList<Packet> parse(const QByteArray& bytes);
+QList<Packet> parseStream(QByteArray& bytes);
 
 /**
  * Encapsulates a packet into a proper payload. Serializes it

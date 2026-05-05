@@ -23,7 +23,8 @@ RequestManager::RequestManager(QObject* parent)
 
 void RequestManager::processBytes(const QByteArray& bytes)
 {
-    const QList<shared::Packet> packets = shared::util::parse(bytes);
+    m_incomingBuffer.append(bytes);
+    const QList<shared::Packet> packets = shared::util::parseStream(m_incomingBuffer);
     for (const auto& packet : packets)
         processPacket(packet);
 }

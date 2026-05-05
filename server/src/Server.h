@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QByteArray>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QString>
@@ -27,6 +28,7 @@ private:
     const QUuid m_uuid; ///< Server UUID
     QTcpServer* m_server; ///< TCP server
     QHash<QUuid, ClientConnection> m_clients; ///< Connected clients
+    QHash<QTcpSocket*, QByteArray> m_socketBuffers;
     bool m_isRunning; ///< Server running state (true/false)
 
 public:

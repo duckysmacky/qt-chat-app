@@ -24,6 +24,9 @@ class RequestManager : public QObject
 {
     Q_OBJECT
 
+private:
+    QByteArray m_incomingBuffer;
+
 public:
     static RequestManager& instance();
 
