@@ -73,7 +73,7 @@ Window {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 16
+            spacing: 8
 
             ChatSelectionPanel {
                 Layout.preferredWidth: 240

@@ -13,7 +13,7 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        anchors.margins: 18
+        anchors.margins: 8
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 120
