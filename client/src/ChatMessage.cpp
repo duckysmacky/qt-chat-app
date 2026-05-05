@@ -2,35 +2,42 @@
 
 #include <QTime>
 
+#include <utility>
+
+#include "AccountManager.h"
+#include "UserResolver.h"
+
 ChatMessage::ChatMessage(
     const QUuid& id,
     const bool isOwn,
     QString content,
-    QString sender,
+    const QUuid& senderUserId,
     QObject* parent
 )
   : QObject(parent),
     m_id(id),
     m_isOwn(isOwn),
     m_content(std::move(content)),
-    m_sender(std::move(sender)),
+    m_senderUserId(senderUserId),
     m_status(Status::Loading)
 {
+    resolveSender();
 }
 
 ChatMessage::ChatMessage(
     const bool isOwn,
     QString content,
-    QString sender,
+    const QUuid& senderUserId,
     QObject* parent
 )
   : QObject(parent),
     m_id(QUuid::createUuid()),
     m_isOwn(isOwn),
     m_content(std::move(content)),
-    m_sender(std::move(sender)),
+    m_senderUserId(senderUserId),
     m_status(Status::Loading)
 {
+    resolveSender();
 }
 
 void ChatMessage::markAsSent()
@@ -112,6 +119,46 @@ void ChatMessage::setStatus(const Status status)
 
     m_status = status;
     emit statusChanged();
+}
+
+void ChatMessage::resolveSender()
+{
+    if (m_isOwn) {
+        setSender(AccountManager::instance().profileUsername());
+        return;
+    }
+
+    if (m_senderUserId.isNull()) {
+        setSender("Unknown");
+        return;
+    }
+
+    setSender("Loading...");
+
+    if (const auto userInfo = UserResolver::instance().resolveUser(m_senderUserId); userInfo.has_value()) {
+        setSender(userInfo->username());
+        return;
+    }
+
+    connect(
+        &UserResolver::instance(),
+        &UserResolver::userResolved,
+        this,
+        [this](const QUuid& userId, const shared::PublicUserInfo& userInfo) {
+            if (userId != m_senderUserId)
+                return;
+
+            setSender(userInfo.username());
+        }
+    );
+}
+
+void ChatMessage::setSender(QString sender)
+{
+    if (m_sender == sender) return;
+
+    m_sender = std::move(sender);
+    emit senderChanged();
 }
 
 QString ChatMessage::formatTime(const QTime& time) const

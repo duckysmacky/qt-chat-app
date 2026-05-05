@@ -38,10 +38,9 @@ public:
 signals:
     void userResolved(const QUuid& userId, const shared::PublicUserInfo& userInfo);
 
-private slots:
-    void onPublicUserInfoReceived(const shared::PublicUserInfo& userInfo);
-    void onConnectionStatusChanged();
-
 private:
     explicit UserResolver(QObject* parent = nullptr);
+
+    void onPublicUserInfoReceived(const shared::PublicUserInfo& userInfo);
+    void onConnectionStatusChanged();
 };

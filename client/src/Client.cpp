@@ -47,12 +47,6 @@ void Client::disconnect()
     m_socket.disconnectFromHost();
 }
 
-QString Client::resolveUserData(const QUuid &userId) const
-{
-    // TODO
-    return userId.toString();
-}
-
 void Client::onConnected()
 {
     RequestManager::instance().connectClient();

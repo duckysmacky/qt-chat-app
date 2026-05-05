@@ -63,8 +63,6 @@ public:
      */
     Q_INVOKABLE void disconnect();
 
-    QString resolveUserData(const QUuid& userId) const;
-
     void updateServerId(const QUuid& serverId);
 
     /// @brief Returns the unique identifier of this client.

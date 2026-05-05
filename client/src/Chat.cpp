@@ -1,7 +1,10 @@
 #include "Chat.h"
 
-#include "Client.h"
+#include <utility>
+
+#include "AccountManager.h"
 #include "RequestManager.h"
+#include "UserResolver.h"
 
 Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     : QObject(parent),
@@ -16,6 +19,13 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     connect(m_messageSender, &MessageSender::messageSent, this, &Chat::onMessageSent);
 
     connect(&RequestManager::instance(), &RequestManager::chatMessageReceived, this, &Chat::onNewMessage);
+    connect(&UserResolver::instance(), &UserResolver::userResolved, this, [this](const QUuid& userId, const shared::PublicUserInfo&) {
+        if (m_otherMembers.contains(userId))
+            emit labelChanged();
+    });
+
+    for (const QUuid& userId : m_otherMembers)
+        UserResolver::instance().resolveUser(userId);
 
     m_senderThread.start();
 }
@@ -30,10 +40,9 @@ void Chat::submitMessage(const QString& text)
 {
     if (text.trimmed().isEmpty()) return;
 
-    const Client& client = Client::instance();
-    const QString sender = client.sessionId().toString();
+    const QUuid senderUserId = AccountManager::instance().userId().value_or(QUuid());
 
-    const auto message = new ChatMessage(true, text, sender, this);
+    const auto message = new ChatMessage(true, text, senderUserId, this);
     addChatMessage(message);
 
     emit messageSubmitted(message);
@@ -45,14 +54,18 @@ QString Chat::label() const
 
     for (const QUuid& userId : m_otherMembers)
     {
-        // TODO
-        QString userData = Client::instance().resolveUserData(userId);
+        QString username = "Unknown";
+
+        if (!userId.isNull()) {
+            const auto userInfo = UserResolver::instance().resolveUser(userId);
+            username = userInfo.has_value() ? userInfo->username() : "Loading...";
+        }
 
         if (!label.isEmpty()) {
             label.append(", ");
         }
 
-        label.append(userData);
+        label.append(username);
     }
 
     return label;
@@ -63,10 +76,10 @@ void Chat::onNewMessage(const shared::Message& messagePacket)
     if (messagePacket.targetChatId() != m_id) return;
     if (messagePacket.type() != shared::MessageType::TEXT) return;
 
-    const QString sender = messagePacket.senderUserId().toString();
-    qInfo() << "Incoming text message from" << sender;
+    const QUuid& senderUserId = messagePacket.senderUserId();
+    qInfo() << "Incoming text message from" << senderUserId;
 
-    ChatMessage* chatMessage = new ChatMessage(false, messagePacket.content(), sender, this);
+    ChatMessage* chatMessage = new ChatMessage(false, messagePacket.content(), senderUserId, this);
     addChatMessage(chatMessage);
 
     onMessageReceived(chatMessage->id());
