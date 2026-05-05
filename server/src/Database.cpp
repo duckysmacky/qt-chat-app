@@ -370,9 +370,9 @@ QList<model::Chat> Database::searchChats(const QString& queryText) const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, type, created_by, title, created_at "
+        "SELECT id, type, created_by, created_at "
         "FROM chats "
-        "WHERE COALESCE(title, '') ILIKE :query "
+        "WHERE type ILIKE :query "
         "ORDER BY created_at DESC"
         );
 
@@ -386,10 +386,9 @@ QList<model::Chat> Database::searchChats(const QString& queryText) const
     while (query.next()) {
         model::Chat chat;
         chat.setId(QUuid(query.value(0).toString()));
-        chat.setType(query.value(1).toString());
+        chat.setType(model::chatTypeFromString(query.value(1).toString()));
         chat.setCreatedBy(QUuid(query.value(2).toString()));
-        chat.setTitle(query.value(3).toString());
-        chat.setCreatedAt(query.value(4).toDateTime());
+        chat.setCreatedAt(query.value(3).toDateTime());
 
         chats.append(chat);
     }
@@ -651,14 +650,13 @@ bool Database::createChat(const model::Chat& chat)
 
     QSqlQuery query(m_db);
     query.prepare(
-        "INSERT INTO chats (id, type, created_by, title, created_at) "
-        "VALUES (:id, :type, :created_by, :title, :created_at)"
+        "INSERT INTO chats (id, type, created_by, created_at) "
+        "VALUES (:id, CAST(:type AS chat_type), :created_by, :created_at)"
         );
 
     query.bindValue(":id", chat.id().toString(QUuid::WithoutBraces));
-    query.bindValue(":type", chat.type());
+    query.bindValue(":type", model::chatTypeToString(chat.type()));
     query.bindValue(":created_by", chat.createdBy().toString(QUuid::WithoutBraces));
-    query.bindValue(":title", chat.title());
     query.bindValue(":created_at", chat.createdAt());
 
     if (!query.exec()) {
@@ -697,7 +695,7 @@ std::optional<model::Chat> Database::getChatById(const QUuid& id) const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, type, created_by, title, created_at "
+        "SELECT id, type, created_by, created_at "
         "FROM chats "
         "WHERE id = :id "
         "LIMIT 1"
@@ -716,10 +714,9 @@ std::optional<model::Chat> Database::getChatById(const QUuid& id) const
 
     model::Chat chat;
     chat.setId(QUuid(query.value(0).toString()));
-    chat.setType(query.value(1).toString());
+    chat.setType(model::chatTypeFromString(query.value(1).toString()));
     chat.setCreatedBy(QUuid(query.value(2).toString()));
-    chat.setTitle(query.value(3).toString());
-    chat.setCreatedAt(query.value(4).toDateTime());
+    chat.setCreatedAt(query.value(3).toDateTime());
 
     return chat;
 }
@@ -735,7 +732,7 @@ QList<model::Chat> Database::getChatsByUserId(const QUuid& userId) const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT c.id, c.type, c.created_by, c.title, c.created_at "
+        "SELECT c.id, c.type, c.created_by, c.created_at "
         "FROM chats c "
         "JOIN chat_members cm ON cm.chat_id = c.id "
         "WHERE cm.user_id = :user_id "
@@ -752,10 +749,9 @@ QList<model::Chat> Database::getChatsByUserId(const QUuid& userId) const
     while (query.next()) {
         model::Chat chat;
         chat.setId(QUuid(query.value(0).toString()));
-        chat.setType(query.value(1).toString());
+        chat.setType(model::chatTypeFromString(query.value(1).toString()));
         chat.setCreatedBy(QUuid(query.value(2).toString()));
-        chat.setTitle(query.value(3).toString());
-        chat.setCreatedAt(query.value(4).toDateTime());
+        chat.setCreatedAt(query.value(3).toDateTime());
 
         chats.append(chat);
     }

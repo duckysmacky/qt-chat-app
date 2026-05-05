@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QByteArray>
+#include <QList>
 #include <QObject>
 #include <QString>
 #include <QUuid>
@@ -52,7 +53,7 @@ public:
     void getCurrentUserChats() const;
     void searchChats(QString query) const;
     void createChat(shared::ChatCreateInfo info) const;
-    void createChat(QString type, QString title) const;
+    void createChat(QList<QUuid> memberIds) const;
 
 signals:
     void chatMessageReceived(const shared::Message& message);

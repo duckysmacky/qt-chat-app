@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QDebug>
+#include <QSet>
 #include <qlogging.h>
 
 #include "dto/AuthInfo.h"
@@ -24,9 +25,8 @@ namespace {
 shared::ChatInfo makeChatInfo(const Database& db, const model::Chat& chat)
 {
     QUuid id = chat.id();
-    QString type = chat.type();
+    QString type = model::chatTypeToString(chat.type());
     QUuid createdBy = chat.createdBy();
-    QString title = chat.title();
     QDateTime createdAt = chat.createdAt();
     QList<QUuid> memberIds = db.getUserIdsByChatId(id);
 
@@ -34,7 +34,6 @@ shared::ChatInfo makeChatInfo(const Database& db, const model::Chat& chat)
         std::move(id),
         std::move(type),
         std::move(createdBy),
-        std::move(title),
         std::move(createdAt),
         std::move(memberIds)
     );
@@ -584,30 +583,48 @@ void Server::handleCreateChat(const QTcpSocket* socket, const shared::Packet& pa
         return;
     }
 
-    const QString type = createInfoOpt->type().trimmed();
-    const QString title = createInfoOpt->title().trimmed();
+    const QUuid creatorUserId = connection.userId().value();
 
-    if (type.isEmpty()) {
-        sendError(connection.sessionId(), "Chat type must not be empty");
+    Database& db = Database::instance();
+
+    QSet<QUuid> memberIds;
+    memberIds.insert(creatorUserId);
+
+    for (const QUuid& requestedMemberId : createInfoOpt->memberIds()) {
+        if (requestedMemberId.isNull() || requestedMemberId == creatorUserId)
+            continue;
+
+        if (!db.getUserById(requestedMemberId).has_value()) {
+            qWarning() << "Skipping invalid chat member user id" << requestedMemberId;
+            continue;
+        }
+
+        memberIds.insert(requestedMemberId);
+    }
+
+    if (memberIds.size() < 2) {
+        sendError(connection.sessionId(), "Chat must have at least one valid member");
         return;
     }
 
-    const QUuid creatorUserId = connection.userId().value();
+    const model::ChatType chatType = memberIds.size() > 2
+        ? model::ChatType::Group
+        : model::ChatType::Direct;
 
-    model::Chat chat(type, creatorUserId, title);
-
-    Database& db = Database::instance();
+    model::Chat chat(chatType, creatorUserId);
 
     if (!db.createChat(chat)) {
         sendError(connection.sessionId(), "Failed to create chat");
         return;
     }
 
-    const model::ChatMember creatorMembership(chat.id(), creatorUserId);
-
-    if (!db.createChatMember(creatorMembership)) {
-        sendError(connection.sessionId(), "Failed to add creator to chat");
-        return;
+    for (const QUuid& memberId : memberIds) {
+        const model::ChatMember membership(chat.id(), memberId);
+        if (!db.createChatMember(membership)) {
+            db.deleteChat(chat.id());
+            sendError(connection.sessionId(), "Failed to add chat member");
+            return;
+        }
     }
 
     sendSuccess(connection.sessionId(), "Chat created successfully");

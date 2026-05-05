@@ -1,7 +1,8 @@
 #pragma once
 
 #include <QByteArray>
-#include <QString>
+#include <QList>
+#include <QUuid>
 
 #include <optional>
 
@@ -10,18 +11,15 @@ namespace shared {
 class ChatCreateInfo
 {
 public:
-    ChatCreateInfo();
-    ChatCreateInfo(QString type, QString title);
+    explicit ChatCreateInfo(QList<QUuid> memberIds);
 
-    const QString& type() const { return m_type; }
-    const QString& title() const { return m_title; }
+    const QList<QUuid>& memberIds() const { return m_memberIds; }
 
     QByteArray serialize() const;
     static std::optional<ChatCreateInfo> deserialize(const QByteArray& bytes);
 
 private:
-    QString m_type;
-    QString m_title;
+    QList<QUuid> m_memberIds;
 };
 
 }

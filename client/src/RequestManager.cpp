@@ -243,9 +243,9 @@ void RequestManager::createChat(shared::ChatCreateInfo info) const
     sendPacket(shared::PacketFactory::createChatPacket(client.sessionId(), client.serverId(), std::move(info)));
 }
 
-void RequestManager::createChat(QString type, QString title) const
+void RequestManager::createChat(QList<QUuid> memberIds) const
 {
-    createChat(shared::ChatCreateInfo(std::move(type), std::move(title)));
+    createChat(shared::ChatCreateInfo(std::move(memberIds)));
 }
 
 void RequestManager::sendPacket(shared::Packet packet) const
