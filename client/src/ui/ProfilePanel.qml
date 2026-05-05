@@ -24,13 +24,80 @@ Rectangle {
             color: "#2f241f"
         }
 
-        Label {
-            text: AccountManager.currentUser.length > 0
-                  ? "Logged in as " + AccountManager.currentUser
-                  : "Logged in"
-            color: "#4f4038"
-            wrapMode: Text.Wrap
+        GridLayout {
+            columns: 2
+            columnSpacing: 14
+            rowSpacing: 8
             Layout.fillWidth: true
+
+            Label {
+                text: "User ID"
+                color: "#6d5b50"
+                font.bold: true
+                Layout.alignment: Qt.AlignTop
+            }
+
+            TextArea {
+                text: AccountManager.userProfileLoaded ? AccountManager.profileUserId : "Loading..."
+                readOnly: true
+                selectByMouse: true
+                color: "#2f241f"
+                wrapMode: Text.WrapAnywhere
+                Layout.fillWidth: true
+                background: null
+                padding: 0
+            }
+
+            Label {
+                text: "Username"
+                color: "#6d5b50"
+                font.bold: true
+            }
+
+            TextArea {
+                text: AccountManager.userProfileLoaded ? AccountManager.profileUsername : "Loading..."
+                readOnly: true
+                selectByMouse: true
+                color: "#2f241f"
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+                background: null
+                padding: 0
+            }
+
+            Label {
+                text: "Name"
+                color: "#6d5b50"
+                font.bold: true
+            }
+
+            TextArea {
+                text: AccountManager.userProfileLoaded ? AccountManager.profileName : "Loading..."
+                readOnly: true
+                selectByMouse: true
+                color: "#2f241f"
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+                background: null
+                padding: 0
+            }
+
+            Label {
+                text: "Email"
+                color: "#6d5b50"
+                font.bold: true
+            }
+
+            TextArea {
+                text: AccountManager.userProfileLoaded ? AccountManager.profileEmail : "Loading..."
+                readOnly: true
+                selectByMouse: true
+                color: "#2f241f"
+                wrapMode: Text.WrapAnywhere
+                Layout.fillWidth: true
+                background: null
+                padding: 0
+            }
         }
 
         Item {

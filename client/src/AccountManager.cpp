@@ -2,6 +2,8 @@
 
 #include <QDebug>
 
+#include <utility>
+
 #include "Client.h"
 #include "Hasher.h"
 #include "RequestManager.h"
@@ -19,9 +21,12 @@ AccountManager::AccountManager(QObject* parent)
       m_busy(false),
       m_pendingAction(PendingAction::None)
 {
-    Client& client = Client::instance();
+    const Client& client = Client::instance();
+    const RequestManager& requestManager = RequestManager::instance();
+
     connect(&client, &Client::connectionStatusChanged, this, &AccountManager::onConnectionStatusChanged);
-    connect(&RequestManager::instance(), &RequestManager::operationResultReceived, this, &AccountManager::onOperationResultReceived);
+    connect(&requestManager, &RequestManager::operationResultReceived, this, &AccountManager::onOperationResultReceived);
+    connect(&requestManager, &RequestManager::currentUserProfileReceived, this, &AccountManager::onCurrentUserProfileReceived);
 }
 
 void AccountManager::showLogin()
@@ -44,11 +49,11 @@ void AccountManager::login(const QString& login, const QString& password)
     if (login.trimmed().isEmpty() || password.isEmpty()) return;
 
     m_pendingAction = PendingAction::Login;
-    m_pendingUser = login.trimmed();
+    setUserProfile(std::nullopt);
     setStatusText("");
     setBusy(true);
 
-    RequestManager::instance().loginUser(m_pendingUser, Hasher::sha256(password));
+    RequestManager::instance().loginUser(login.trimmed(), Hasher::sha256(password));
 }
 
 void AccountManager::registerAccount(const QString& username, const QString& name, const QString& email, const QString& password)
@@ -58,6 +63,7 @@ void AccountManager::registerAccount(const QString& username, const QString& nam
         return;
 
     m_pendingAction = PendingAction::Register;
+    setUserProfile(std::nullopt);
     setStatusText("");
     setBusy(true);
 
@@ -86,13 +92,20 @@ bool AccountManager::canSendMessages() const
     return Client::instance().connected() && m_loggedIn;
 }
 
+std::optional<QUuid> AccountManager::userId() const
+{
+    if (!m_userProfile.has_value())
+        return std::nullopt;
+
+    return m_userProfile->userId();
+}
+
 void AccountManager::onConnectionStatusChanged()
 {
     if (Client::instance().connected()) return;
 
     setBusy(false);
     m_pendingAction = PendingAction::None;
-    m_pendingUser.clear();
     resetAuthorizationState();
 }
 
@@ -103,23 +116,7 @@ void AccountManager::onOperationResultReceived(const shared::OperationResult& re
 
     switch (m_pendingAction)
     {
-    case PendingAction::Login:
-        setBusy(false);
-        m_pendingAction = PendingAction::None;
-
-        if (!success)
-        {
-            qWarning() << "Login failed:" << message;
-            setStatusText(message);
-            return;
-        }
-
-        qInfo() << "Login succeeded:" << message;
-        setStatusText("");
-        setCurrentUser(m_pendingUser);
-        setLoggedIn(true);
-        setMode(AccountMode);
-        m_pendingUser.clear();
+    case PendingAction::None:
         break;
 
     case PendingAction::Register:
@@ -138,6 +135,34 @@ void AccountManager::onOperationResultReceived(const shared::OperationResult& re
         setMode(LoginMode);
         break;
 
+    case PendingAction::Login:
+        if (!success)
+        {
+            setBusy(false);
+            m_pendingAction = PendingAction::None;
+            qWarning() << "Login failed:" << message;
+            setStatusText(message);
+            return;
+        }
+
+        qInfo() << "Login accepted:" << message;
+        m_pendingAction = PendingAction::FetchProfile;
+        setStatusText("");
+        setMode(AccountMode);
+        RequestManager::instance().getCurrentUserProfile();
+        break;
+
+    case PendingAction::FetchProfile:
+        if (!success)
+        {
+            setBusy(false);
+            m_pendingAction = PendingAction::None;
+            qWarning() << "Profile request failed:" << message;
+            resetAuthorizationState();
+            setStatusText(message);
+        }
+        break;
+
     case PendingAction::Logout:
         setBusy(false);
         m_pendingAction = PendingAction::None;
@@ -152,10 +177,25 @@ void AccountManager::onOperationResultReceived(const shared::OperationResult& re
         qInfo() << "Logout succeeded:" << message;
         resetAuthorizationState();
         break;
-
-    case PendingAction::None:
-        break;
     }
+}
+
+void AccountManager::onCurrentUserProfileReceived(const shared::ProfileInfo& profile)
+{
+    if (m_pendingAction != PendingAction::FetchProfile && !m_loggedIn)
+        return;
+
+    setUserProfile(profile);
+
+    if (m_pendingAction != PendingAction::FetchProfile)
+        return;
+
+    qInfo() << "Loaded profile for logged-in user:" << profile.username();
+    m_pendingAction = PendingAction::None;
+    setStatusText("");
+    setLoggedIn(true);
+    setMode(AccountMode);
+    setBusy(false);
 }
 
 void AccountManager::setMode(const Mode mode)
@@ -180,13 +220,6 @@ void AccountManager::setBusy(const bool busy)
     emit busyChanged();
 }
 
-void AccountManager::setCurrentUser(QString currentUser)
-{
-    if (m_currentUser == currentUser) return;
-    m_currentUser = std::move(currentUser);
-    emit currentUserChanged();
-}
-
 void AccountManager::setStatusText(QString statusText)
 {
     if (m_statusText == statusText) return;
@@ -195,10 +228,48 @@ void AccountManager::setStatusText(QString statusText)
     emit statusTextChanged();
 }
 
+QString AccountManager::profileUserId() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return m_userProfile->userId().toString(QUuid::WithoutBraces);
+}
+
+QString AccountManager::profileUsername() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return m_userProfile->username();
+}
+
+QString AccountManager::profileName() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return m_userProfile->name();
+}
+
+QString AccountManager::profileEmail() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return m_userProfile->email();
+}
+
+void AccountManager::setUserProfile(std::optional<shared::ProfileInfo> profile)
+{
+    m_userProfile = std::move(profile);
+    emit userProfileChanged();
+}
+
 void AccountManager::resetAuthorizationState()
 {
+    setUserProfile(std::nullopt);
     setLoggedIn(false);
-    setCurrentUser("");
     setStatusText("");
     setMode(LoginMode);
 }
