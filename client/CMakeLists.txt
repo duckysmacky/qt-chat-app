@@ -18,6 +18,8 @@ qt_add_executable(client_app
 	src/MessageSender.h
 	src/ChatManager.cpp
 	src/ChatManager.h
+	src/UserResolver.cpp
+	src/UserResolver.h
 )
 
 qt_add_qml_module(client_app
