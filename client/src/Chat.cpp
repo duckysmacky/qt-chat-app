@@ -71,6 +71,19 @@ QString Chat::label() const
     return label;
 }
 
+void Chat::setOtherMembers(QSet<QUuid> otherMembers)
+{
+    if (m_otherMembers == otherMembers)
+        return;
+
+    m_otherMembers = std::move(otherMembers);
+
+    for (const QUuid& userId : m_otherMembers)
+        UserResolver::instance().resolveUser(userId);
+
+    emit labelChanged();
+}
+
 void Chat::onNewMessage(const shared::Message& messagePacket)
 {
     if (messagePacket.targetChatId() != m_id) return;

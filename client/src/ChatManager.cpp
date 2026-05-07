@@ -66,6 +66,8 @@ void ChatManager::removeChat(const QUuid& chatId)
 
     if (wasSelected)
         emit selectedChatChanged();
+
+    chat->deleteLater();
 }
 
 void ChatManager::onLoggedInChanged()
@@ -83,19 +85,33 @@ void ChatManager::onLoggedInChanged()
 void ChatManager::onChatListReceived(const shared::ChatsInfo& chats)
 {
     const QUuid selectedChatId = m_selectedChat ? m_selectedChat->id() : QUuid();
+    QSet<QUuid> receivedChatIds;
 
-    clearChatList();
-
-    for (const auto& chat : chats.chats())
+    for (const auto& chatInfo : chats.chats())
     {
+        receivedChatIds.insert(chatInfo.id());
+
         QSet<QUuid> memberIds;
-        for (const QUuid& memberId : chat.memberIds())
+        for (const QUuid& memberId : chatInfo.memberIds())
             memberIds.insert(memberId);
 
         if (const auto& currentUserId = AccountManager::instance().userId(); currentUserId.has_value())
             memberIds.remove(currentUserId.value());
 
-        addChat(new Chat(chat.id(), std::move(memberIds), this));
+        if (Chat* existingChat = m_chatStorage.value(chatInfo.id(), nullptr))
+        {
+            existingChat->setOtherMembers(std::move(memberIds));
+            continue;
+        }
+
+        addChat(new Chat(chatInfo.id(), std::move(memberIds), this));
+    }
+
+    const QList<Chat*> currentChats = m_chatList;
+    for (Chat* chat : currentChats)
+    {
+        if (chat != nullptr && !receivedChatIds.contains(chat->id()))
+            removeChat(chat->id());
     }
 
     if (!selectedChatId.isNull() && m_chatStorage.contains(selectedChatId))
