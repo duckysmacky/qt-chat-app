@@ -9,6 +9,7 @@
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
+#include "dto/UserInfoRequest.h"
 
 
 
@@ -61,14 +62,19 @@ Packet PacketFactory::userProfileDataPacket(const QUuid& sender, const QUuid& re
     return Packet{PacketType::USER_PROFILE_DATA, sender, receiver, info.serialize()};
 }
 
-Packet PacketFactory::getPublicUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId)
+Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, UserInfoRequest request)
 {
-    return Packet{
-        PacketType::GET_PUBLIC_USER_INFO,
-        sender,
-        receiver,
-        userId.toRfc4122()
-    };
+    return Packet{PacketType::GET_USER_INFO, sender, receiver, request.serialize()};
+}
+
+Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId)
+{
+    return getUserInfoPacket(sender, receiver, UserInfoRequest(userId));
+}
+
+Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, QString username)
+{
+    return getUserInfoPacket(sender, receiver, UserInfoRequest(std::move(username)));
 }
 
 Packet PacketFactory::publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info)

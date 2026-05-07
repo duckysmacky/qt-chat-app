@@ -219,10 +219,29 @@ void RequestManager::updateCurrentUserProfile(shared::ProfileUpdateInfo info) co
     sendPacket(shared::PacketFactory::updateUserProfilePacket(client.sessionId(), client.serverId(), std::move(info)));
 }
 
-void RequestManager::getPublicUserInfo(const QUuid& userId) const
+void RequestManager::getUserInfo(shared::UserInfoRequest request) const
 {
     const Client& client = Client::instance();
-    sendPacket(shared::PacketFactory::getPublicUserInfoPacket(client.sessionId(), client.serverId(), userId));
+    sendPacket(shared::PacketFactory::getUserInfoPacket(client.sessionId(), client.serverId(), std::move(request)));
+}
+
+void RequestManager::getUserInfo(const QUuid& userId) const
+{
+    getUserInfo(shared::UserInfoRequest(userId));
+}
+
+void RequestManager::getUserInfo(QString username) const
+{
+    username = username.trimmed();
+    if (username.startsWith('@'))
+        username.remove(0, 1);
+
+    getUserInfo(shared::UserInfoRequest(std::move(username)));
+}
+
+void RequestManager::getPublicUserInfo(const QUuid& userId) const
+{
+    getUserInfo(userId);
 }
 
 void RequestManager::getCurrentUserChats() const

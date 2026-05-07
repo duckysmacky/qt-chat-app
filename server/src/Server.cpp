@@ -13,6 +13,7 @@
 #include "dto/ProfileInfo.h"
 #include "dto/ProfileUpdateInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/UserInfoRequest.h"
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
@@ -227,8 +228,8 @@ void Server::onServerRead()
                 handleUpdateUserProfile(socket, packet);
                 break;
 
-            case shared::PacketType::GET_PUBLIC_USER_INFO:
-                handleGetPublicUserInfo(socket, packet);
+            case shared::PacketType::GET_USER_INFO:
+                handleGetUserInfo(socket, packet);
                 break;
 
             case shared::PacketType::GET_CHATS:
@@ -805,40 +806,73 @@ void Server::handleUpdateUserProfile(const QTcpSocket* socket, const shared::Pac
     sendUserProfileData(connection.sessionId(), updatedProfileInfo.value());
 }
 
-void Server::handleGetPublicUserInfo(const QTcpSocket* socket, const shared::Packet& packet)
+void Server::handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& packet)
 {
     if (!socket) return;
-    if (packet.type() != shared::PacketType::GET_PUBLIC_USER_INFO) return;
+    if (packet.type() != shared::PacketType::GET_USER_INFO) return;
 
     const auto connectionOpt = findConnection(packet.sender());
-    if (!connectionOpt.has_value()) {
+    if (!connectionOpt.has_value())
+    {
         qWarning() << "Client" << packet.sender() << "not yet connected";
         return;
     }
 
     const ClientConnection& connection = connectionOpt->get();
 
-    if (!connection.matchesSocket(socket) || !connection.isAuthorized()) {
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized())
+    {
         sendError(connection.sessionId(), "Not authorized");
         return;
     }
 
-    if (!packet.data().has_value()) {
+    if (!packet.data().has_value())
+    {
         sendError(connection.sessionId(), "User info request payload is missing");
         return;
     }
 
-    const QUuid requestedUserId = QUuid::fromRfc4122(packet.data().value());
-
-    if (requestedUserId.isNull()) {
-        sendError(connection.sessionId(), "Invalid user id");
+    const auto requestOpt = shared::UserInfoRequest::deserialize(packet.data().value());
+    if (!requestOpt.has_value())
+    {
+        sendError(connection.sessionId(), "Invalid user info request payload");
         return;
     }
 
     const Database& db = Database::instance();
-    const auto publicUserInfo = db.getPublicUserInfoByUserId(requestedUserId);
+    std::optional<shared::PublicUserInfo> publicUserInfo;
 
-    if (!publicUserInfo.has_value()) {
+    switch (requestOpt->identifierType())
+    {
+    case shared::UserIdentifierType::UUID:
+        if (requestOpt->userId().isNull())
+        {
+            sendError(connection.sessionId(), "Invalid user id");
+            return;
+        }
+
+        publicUserInfo = db.getPublicUserInfoByUserId(requestOpt->userId());
+        break;
+
+    case shared::UserIdentifierType::USERNAME:
+        {
+            QString username = requestOpt->username().trimmed();
+            if (username.startsWith('@'))
+                username.remove(0, 1);
+
+            if (!isValidUsername(username))
+            {
+                sendError(connection.sessionId(), "Invalid username");
+                return;
+            }
+
+            publicUserInfo = db.getPublicUserInfoByUsername(username);
+        }
+        break;
+    }
+
+    if (!publicUserInfo.has_value())
+    {
         sendError(connection.sessionId(), "User not found");
         return;
     }

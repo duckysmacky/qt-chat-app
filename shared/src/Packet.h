@@ -36,7 +36,7 @@ enum class PacketType
     /// Authorized user's profile data.
     USER_PROFILE_DATA,
     /// Request public information for a user.
-    GET_PUBLIC_USER_INFO,
+    GET_USER_INFO,
     /// Public user information data.
     PUBLIC_USER_INFO_DATA,
     /// Request available chats.

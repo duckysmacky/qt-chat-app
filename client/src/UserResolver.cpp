@@ -36,7 +36,7 @@ std::optional<shared::PublicUserInfo> UserResolver::resolveUser(const QUuid& use
         return std::nullopt;
 
     m_pendingRequests.insert(userId);
-    RequestManager::instance().getPublicUserInfo(userId);
+    RequestManager::instance().getUserInfo(userId);
 
     return std::nullopt;
 }

@@ -13,6 +13,7 @@
 #include "ClientConnection.h"
 #include "dto/ProfileInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/UserInfoRequest.h"
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
@@ -166,8 +167,8 @@ private:
     /// @brief Handles an UPDATE_USER_PROFILE packet.
     void handleUpdateUserProfile(const QTcpSocket* socket, const shared::Packet& packet);
 
-    /// @brief Handles a GET_PUBLIC_USER_INFO packet.
-    void handleGetPublicUserInfo(const QTcpSocket* socket, const shared::Packet& packet);
+    /// @brief Handles a GET_USER_INFO packet.
+    void handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& packet);
 
     void sendUserProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const;
     void sendPublicUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;

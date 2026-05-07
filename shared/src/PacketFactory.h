@@ -8,6 +8,7 @@
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
+#include "dto/UserInfoRequest.h"
 
 #include "dto/PublicUserInfo.h"
 
@@ -30,7 +31,9 @@ public:
     static Packet getUserProfilePacket(const QUuid& sender, const QUuid& receiver);
     static Packet updateUserProfilePacket(const QUuid& sender, const QUuid& receiver, ProfileUpdateInfo info);
     static Packet userProfileDataPacket(const QUuid& sender, const QUuid& receiver, ProfileInfo info);
-    static Packet getPublicUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId);
+    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, UserInfoRequest request);
+    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId);
+    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, QString username);
     static Packet publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info);
     static Packet operationSuccessPacket(const QUuid& sender, const QUuid& receiver, QString message);
     static Packet operationErrorPacket(const QUuid& sender, const QUuid& receiver, QString message);

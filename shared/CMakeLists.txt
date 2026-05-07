@@ -17,6 +17,8 @@ add_library(shared STATIC
         src/dto/ProfileUpdateInfo.cpp
         src/dto/PublicUserInfo.h
         src/dto/PublicUserInfo.cpp
+        src/dto/UserInfoRequest.h
+        src/dto/UserInfoRequest.cpp
         src/dto/ChatInfo.h
         src/dto/ChatInfo.cpp
         src/dto/ChatsInfo.h

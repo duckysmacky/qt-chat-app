@@ -15,6 +15,7 @@
 #include "dto/ProfileInfo.h"
 #include "dto/ProfileUpdateInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/UserInfoRequest.h"
 
 /**
  * @class RequestManager
@@ -49,6 +50,9 @@ public:
     void logoutCurrentUser() const;
     void getCurrentUserProfile() const;
     void updateCurrentUserProfile(shared::ProfileUpdateInfo info) const;
+    void getUserInfo(shared::UserInfoRequest request) const;
+    void getUserInfo(const QUuid& userId) const;
+    void getUserInfo(QString username) const;
     void getPublicUserInfo(const QUuid& userId) const;
     void getCurrentUserChats() const;
     void searchChats(QString query) const;

@@ -323,6 +323,23 @@ std::optional<shared::PublicUserInfo> Database::getPublicUserInfoByUserId(const 
 
 }
 
+std::optional<shared::PublicUserInfo> Database::getPublicUserInfoByUsername(const QString& username) const
+{
+    const auto user = getUserByUsername(username);
+    if (!user.has_value())
+        return std::nullopt;
+
+    QUuid publicUserId = user->id();
+    QString publicUsername = user->username();
+    QString displayName = user->displayName();
+
+    return shared::PublicUserInfo(
+        std::move(publicUserId),
+        std::move(publicUsername),
+        std::move(displayName)
+    );
+}
+
 QList<model::User> Database::getAllUsers() const
 {
     QList<model::User> users;
