@@ -37,32 +37,50 @@ Rectangle {
             spacing: 10
             Layout.fillWidth: true
 
-            Label { text: "Username"; color: "#4f4038" }
+            Label {
+                text: "Username";
+                color: "#4f4038"
+            }
+
             TextField {
                 id: usernameField
                 Layout.fillWidth: true
-                placeholderText: "@username"
+                placeholderText: "@example"
                 validator: RegularExpressionValidator {
                     regularExpression: /^@?[a-z0-9_]{2,20}$/
                 }
                 enabled: Client.connected && !AccountManager.busy
             }
 
-            Label { text: "Display name"; color: "#4f4038" }
+            Label {
+                text: "Display name";
+                color: "#4f4038"
+            }
+
             TextField {
                 id: displayNameField
                 Layout.fillWidth: true
+                placeholderText: "John Doe"
                 enabled: Client.connected && !AccountManager.busy
             }
 
-            Label { text: "Email"; color: "#4f4038" }
+            Label {
+                text: "Email";
+                color: "#4f4038"
+            }
+
             TextField {
                 id: emailField
                 Layout.fillWidth: true
+                placeholderText: "example@mail.com"
                 enabled: Client.connected && !AccountManager.busy
             }
 
-            Label { text: "Password"; color: "#4f4038" }
+            Label {
+                text: "Password";
+                color: "#4f4038"
+            }
+
             TextField {
                 id: passwordField
                 Layout.fillWidth: true

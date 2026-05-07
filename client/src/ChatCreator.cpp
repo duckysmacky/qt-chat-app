@@ -111,6 +111,7 @@ QVariantList ChatCreator::members() const
     for (const auto& userInfo : m_members)
     {
         QVariantMap member;
+        member["displayName"] = userInfo.displayName();
         member["userId"] = userInfo.userId().toString(QUuid::WithoutBraces);
         member["username"] = QString("@") + userInfo.username();
         members.append(member);
@@ -119,6 +120,7 @@ QVariantList ChatCreator::members() const
     if (m_pendingUsername.has_value())
     {
         QVariantMap pendingMember;
+        pendingMember["displayName"] = "Loading...";
         pendingMember["userId"] = "Loading...";
         pendingMember["username"] = QString("@") + m_pendingUsername.value();
         members.append(pendingMember);
@@ -134,7 +136,7 @@ void ChatCreator::addResolvedUser(const shared::PublicUserInfo& userInfo)
 
     m_members.append(userInfo);
     m_memberIds.insert(userInfo.userId());
-    setStatusText(QString("successfully added @") + userInfo.username());
+    setStatusText(QString("successfully added ") + userInfo.displayName());
     emit membersChanged();
     emitCreateStateChanged();
 }

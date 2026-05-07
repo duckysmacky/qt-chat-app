@@ -124,7 +124,7 @@ void ChatMessage::setStatus(const Status status)
 void ChatMessage::resolveSender()
 {
     if (m_isOwn) {
-        setSender(AccountManager::instance().profileUsername());
+        setSender(AccountManager::instance().profileDisplayName());
         return;
     }
 
@@ -136,7 +136,7 @@ void ChatMessage::resolveSender()
     setSender("Loading...");
 
     if (const auto userInfo = UserResolver::instance().resolveUser(m_senderUserId); userInfo.has_value()) {
-        setSender(QString("@") + userInfo->username());
+        setSender(userInfo->displayName());
         return;
     }
 
@@ -148,7 +148,7 @@ void ChatMessage::resolveSender()
             if (userId != m_senderUserId)
                 return;
 
-            setSender(QString("@") + userInfo.username());
+            setSender(userInfo.displayName());
         }
     );
 }

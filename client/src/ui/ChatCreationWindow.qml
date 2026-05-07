@@ -98,17 +98,17 @@ Window {
 
                         Label {
                             width: parent.width
-                            text: modelData.username
+                            text: modelData.displayName
                             font.bold: true
                             elide: Text.ElideRight
                         }
 
                         Label {
                             width: parent.width
-                            text: modelData.userId
+                            text: modelData.username
                             color: "#6f6257"
                             font.pixelSize: 12
-                            elide: Text.ElideMiddle
+                            elide: Text.ElideRight
                         }
                     }
                 }

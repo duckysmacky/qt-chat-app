@@ -54,18 +54,18 @@ QString Chat::label() const
 
     for (const QUuid& userId : m_otherMembers)
     {
-        QString username = "Unknown";
+        QString displayName = "Unknown";
 
-        if (!userId.isNull()) {
+        if (!userId.isNull())
+        {
             const auto userInfo = UserResolver::instance().resolveUser(userId);
-            username = userInfo.has_value() ? QString("@") + userInfo->username() : "Loading...";
+            displayName = userInfo.has_value() ? userInfo->displayName() : "Loading...";
         }
 
-        if (!label.isEmpty()) {
+        if (!label.isEmpty())
             label.append(", ");
-        }
 
-        label.append(username);
+        label.append(displayName);
     }
 
     return label;
