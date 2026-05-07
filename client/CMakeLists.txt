@@ -20,6 +20,8 @@ qt_add_executable(client_app
 	src/ChatManager.h
 	src/UserResolver.cpp
 	src/UserResolver.h
+	src/ChatCreator.cpp
+	src/ChatCreator.h
 )
 
 qt_add_qml_module(client_app
@@ -36,7 +38,8 @@ qt_add_qml_module(client_app
 		src/ui/AccountWindow.qml
         src/ui/RegisterPanel.qml
         src/ui/StatusIndicator.qml
-		src/ui/ChatSelectionPanel.qml
+		src/ui/ChatListPanel.qml
+		src/ui/ChatCreationWindow.qml
 		src/ui/ChatCard.qml
 )
 

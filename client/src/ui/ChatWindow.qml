@@ -27,6 +27,13 @@ Window {
         y: root.y + Math.round((root.height - height) / 2)
     }
 
+    ChatCreationWindow {
+        id: chatCreationWindow
+        transientParent: root
+        x: root.x + Math.round((root.width - width) / 2)
+        y: root.y + Math.round((root.height - height) / 2)
+    }
+
     Component.onCompleted: {
         if (!Client.connected) {
             connectionWindow.show()
@@ -75,9 +82,15 @@ Window {
             Layout.fillHeight: true
             spacing: 8
 
-            ChatSelectionPanel {
+            ChatListPanel {
                 Layout.preferredWidth: 240
                 Layout.fillHeight: true
+                onCreateChatRequested: {
+                    ChatCreator.reset()
+                    chatCreationWindow.show()
+                    chatCreationWindow.raise()
+                    chatCreationWindow.requestActivate()
+                }
             }
 
             ChatBox {
