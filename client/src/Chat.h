@@ -49,6 +49,7 @@ public:
     Q_INVOKABLE QString label() const;
 
     const QUuid& id() const { return m_id; }
+    const QSet<QUuid>& otherMembers() const { return m_otherMembers; }
     /// @brief Returns the list of messages for QML consumption.
     /// @return Constant reference to the message list.
     const QVariantList& messages() const { return m_messageList; }

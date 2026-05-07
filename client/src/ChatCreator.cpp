@@ -66,6 +66,15 @@ void ChatCreator::createChat()
     if (!canCreateChat())
         return;
 
+    for (const auto& chat : ChatManager::instance().chats())
+    {
+        if (chat->otherMembers() == m_memberIds)
+        {
+            setStatusText("This chat already exists");
+            return;
+        }
+    }
+
     QList<QUuid> memberIds = m_memberIds.values();
     m_creating = true;
     emitCreateStateChanged();
