@@ -125,6 +125,23 @@ void Server::sendChatInfoData(const QUuid& receiverSessionId, const shared::Chat
     sendPacket(receiverSessionId, packet);
 }
 
+void Server::sendUpdatedChatLists(const QSet<QUuid>& memberUserIds) const
+{
+    const Database& db = Database::instance();
+
+    for (const auto& connection : m_clients)
+    {
+        if (!connection.isAuthorized() || !connection.userId().has_value())
+            continue;
+
+        const QUuid userId = connection.userId().value();
+        if (!memberUserIds.contains(userId))
+            continue;
+
+        sendChatListData(connection.sessionId(), makeChatsInfo(db, db.getChatsByUserId(userId)));
+    }
+}
+
 
 void Server::sendError(const QUuid& receiverSessionId, QString message) const
 {
@@ -629,6 +646,7 @@ void Server::handleCreateChat(const QTcpSocket* socket, const shared::Packet& pa
 
     sendSuccess(connection.sessionId(), "Chat created successfully");
     sendChatInfoData(connection.sessionId(), makeChatInfo(db, chat));
+    sendUpdatedChatLists(memberIds);
 }
 
 

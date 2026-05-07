@@ -5,6 +5,7 @@
 #include <QTcpSocket>
 #include <QString>
 #include <QHash>
+#include <QSet>
 
 #include <cstdint>
 
@@ -182,6 +183,5 @@ private:
 
     void sendChatListData(const QUuid& receiverSessionId, const shared::ChatsInfo& info) const;
     void sendChatInfoData(const QUuid& receiverSessionId, const shared::ChatInfo& info) const;
-
-
+    void sendUpdatedChatLists(const QSet<QUuid>& memberUserIds) const;
 };

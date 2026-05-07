@@ -82,6 +82,8 @@ void ChatManager::onLoggedInChanged()
 
 void ChatManager::onChatListReceived(const shared::ChatsInfo& chats)
 {
+    const QUuid selectedChatId = m_selectedChat ? m_selectedChat->id() : QUuid();
+
     clearChatList();
 
     for (const auto& chat : chats.chats())
@@ -95,6 +97,9 @@ void ChatManager::onChatListReceived(const shared::ChatsInfo& chats)
 
         addChat(new Chat(chat.id(), std::move(memberIds), this));
     }
+
+    if (!selectedChatId.isNull() && m_chatStorage.contains(selectedChatId))
+        selectChat(selectedChatId);
 }
 
 void ChatManager::fetchChatList()
