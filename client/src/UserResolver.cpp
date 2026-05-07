@@ -2,8 +2,11 @@
 
 #include <QDebug>
 
+#include <utility>
+
 #include "Client.h"
 #include "RequestManager.h"
+#include "util.h"
 
 UserResolver& UserResolver::instance()
 {
@@ -18,6 +21,7 @@ UserResolver::UserResolver(QObject* parent)
     const Client& client = Client::instance();
 
     connect(&requestManager, &RequestManager::publicUserInfoReceived, this, &UserResolver::onPublicUserInfoReceived);
+    connect(&requestManager, &RequestManager::operationResultReceived, this, &UserResolver::onOperationResultReceived);
     connect(&client, &Client::connectionStatusChanged, this, &UserResolver::onConnectionStatusChanged);
 }
 
@@ -41,16 +45,58 @@ std::optional<shared::PublicUserInfo> UserResolver::resolveUser(const QUuid& use
     return std::nullopt;
 }
 
+std::optional<shared::PublicUserInfo> UserResolver::resolveUser(QString username)
+{
+    username = shared::util::normalizeUsername(std::move(username));
+    if (username.isEmpty())
+        return std::nullopt;
+
+    if (m_usernameCache.contains(username))
+        return m_cache.value(m_usernameCache.value(username));
+
+    if (m_pendingUsernameRequests.contains(username))
+        return std::nullopt;
+
+    if (!Client::instance().connected())
+        return std::nullopt;
+
+    m_pendingUsernameRequests.insert(username);
+    RequestManager::instance().getUserInfo(username);
+
+    return std::nullopt;
+}
+
 void UserResolver::invalidateUser(const QUuid& userId)
 {
+    if (m_cache.contains(userId))
+        m_usernameCache.remove(m_cache.value(userId).username());
+
     m_cache.remove(userId);
     m_pendingRequests.remove(userId);
+}
+
+void UserResolver::invalidateUser(QString username)
+{
+    username = shared::util::normalizeUsername(std::move(username));
+    if (username.isEmpty())
+        return;
+
+    if (m_usernameCache.contains(username))
+    {
+        const QUuid userId = m_usernameCache.take(username);
+        m_cache.remove(userId);
+        m_pendingRequests.remove(userId);
+    }
+
+    m_pendingUsernameRequests.remove(username);
 }
 
 void UserResolver::clearCache()
 {
     m_cache.clear();
+    m_usernameCache.clear();
     m_pendingRequests.clear();
+    m_pendingUsernameRequests.clear();
 }
 
 void UserResolver::onPublicUserInfoReceived(const shared::PublicUserInfo& userInfo)
@@ -62,8 +108,20 @@ void UserResolver::onPublicUserInfoReceived(const shared::PublicUserInfo& userIn
     }
 
     m_pendingRequests.remove(userId);
+    m_pendingUsernameRequests.remove(userInfo.username());
     m_cache.insert(userId, userInfo);
+    m_usernameCache.insert(userInfo.username(), userId);
     emit userResolved(userId, userInfo);
+    emit userResolvedByUsername(userInfo.username(), userInfo);
+}
+
+void UserResolver::onOperationResultReceived(const shared::OperationResult& result)
+{
+    if (result.type() != shared::OperationResultType::ERROR)
+        return;
+
+    m_pendingRequests.clear();
+    m_pendingUsernameRequests.clear();
 }
 
 void UserResolver::onConnectionStatusChanged()
@@ -72,4 +130,5 @@ void UserResolver::onConnectionStatusChanged()
         return;
 
     m_pendingRequests.clear();
+    m_pendingUsernameRequests.clear();
 }

@@ -1,31 +1,13 @@
 #include "AccountManager.h"
 
 #include <QDebug>
-#include <QRegularExpression>
 
 #include <utility>
 
 #include "Client.h"
 #include "Hasher.h"
 #include "RequestManager.h"
-
-namespace {
-
-QString normalizeUsernameInput(QString username)
-{
-    username = username.trimmed();
-    if (username.startsWith('@'))
-        username.remove(0, 1);
-    return username;
-}
-
-bool isValidUsername(const QString& username)
-{
-    static const QRegularExpression usernamePattern("^[a-z0-9_]{2,20}$");
-    return usernamePattern.match(username).hasMatch();
-}
-
-}
+#include "util.h"
 
 AccountManager& AccountManager::instance()
 {
@@ -65,7 +47,7 @@ void AccountManager::showRegister()
 void AccountManager::login(const QString& login, const QString& password)
 {
     if (m_busy || !Client::instance().connected()) return;
-    const QString normalizedLogin = normalizeUsernameInput(login);
+    const QString normalizedLogin = shared::util::normalizeUsername(login);
     if (normalizedLogin.isEmpty() || password.isEmpty()) return;
 
     m_pendingAction = PendingAction::Login;
@@ -79,10 +61,10 @@ void AccountManager::login(const QString& login, const QString& password)
 void AccountManager::registerAccount(const QString& username, const QString& displayName, const QString& email, const QString& password)
 {
     if (m_busy || !Client::instance().connected()) return;
-    const QString normalizedUsername = normalizeUsernameInput(username);
+    const QString normalizedUsername = shared::util::normalizeUsername(username);
     const QString trimmedDisplayName = displayName.trimmed();
 
-    if (!isValidUsername(normalizedUsername)) {
+    if (!shared::util::isValidUsername(normalizedUsername)) {
         setStatusText("Username must be 2-20 characters and contain only lowercase latin letters, numbers, and underscores");
         return;
     }

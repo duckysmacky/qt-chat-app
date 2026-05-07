@@ -33,9 +33,12 @@ Window {
                 spacing: 8
 
                 TextField {
-                    id: userIdInput
+                    id: usernameInput
                     Layout.fillWidth: true
-                    placeholderText: "User UUID"
+                    placeholderText: "@username"
+                    validator: RegularExpressionValidator {
+                        regularExpression: /^@?[a-z0-9_]{2,20}$/
+                    }
                     enabled: !ChatCreator.resolving
                     selectByMouse: true
                     onAccepted: {
@@ -49,10 +52,10 @@ Window {
                     id: addUserButton
                     Layout.preferredWidth: 96
                     text: "Add user"
-                    enabled: userIdInput.text.trim().length > 0 && !ChatCreator.resolving
+                    enabled: usernameInput.acceptableInput && !ChatCreator.resolving
                     onClicked: {
-                        ChatCreator.addUser(userIdInput.text)
-                        userIdInput.clear()
+                        ChatCreator.addUser(usernameInput.text)
+                        usernameInput.clear()
                     }
                 }
             }
@@ -61,7 +64,7 @@ Window {
                 Layout.fillWidth: true
                 text: ChatCreator.statusText
                 visible: text.length > 0
-                color: ChatCreator.statusText === "invalid user ID" ? "#a33a2d" : "#486447"
+                color: ChatCreator.statusText === "Invalid username" ? "#a33a2d" : "#486447"
                 elide: Text.ElideRight
             }
 

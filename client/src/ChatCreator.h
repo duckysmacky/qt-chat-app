@@ -3,6 +3,7 @@
 #include <QList>
 #include <QObject>
 #include <QSet>
+#include <QString>
 #include <QUuid>
 #include <QVariantList>
 
@@ -23,7 +24,7 @@ class ChatCreator : public QObject
 private:
     QList<shared::PublicUserInfo> m_members;
     QSet<QUuid> m_memberIds;
-    std::optional<QUuid> m_pendingUserId;
+    std::optional<QString> m_pendingUsername;
     QString m_statusText;
     bool m_creating;
 
@@ -35,14 +36,14 @@ public:
     ChatCreator(ChatCreator&&) = delete;
     ChatCreator& operator=(ChatCreator&&) = delete;
 
-    Q_INVOKABLE void addUser(const QString& userIdText);
+    Q_INVOKABLE void addUser(const QString& usernameText);
     Q_INVOKABLE void createChat();
     Q_INVOKABLE void reset();
 
     QVariantList members() const;
     const QString& statusText() const { return m_statusText; }
     bool canCreateChat() const { return !m_memberIds.isEmpty() && !resolving() && !m_creating; }
-    bool resolving() const { return m_pendingUserId.has_value(); }
+    bool resolving() const { return m_pendingUsername.has_value(); }
 
 signals:
     void membersChanged();

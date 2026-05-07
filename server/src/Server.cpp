@@ -2,7 +2,6 @@
 
 #include <QByteArray>
 #include <QDebug>
-#include <QRegularExpression>
 #include <QSet>
 #include <qlogging.h>
 
@@ -23,12 +22,6 @@
 #include "util.h"
 
 namespace {
-
-bool isValidUsername(const QString& username)
-{
-    static const QRegularExpression usernamePattern("^[a-z0-9_]{2,20}$");
-    return usernamePattern.match(username).hasMatch();
-}
 
 shared::ChatInfo makeChatInfo(const Database& db, const model::Chat& chat)
 {
@@ -412,7 +405,7 @@ void Server::handleRegisterUser(const QTcpSocket* socket, const shared::Packet& 
     const QString displayName = registerInfo->displayName().trimmed();
     const QString email = registerInfo->email().trimmed();
 
-    if (!isValidUsername(username)) {
+    if (!shared::util::isValidUsername(username)) {
         sendError(connection.sessionId(), "Username must be 2-20 characters and contain only lowercase latin letters, numbers, and underscores");
         return;
     }
@@ -734,7 +727,7 @@ void Server::handleUpdateUserProfile(const QTcpSocket* socket, const shared::Pac
     if (updateInfo.username().has_value()) {
         const QString username = updateInfo.username().value().trimmed();
 
-        if (!isValidUsername(username)) {
+        if (!shared::util::isValidUsername(username)) {
             sendError(connection.sessionId(), "Username must be 2-20 characters and contain only lowercase latin letters, numbers, and underscores");
             return;
         }
@@ -856,11 +849,9 @@ void Server::handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& p
 
     case shared::UserIdentifierType::USERNAME:
         {
-            QString username = requestOpt->username().trimmed();
-            if (username.startsWith('@'))
-                username.remove(0, 1);
+            const QString username = shared::util::normalizeUsername(requestOpt->username());
 
-            if (!isValidUsername(username))
+            if (!shared::util::isValidUsername(username))
             {
                 sendError(connection.sessionId(), "Invalid username");
                 return;

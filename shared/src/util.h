@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QList>
+#include <QString>
 
 #include "Packet.h"
 
@@ -25,5 +26,8 @@ QList<Packet> parseStream(QByteArray& bytes);
  * @return Encapsulated payload bytes
  */
 QByteArray encapsulate(const Packet& packet);
+
+QString normalizeUsername(QString username);
+bool isValidUsername(const QString& username);
 
 }

@@ -1,5 +1,7 @@
 #include "util.h"
 
+#include <QRegularExpression>
+
 namespace shared::util {
 
 QList<Packet> parse(const QByteArray& bytes)
@@ -89,6 +91,22 @@ QByteArray encapsulate(const Packet& packet)
 
     payload.append(DELIMITER);
     return payload;
+}
+
+QString normalizeUsername(QString username)
+{
+    username = username.trimmed().toLower();
+
+    if (username.startsWith('@'))
+        username.remove(0, 1);
+
+    return username;
+}
+
+bool isValidUsername(const QString& username)
+{
+    static const QRegularExpression usernamePattern("^[a-z0-9_]{2,20}$");
+    return usernamePattern.match(username).hasMatch();
 }
 
 }

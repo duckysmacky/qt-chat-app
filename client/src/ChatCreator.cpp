@@ -9,6 +9,7 @@
 #include "ChatManager.h"
 #include "RequestManager.h"
 #include "UserResolver.h"
+#include "util.h"
 
 ChatCreator& ChatCreator::instance()
 {
@@ -28,34 +29,43 @@ ChatCreator::ChatCreator(QObject* parent)
     connect(&requestManager, &RequestManager::chatInfoReceived, this, &ChatCreator::onChatInfoReceived);
 }
 
-void ChatCreator::addUser(const QString& userIdText)
+void ChatCreator::addUser(const QString& usernameText)
 {
-    if (m_pendingUserId.has_value())
+    if (m_pendingUsername.has_value())
         return;
 
-    const QUuid userId(userIdText.trimmed());
-    const std::optional<QUuid> currentUserId = AccountManager::instance().userId();
+    const QString username = shared::util::normalizeUsername(usernameText);
 
-    if (userId.isNull() || (currentUserId.has_value() && userId == currentUserId.value()))
+    if (!shared::util::isValidUsername(username))
     {
-        setStatusText("Invalid user ID");
+        setStatusText("invalid username");
         return;
     }
 
-    if (m_memberIds.contains(userId))
+    const auto& currentUserProfile = AccountManager::instance().userProfile();
+    if (currentUserProfile.has_value() && username == currentUserProfile->username())
     {
+        setStatusText("Invalid username");
+        return;
+    }
+
+    for (const shared::PublicUserInfo& member : m_members)
+    {
+        if (member.username() != username)
+            continue;
+
         setStatusText("User already added");
         return;
     }
 
-    const auto userInfo = UserResolver::instance().resolveUser(userId);
+    const auto userInfo = UserResolver::instance().resolveUser(username);
     if (userInfo.has_value())
     {
         addResolvedUser(userInfo.value());
         return;
     }
 
-    m_pendingUserId = userId;
+    m_pendingUsername = username;
     setStatusText("Loading...");
     emit membersChanged();
     emitCreateStateChanged();
@@ -87,7 +97,7 @@ void ChatCreator::reset()
 {
     m_members.clear();
     m_memberIds.clear();
-    m_pendingUserId.reset();
+    m_pendingUsername.reset();
     m_creating = false;
     setStatusText("");
     emit membersChanged();
@@ -106,11 +116,11 @@ QVariantList ChatCreator::members() const
         members.append(member);
     }
 
-    if (m_pendingUserId.has_value())
+    if (m_pendingUsername.has_value())
     {
         QVariantMap pendingMember;
-        pendingMember["userId"] = m_pendingUserId->toString(QUuid::WithoutBraces);
-        pendingMember["username"] = "Loading...";
+        pendingMember["userId"] = "Loading...";
+        pendingMember["username"] = QString("@") + m_pendingUsername.value();
         members.append(pendingMember);
     }
 
@@ -131,10 +141,10 @@ void ChatCreator::addResolvedUser(const shared::PublicUserInfo& userInfo)
 
 void ChatCreator::clearPendingUser()
 {
-    if (!m_pendingUserId.has_value())
+    if (!m_pendingUsername.has_value())
         return;
 
-    m_pendingUserId.reset();
+    m_pendingUsername.reset();
     emit membersChanged();
     emitCreateStateChanged();
 }
@@ -156,7 +166,7 @@ void ChatCreator::emitCreateStateChanged()
 
 void ChatCreator::onUserResolved(const QUuid& userId, const shared::PublicUserInfo& userInfo)
 {
-    if (!m_pendingUserId.has_value() || userId != m_pendingUserId.value())
+    if (!m_pendingUsername.has_value() || userInfo.username() != m_pendingUsername.value())
         return;
 
     clearPendingUser();
@@ -165,9 +175,10 @@ void ChatCreator::onUserResolved(const QUuid& userId, const shared::PublicUserIn
 
 void ChatCreator::onOperationResultReceived(const shared::OperationResult& result)
 {
-    if (m_pendingUserId.has_value() && result.type() == shared::OperationResultType::ERROR) {
+    if (m_pendingUsername.has_value() && result.type() == shared::OperationResultType::ERROR)
+    {
         clearPendingUser();
-        setStatusText("Invalid user ID");
+        setStatusText("invalid username");
         return;
     }
 
