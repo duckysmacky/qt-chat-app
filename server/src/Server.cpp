@@ -475,6 +475,23 @@ void Server::handleLoginUser(const QTcpSocket* socket, const shared::Packet& pac
         return;
     }
 
+    for (const ClientConnection& existingConnection : m_clients)
+    {
+        if (!existingConnection.isAuthorized() || !existingConnection.userId().has_value())
+            continue;
+
+        if (existingConnection.sessionId() == connection.sessionId())
+            continue;
+
+        if (existingConnection.userId().value() != user->id())
+            continue;
+
+        sendError(connection.sessionId(), "User is already logged in from another device");
+        qWarning() << "Rejected duplicate login for user" << user->id().toString()
+                   << "from session" << connection.sessionId().toString();
+        return;
+    }
+
     connection.authorize(user->id());
 
     sendSuccess(connection.sessionId(), "Login successful");
