@@ -136,7 +136,7 @@ void ChatMessage::resolveSender()
     setSender("Loading...");
 
     if (const auto userInfo = UserResolver::instance().resolveUser(m_senderUserId); userInfo.has_value()) {
-        setSender(userInfo->username());
+        setSender(QString("@") + userInfo->username());
         return;
     }
 
@@ -148,7 +148,7 @@ void ChatMessage::resolveSender()
             if (userId != m_senderUserId)
                 return;
 
-            setSender(userInfo.username());
+            setSender(QString("@") + userInfo.username());
         }
     );
 }

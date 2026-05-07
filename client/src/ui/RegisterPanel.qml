@@ -41,12 +41,16 @@ Rectangle {
             TextField {
                 id: usernameField
                 Layout.fillWidth: true
+                placeholderText: "@username"
+                validator: RegularExpressionValidator {
+                    regularExpression: /^@?[a-z0-9_]{2,20}$/
+                }
                 enabled: Client.connected && !AccountManager.busy
             }
 
-            Label { text: "Name"; color: "#4f4038" }
+            Label { text: "Display name"; color: "#4f4038" }
             TextField {
-                id: nameField
+                id: displayNameField
                 Layout.fillWidth: true
                 enabled: Client.connected && !AccountManager.busy
             }
@@ -84,10 +88,15 @@ Rectangle {
             id: registerButton
             text: AccountManager.busy ? "Registering..." : "Register"
             Layout.fillWidth: true
-            enabled: Client.connected && !AccountManager.busy
+            enabled: Client.connected
+                && !AccountManager.busy
+                && usernameField.acceptableInput
+                && displayNameField.text.trim().length > 0
+                && emailField.text.trim().length > 0
+                && passwordField.text.length > 0
             onClicked: AccountManager.registerAccount(
                 usernameField.text,
-                nameField.text,
+                displayNameField.text,
                 emailField.text,
                 passwordField.text
             )

@@ -1,12 +1,31 @@
 #include "AccountManager.h"
 
 #include <QDebug>
+#include <QRegularExpression>
 
 #include <utility>
 
 #include "Client.h"
 #include "Hasher.h"
 #include "RequestManager.h"
+
+namespace {
+
+QString normalizeUsernameInput(QString username)
+{
+    username = username.trimmed();
+    if (username.startsWith('@'))
+        username.remove(0, 1);
+    return username;
+}
+
+bool isValidUsername(const QString& username)
+{
+    static const QRegularExpression usernamePattern("^[a-z0-9_]{2,20}$");
+    return usernamePattern.match(username).hasMatch();
+}
+
+}
 
 AccountManager& AccountManager::instance()
 {
@@ -46,20 +65,29 @@ void AccountManager::showRegister()
 void AccountManager::login(const QString& login, const QString& password)
 {
     if (m_busy || !Client::instance().connected()) return;
-    if (login.trimmed().isEmpty() || password.isEmpty()) return;
+    const QString normalizedLogin = normalizeUsernameInput(login);
+    if (normalizedLogin.isEmpty() || password.isEmpty()) return;
 
     m_pendingAction = PendingAction::Login;
     setUserProfile(std::nullopt);
     setStatusText("");
     setBusy(true);
 
-    RequestManager::instance().loginUser(login.trimmed(), Hasher::sha256(password));
+    RequestManager::instance().loginUser(normalizedLogin, Hasher::sha256(password));
 }
 
-void AccountManager::registerAccount(const QString& username, const QString& name, const QString& email, const QString& password)
+void AccountManager::registerAccount(const QString& username, const QString& displayName, const QString& email, const QString& password)
 {
     if (m_busy || !Client::instance().connected()) return;
-    if (username.trimmed().isEmpty() || name.trimmed().isEmpty() || email.trimmed().isEmpty() || password.isEmpty())
+    const QString normalizedUsername = normalizeUsernameInput(username);
+    const QString trimmedDisplayName = displayName.trimmed();
+
+    if (!isValidUsername(normalizedUsername)) {
+        setStatusText("Username must be 2-20 characters and contain only lowercase latin letters, numbers, and underscores");
+        return;
+    }
+
+    if (trimmedDisplayName.isEmpty() || email.trimmed().isEmpty() || password.isEmpty())
         return;
 
     m_pendingAction = PendingAction::Register;
@@ -68,8 +96,8 @@ void AccountManager::registerAccount(const QString& username, const QString& nam
     setBusy(true);
 
     RequestManager::instance().registerUser(
-        username.trimmed(),
-        name.trimmed(),
+        normalizedUsername,
+        trimmedDisplayName,
         email.trimmed(),
         Hasher::sha256(password)
     );
@@ -241,15 +269,15 @@ QString AccountManager::profileUsername() const
     if (!m_userProfile.has_value())
         return "";
 
-    return m_userProfile->username();
+    return QString("@") + m_userProfile->username();
 }
 
-QString AccountManager::profileName() const
+QString AccountManager::profileDisplayName() const
 {
     if (!m_userProfile.has_value())
         return "";
 
-    return m_userProfile->name();
+    return m_userProfile->displayName();
 }
 
 QString AccountManager::profileEmail() const

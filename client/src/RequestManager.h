@@ -45,7 +45,7 @@ public:
     void sendTextChatMessage(const QUuid& targetChatId, QString content) const;
     void sendMediaChatMessage(const QUuid& targetChatId, QString content) const;
     void loginUser(QString login, QString passwordHash) const;
-    void registerUser(QString username, QString name, QString email, QString passwordHash) const;
+    void registerUser(QString username, QString displayName, QString email, QString passwordHash) const;
     void logoutCurrentUser() const;
     void getCurrentUserProfile() const;
     void updateCurrentUserProfile(shared::ProfileUpdateInfo info) const;

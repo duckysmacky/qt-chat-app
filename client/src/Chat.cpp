@@ -58,7 +58,7 @@ QString Chat::label() const
 
         if (!userId.isNull()) {
             const auto userInfo = UserResolver::instance().resolveUser(userId);
-            username = userInfo.has_value() ? userInfo->username() : "Loading...";
+            username = userInfo.has_value() ? QString("@") + userInfo->username() : "Loading...";
         }
 
         if (!label.isEmpty()) {

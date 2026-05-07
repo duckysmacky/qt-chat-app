@@ -189,12 +189,12 @@ void RequestManager::loginUser(QString login, QString passwordHash) const
     sendPacket(shared::PacketFactory::loginUserPacket(client.sessionId(), client.serverId(), info));
 }
 
-void RequestManager::registerUser(QString username, QString name, QString email, QString passwordHash) const
+void RequestManager::registerUser(QString username, QString displayName, QString email, QString passwordHash) const
 {
     const Client& client = Client::instance();
     const shared::RegisterInfo info(
         std::move(username),
-        std::move(name),
+        std::move(displayName),
         std::move(email),
         std::move(passwordHash)
     );

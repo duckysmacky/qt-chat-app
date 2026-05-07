@@ -23,7 +23,7 @@ class AccountManager : public QObject
     Q_PROPERTY(bool userProfileLoaded READ userProfileLoaded NOTIFY userProfileChanged)
     Q_PROPERTY(QString profileUserId READ profileUserId NOTIFY userProfileChanged)
     Q_PROPERTY(QString profileUsername READ profileUsername NOTIFY userProfileChanged)
-    Q_PROPERTY(QString profileName READ profileName NOTIFY userProfileChanged)
+    Q_PROPERTY(QString profileDisplayName READ profileDisplayName NOTIFY userProfileChanged)
     Q_PROPERTY(QString profileEmail READ profileEmail NOTIFY userProfileChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
 
@@ -96,11 +96,11 @@ public:
     /**
      * @brief Attempts to register a new user account.
      * @param username Desired username.
-     * @param name Display name.
+     * @param displayName Display name.
      * @param email Email address.
      * @param password Plain text password (will be hashed).
      */
-    Q_INVOKABLE void registerAccount(const QString& username, const QString& name, const QString& email, const QString& password);
+    Q_INVOKABLE void registerAccount(const QString& username, const QString& displayName, const QString& email, const QString& password);
 
     /// @brief Logs out the current user.
     Q_INVOKABLE void logout();
@@ -115,7 +115,7 @@ public:
 
     QString profileUserId() const;
     QString profileUsername() const;
-    QString profileName() const;
+    QString profileDisplayName() const;
     QString profileEmail() const;
 
     const std::optional<shared::ProfileInfo>& userProfile() const { return m_userProfile; }

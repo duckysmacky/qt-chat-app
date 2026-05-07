@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QDebug>
+#include <QRegularExpression>
 #include <QSet>
 #include <qlogging.h>
 
@@ -21,6 +22,12 @@
 #include "util.h"
 
 namespace {
+
+bool isValidUsername(const QString& username)
+{
+    static const QRegularExpression usernamePattern("^[a-z0-9_]{2,20}$");
+    return usernamePattern.match(username).hasMatch();
+}
 
 shared::ChatInfo makeChatInfo(const Database& db, const model::Chat& chat)
 {
@@ -400,19 +407,32 @@ void Server::handleRegisterUser(const QTcpSocket* socket, const shared::Packet& 
     }
 
     Database& db = Database::instance();
+    const QString username = registerInfo->username().trimmed();
+    const QString displayName = registerInfo->displayName().trimmed();
+    const QString email = registerInfo->email().trimmed();
 
-    if (db.getUserByUsername(registerInfo->username()).has_value())
+    if (!isValidUsername(username)) {
+        sendError(connection.sessionId(), "Username must be 2-20 characters and contain only lowercase latin letters, numbers, and underscores");
+        return;
+    }
+
+    if (displayName.isEmpty()) {
+        sendError(connection.sessionId(), "Display name must not be empty");
+        return;
+    }
+
+    if (db.getUserByUsername(username).has_value())
     {
-        qWarning() << "Username" << registerInfo->username() << "already exists";
+        qWarning() << "Username" << username << "already exists";
         sendPacket(connection.sessionId(), shared::PacketFactory::operationErrorPacket(m_uuid, connection.sessionId(), "Username already exists"));
         return;
     }
 
     const model::User user(
-        registerInfo->username(),
-        registerInfo->name(),
+        username,
+        displayName,
         registerInfo->passwordHash(),
-        registerInfo->email()
+        email
     );
 
     if (!db.createUser(user))
@@ -423,7 +443,7 @@ void Server::handleRegisterUser(const QTcpSocket* socket, const shared::Packet& 
     }
 
     sendSuccess(connection.sessionId(), "Registration successful");
-    qInfo() << "Successfully registered client" << packet.sender() << "as" << registerInfo->username();
+    qInfo() << "Successfully registered client" << packet.sender() << "as" << username;
 }
 
 void Server::handleLoginUser(const QTcpSocket* socket, const shared::Packet& packet)
@@ -713,12 +733,23 @@ void Server::handleUpdateUserProfile(const QTcpSocket* socket, const shared::Pac
     if (updateInfo.username().has_value()) {
         const QString username = updateInfo.username().value().trimmed();
 
-        if (username.isEmpty()) {
-            sendError(connection.sessionId(), "Username must not be empty");
+        if (!isValidUsername(username)) {
+            sendError(connection.sessionId(), "Username must be 2-20 characters and contain only lowercase latin letters, numbers, and underscores");
             return;
         }
 
         updateInfo.setUsername(username);
+    }
+
+    if (updateInfo.displayName().has_value()) {
+        const QString displayName = updateInfo.displayName().value().trimmed();
+
+        if (displayName.isEmpty()) {
+            sendError(connection.sessionId(), "Display name must not be empty");
+            return;
+        }
+
+        updateInfo.setDisplayName(displayName);
     }
 
     if (updateInfo.email().has_value()) {

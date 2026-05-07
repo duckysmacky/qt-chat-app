@@ -66,13 +66,13 @@ Rectangle {
             }
 
             Label {
-                text: "Name"
+                text: "Display name"
                 color: "#6d5b50"
                 font.bold: true
             }
 
             TextArea {
-                text: AccountManager.userProfileLoaded ? AccountManager.profileName : "Loading..."
+                text: AccountManager.userProfileLoaded ? AccountManager.profileDisplayName : "Loading..."
                 readOnly: true
                 selectByMouse: true
                 color: "#2f241f"

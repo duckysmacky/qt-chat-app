@@ -102,7 +102,7 @@ QVariantList ChatCreator::members() const
     {
         QVariantMap member;
         member["userId"] = userInfo.userId().toString(QUuid::WithoutBraces);
-        member["username"] = userInfo.username();
+        member["username"] = QString("@") + userInfo.username();
         members.append(member);
     }
 
@@ -124,7 +124,7 @@ void ChatCreator::addResolvedUser(const shared::PublicUserInfo& userInfo)
 
     m_members.append(userInfo);
     m_memberIds.insert(userInfo.userId());
-    setStatusText("Successfully added " + userInfo.username());
+    setStatusText(QString("successfully added @") + userInfo.username());
     emit membersChanged();
     emitCreateStateChanged();
 }
