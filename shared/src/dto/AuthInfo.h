@@ -67,12 +67,12 @@ public:
     /**
      * @brief Constructs a RegisterInfo with specified user details.
      * @param username The desired username.
-     * @param name The display name of the user.
+     * @param displayName The display name of the user.
      * @param email The email address of the user.
      * @param passwordHash The hashed password of the user.
      */
     RegisterInfo(QString username,
-                 QString name,
+                 QString displayName,
                  QString email,
                  QString passwordHash);
 
@@ -81,8 +81,8 @@ public:
     const QString& username() const { return m_username; }
 
     /// @brief Returns the display name.
-    /// @return Constant reference to the name string.
-    const QString& name() const { return m_name; }
+    /// @return Constant reference to the display name string.
+    const QString& displayName() const { return m_displayName; }
 
     /// @brief Returns the email address.
     /// @return Constant reference to the email string.
@@ -107,7 +107,7 @@ public:
 
 private:
     QString m_username;      ///< Desired username
-    QString m_name;          ///< Display name of the user
+    QString m_displayName;   ///< Display name of the user
     QString m_email;         ///< Email address of the user
     QString m_passwordHash;  ///< Hashed password of the user
 };

@@ -1,5 +1,6 @@
 #include "CreateChatInfo.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -7,19 +8,19 @@
 
 namespace shared {
 
-ChatCreateInfo::ChatCreateInfo() = default;
-
-ChatCreateInfo::ChatCreateInfo(QString type, QString title)
-    : m_type(std::move(type)),
-    m_title(std::move(title))
+ChatCreateInfo::ChatCreateInfo(QList<QUuid> memberIds)
+    : m_memberIds(std::move(memberIds))
 {
 }
 
 QByteArray ChatCreateInfo::serialize() const
 {
     QJsonObject obj;
-    obj["type"] = m_type;
-    obj["title"] = m_title;
+
+    QJsonArray memberIds;
+    for (const QUuid& memberId : m_memberIds)
+        memberIds.append(memberId.toString(QUuid::WithoutBraces));
+    obj["memberIds"] = memberIds;
 
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
@@ -32,13 +33,20 @@ std::optional<ChatCreateInfo> ChatCreateInfo::deserialize(const QByteArray& byte
 
     const QJsonObject obj = doc.object();
 
-    if (!obj.contains("type") || !obj.contains("title"))
+    if (!obj.contains("memberIds") || !obj["memberIds"].isArray())
         return std::nullopt;
 
-    return ChatCreateInfo(
-        obj["type"].toString(),
-        obj["title"].toString()
-        );
+    QList<QUuid> memberIds;
+    for (const auto& value : obj["memberIds"].toArray()) {
+        if (!value.isString())
+            continue;
+
+        const QUuid memberId(value.toString());
+        if (!memberId.isNull())
+            memberIds.append(memberId);
+    }
+
+    return ChatCreateInfo(std::move(memberIds));
 }
 
 }

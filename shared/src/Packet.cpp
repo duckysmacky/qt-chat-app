@@ -64,7 +64,7 @@ Packet Packet::deserialize(QByteArray bytes)
     bytesReader.read(uuidBuffer, UUID_SIZE);
     const auto sender = QUuid::fromRfc4122(QByteArrayView{uuidBuffer, UUID_SIZE});
     bytesReader.read(uuidBuffer, UUID_SIZE);
-    const auto receiver = QUuid::fromBytes(uuidBuffer);
+    const auto receiver = QUuid::fromRfc4122(QByteArrayView{uuidBuffer, UUID_SIZE});
 
     bytes.remove(0, PACKET_HEADER_SIZE);
 

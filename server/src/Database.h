@@ -78,6 +78,7 @@ public:
     std::optional<model::User> getUserByEmail(const QString& email) const;
     std::optional<shared::ProfileInfo> getProfileInfoByUserId(const QUuid& userId) const;
     std::optional<shared::PublicUserInfo> getPublicUserInfoByUserId(const QUuid& userId) const;
+    std::optional<shared::PublicUserInfo> getPublicUserInfoByUsername(const QString& username) const;
     std::optional<model::User> updateUserProfile(const QUuid& userId, const shared::ProfileUpdateInfo& updateInfo);
     std::optional<model::User> authenticateUser(const shared::LoginInfo& loginInfo) const;
 
@@ -115,9 +116,10 @@ public:
 	/// @return An optional containing the chat if found, std::nullopt otherwise.
     std::optional<model::Chat> getChatById(const QUuid& id) const;
 
-	/// @brief Retrieves all chats from the database.
-	/// @return A list of all chat objects.
-    QList<model::Chat> getAllChats() const;
+    /// @brief Retrieves chats that the specified user belongs to.
+    /// @param userId The UUID of the user.
+    /// @return A list of chat objects for the user.
+    QList<model::Chat> getChatsByUserId(const QUuid& userId) const;
 
 	/// @brief Adds a member to a chat.
 	/// @param chatMember The chat member relationship to create.

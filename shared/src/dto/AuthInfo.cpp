@@ -46,11 +46,11 @@ std::optional<LoginInfo> LoginInfo::deserialize(const QByteArray& bytes)
 RegisterInfo::RegisterInfo() = default;
 
 RegisterInfo::RegisterInfo(QString username,
-                           QString name,
+                           QString displayName,
                            QString email,
                            QString passwordHash)
     : m_username(std::move(username)),
-    m_name(std::move(name)),
+    m_displayName(std::move(displayName)),
     m_email(std::move(email)),
     m_passwordHash(std::move(passwordHash))
 {
@@ -60,7 +60,7 @@ QByteArray RegisterInfo::serialize() const
 {
     QJsonObject obj;
     obj["username"] = m_username;
-    obj["name"] = m_name;
+    obj["displayName"] = m_displayName;
     obj["email"] = m_email;
     obj["passwordHash"] = m_passwordHash;
 
@@ -77,7 +77,7 @@ std::optional<RegisterInfo> RegisterInfo::deserialize(const QByteArray& bytes)
     const QJsonObject obj = doc.object();
 
     if (!obj.contains("username") ||
-        !obj.contains("name") ||
+        !obj.contains("displayName") ||
         !obj.contains("email") ||
         !obj.contains("passwordHash")) {
         return std::nullopt;
@@ -85,7 +85,7 @@ std::optional<RegisterInfo> RegisterInfo::deserialize(const QByteArray& bytes)
 
     return RegisterInfo(
         obj["username"].toString(),
-        obj["name"].toString(),
+        obj["displayName"].toString(),
         obj["email"].toString(),
         obj["passwordHash"].toString()
         );

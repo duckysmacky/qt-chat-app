@@ -27,6 +27,13 @@ Window {
         y: root.y + Math.round((root.height - height) / 2)
     }
 
+    ChatCreationWindow {
+        id: chatCreationWindow
+        transientParent: root
+        x: root.x + Math.round((root.width - width) / 2)
+        y: root.y + Math.round((root.height - height) / 2)
+    }
+
     Component.onCompleted: {
         if (!Client.connected) {
             connectionWindow.show()
@@ -70,10 +77,27 @@ Window {
             StatusIndicator { }
         }
 
-        ChatBox {
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 220
+            spacing: 8
+
+            ChatListPanel {
+                Layout.preferredWidth: 240
+                Layout.fillHeight: true
+                onCreateChatRequested: {
+                    ChatCreator.reset()
+                    chatCreationWindow.show()
+                    chatCreationWindow.raise()
+                    chatCreationWindow.requestActivate()
+                }
+            }
+
+            ChatBox {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: 220
+            }
         }
     }
 }

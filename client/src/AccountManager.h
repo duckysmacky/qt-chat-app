@@ -1,6 +1,12 @@
 #pragma once
 
 #include <QObject>
+#include <QUuid>
+
+#include <optional>
+
+#include "OperationResult.h"
+#include "dto/ProfileInfo.h"
 
 /**
  * @class AccountManager
@@ -14,7 +20,11 @@ class AccountManager : public QObject
     Q_PROPERTY(Mode mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
-    Q_PROPERTY(QString currentUser READ currentUser NOTIFY currentUserChanged)
+    Q_PROPERTY(bool userProfileLoaded READ userProfileLoaded NOTIFY userProfileChanged)
+    Q_PROPERTY(QString profileUserId READ profileUserId NOTIFY userProfileChanged)
+    Q_PROPERTY(QString profileUsername READ profileUsername NOTIFY userProfileChanged)
+    Q_PROPERTY(QString profileDisplayName READ profileDisplayName NOTIFY userProfileChanged)
+    Q_PROPERTY(QString profileEmail READ profileEmail NOTIFY userProfileChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusTextChanged)
 
 public:
@@ -38,18 +48,18 @@ private:
     enum class PendingAction
     {
         None,     ///< No pending action
-        Login,    ///< Login action pending
         Register, ///< Registration action pending
+        Login,    ///< Login action pending
+        FetchProfile,
         Logout
     };
 
 private:
+    std::optional<shared::ProfileInfo> m_userProfile;
     Mode m_mode;                      ///< Current UI mode
     bool m_loggedIn;                  ///< Whether the user is logged in
     bool m_busy;                      ///< Whether an async operation is in progress
     PendingAction m_pendingAction;    ///< Currently pending action
-    QString m_pendingUser;            ///< Username of the pending action
-    QString m_currentUser;            ///< Currently logged-in username
 
 public:
     /**
@@ -86,11 +96,11 @@ public:
     /**
      * @brief Attempts to register a new user account.
      * @param username Desired username.
-     * @param name Display name.
+     * @param displayName Display name.
      * @param email Email address.
      * @param password Plain text password (will be hashed).
      */
-    Q_INVOKABLE void registerAccount(const QString& username, const QString& name, const QString& email, const QString& password);
+    Q_INVOKABLE void registerAccount(const QString& username, const QString& displayName, const QString& email, const QString& password);
 
     /// @brief Logs out the current user.
     Q_INVOKABLE void logout();
@@ -101,6 +111,17 @@ public:
      */
     bool canSendMessages() const;
 
+    bool userProfileLoaded() const { return m_userProfile.has_value(); }
+
+    QString profileUserId() const;
+    QString profileUsername() const;
+    QString profileDisplayName() const;
+    QString profileEmail() const;
+
+    const std::optional<shared::ProfileInfo>& userProfile() const { return m_userProfile; }
+
+    std::optional<QUuid> userId() const;
+
     /// @brief Returns the current UI mode.
     Mode mode() const { return m_mode; }
 
@@ -110,9 +131,6 @@ public:
     /// @brief Returns whether an asynchronous operation is in progress.
     bool busy() const { return m_busy; }
 
-    /// @brief Returns the username of the currently logged-in user.
-    const QString& currentUser() const { return m_currentUser; }
-
     /// @brief Returns the current status text (e.g., error or info message).
     const QString& statusText() const { return m_statusText; }
 
@@ -121,12 +139,13 @@ signals:
     void loggedInChanged();           ///< Emitted when login state changes.
     void busyChanged();               ///< Emitted when busy state changes.
     void canSendMessagesChanged();    ///< Emitted when message-sending permission changes.
-    void currentUserChanged();        ///< Emitted when the current user changes.
+    void userProfileChanged();        ///< Emitted when the current user's profile changes.
     void statusTextChanged();         ///< Emitted when the status text changes.
 
 private slots:
     void onConnectionStatusChanged();  ///< Handles changes in server connection status.
-    void onResultReceived(bool success, const QString& message);  ///< Handles result from async operations.
+    void onOperationResultReceived(const shared::OperationResult& result);  ///< Handles result from async operations.
+    void onCurrentUserProfileReceived(const shared::ProfileInfo& profile);
 
 private:
     /**
@@ -138,8 +157,8 @@ private:
     void setMode(Mode mode);                     ///< Sets the UI mode and emits modeChanged.
     void setLoggedIn(bool loggedIn);             ///< Sets login state and emits loggedInChanged.
     void setBusy(bool busy);                     ///< Sets busy state and emits busyChanged.
-    void setCurrentUser(QString currentUser);    ///< Sets current user and emits currentUserChanged.
     void setStatusText(QString statusText);      ///< Sets status text and emits statusTextChanged.
+    void setUserProfile(std::optional<shared::ProfileInfo> profile);
     void resetAuthorizationState();              ///< Resets authorization-related state.
 
 private:

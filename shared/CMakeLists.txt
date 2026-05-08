@@ -9,14 +9,16 @@ add_library(shared STATIC
     src/PacketFactory.h
     src/dto/AuthInfo.h
     src/dto/AuthInfo.cpp
-        src/Result.h
-        src/Result.cpp
+        src/OperationResult.h
+        src/OperationResult.cpp
         src/dto/ProfileInfo.h
         src/dto/ProfileInfo.cpp
         src/dto/ProfileUpdateInfo.h
         src/dto/ProfileUpdateInfo.cpp
         src/dto/PublicUserInfo.h
         src/dto/PublicUserInfo.cpp
+        src/dto/UserInfoRequest.h
+        src/dto/UserInfoRequest.cpp
         src/dto/ChatInfo.h
         src/dto/ChatInfo.cpp
         src/dto/ChatsInfo.h
