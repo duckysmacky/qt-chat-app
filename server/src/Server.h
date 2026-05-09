@@ -4,7 +4,7 @@
 #include <QTcpSocket>
 #include <QString>
 #include <QHash>
-
+#include <optional>
 #include <cstdint>
 
 #include "Packet.h"
@@ -166,7 +166,7 @@ private:
     void sendProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const;
     void sendUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
     void sendEncryptedPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const;
-
+    std::optional<shared::Packet> decryptPacketPayload(const shared::Packet& packet) const;
 
     void handleChatsRequest(const QTcpSocket* socket, const shared::Packet& packet);
     void handleChatSearchRequest(const QTcpSocket* socket, const shared::Packet& packet);

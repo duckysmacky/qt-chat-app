@@ -484,8 +484,17 @@ void Server::handleAuthorizedPacket(const shared::Packet& packet) const
     switch (packet.type())
     {
     case shared::PacketType::MESSAGE:
-        handleChatMessage(connection, packet);
+    {
+        const auto decryptedPacket = decryptPacketPayload(packet);
+        if (!decryptedPacket.has_value())
+        {
+            sendError(sessionId, "Failed to decrypt message");
+            return;
+        }
+
+        handleChatMessage(connection, decryptedPacket.value());
         break;
+    }
 
     case shared::PacketType::COMMAND:
         qInfo() << "Command from" << sessionId.toString();
@@ -859,7 +868,7 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         const auto outboundPacket = shared::PacketFactory::messagePacket(
             connection.sessionId(),
             it.key(),
-            std::move(normalizedMessage)
+            normalizedMessage
         );
 
         sendEncryptedPacket(it.key(), outboundPacket);
@@ -962,5 +971,36 @@ void Server::sendEncryptedPacket(const QUuid& receiverSessionId, const shared::P
         );
 
     sendPacket(receiverSessionId, encryptedPacket);
+}
+std::optional<shared::Packet> Server::decryptPacketPayload(const shared::Packet& packet) const
+{
+    if (!packet.data().has_value())
+        return packet;
+
+    const QUuid& senderSessionId = packet.sender();
+
+    const auto keyStoreIt = m_keyStores.constFind(senderSessionId);
+    if (keyStoreIt == m_keyStores.constEnd())
+    {
+        qWarning() << "Cannot decrypt packet: key store not found for session"
+                   << senderSessionId.toString();
+        return std::nullopt;
+    }
+
+    const shared::KeyStore& keyStore = keyStoreIt.value();
+
+    const auto decryptedData = keyStore.decryptForSelf(packet.data().value());
+    if (!decryptedData.has_value())
+    {
+        qWarning() << "Cannot decrypt packet payload from session" << senderSessionId.toString();
+        return std::nullopt;
+    }
+
+    return shared::Packet(
+        packet.type(),
+        packet.sender(),
+        packet.receiver(),
+        decryptedData.value()
+        );
 }
 

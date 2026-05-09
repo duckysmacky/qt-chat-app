@@ -36,3 +36,9 @@ target_link_libraries(shared PUBLIC
     Qt6::Network
     Qt-Secret
 )
+if(WIN32)
+    target_compile_definitions(shared PRIVATE
+        Qt_SECRET_LIBRARY
+    )
+endif()
+
