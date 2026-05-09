@@ -862,7 +862,8 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
             std::move(normalizedMessage)
         );
 
-        sendPacket(it.key(), outboundPacket);
+        sendEncryptedPacket(it.key(), outboundPacket);
+
     }
 }
 
@@ -917,5 +918,49 @@ void Server::handleKeyExchange(const QTcpSocket* socket, const shared::Packet& p
     keyStoreIt.value().setPeerPublicKey(std::move(clientPublicKey));
 
     sendSuccess(connection.sessionId(), "Public key registered");
+}
+void Server::sendEncryptedPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const
+{
+    if (!packet.data().has_value())
+    {
+        sendPacket(receiverSessionId, packet);
+        return;
+    }
+
+    const auto keyStoreIt = m_keyStores.constFind(receiverSessionId);
+    if (keyStoreIt == m_keyStores.constEnd())
+    {
+        qWarning() << "Cannot encrypt packet: key store not found for session"
+                   << receiverSessionId.toString();
+        sendError(receiverSessionId, "Encryption key is not initialized");
+        return;
+    }
+
+    const shared::KeyStore& keyStore = keyStoreIt.value();
+
+    if (!keyStore.hasPeerPublicKey())
+    {
+        qWarning() << "Cannot encrypt packet: peer public key is missing for session"
+                   << receiverSessionId.toString();
+        sendError(receiverSessionId, "Encryption key is not registered");
+        return;
+    }
+
+    const auto encryptedData = keyStore.encryptForPeer(packet.data().value());
+    if (!encryptedData.has_value())
+    {
+        qWarning() << "Cannot encrypt packet payload for session" << receiverSessionId.toString();
+        sendError(receiverSessionId, "Failed to encrypt packet");
+        return;
+    }
+
+    const shared::Packet encryptedPacket(
+        packet.type(),
+        packet.sender(),
+        packet.receiver(),
+        encryptedData.value()
+        );
+
+    sendPacket(receiverSessionId, encryptedPacket);
 }
 

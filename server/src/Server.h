@@ -165,6 +165,8 @@ private:
     void handleUserInfoRequest(const QTcpSocket* socket, const shared::Packet& packet);
     void sendProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const;
     void sendUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
+    void sendEncryptedPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const;
+
 
     void handleChatsRequest(const QTcpSocket* socket, const shared::Packet& packet);
     void handleChatSearchRequest(const QTcpSocket* socket, const shared::Packet& packet);
