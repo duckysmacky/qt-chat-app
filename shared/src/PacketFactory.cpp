@@ -113,5 +113,11 @@ Packet PacketFactory::chatDataPacket(const QUuid& sender, const QUuid& receiver,
     return Packet{PacketType::CHAT_DATA, sender, receiver, info.serialize()};
 }
 
+Packet PacketFactory::keyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey)
+{
+    return Packet{PacketType::KEY_EXCHANGE, sender, receiver, std::move(publicKey)};
+}
+
+
 
 }

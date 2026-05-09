@@ -39,6 +39,7 @@ public:
     static Packet chatSearchRequestPacket(const QUuid& sender, const QUuid& receiver, QString query);
     static Packet chatCreateRequestPacket(const QUuid& sender, const QUuid& receiver, ChatCreateInfo info);
     static Packet chatDataPacket(const QUuid& sender, const QUuid& receiver, ChatInfo info);
+    static Packet keyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey);
 
 
 };

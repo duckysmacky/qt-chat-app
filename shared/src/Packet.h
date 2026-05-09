@@ -17,6 +17,8 @@ enum class PacketType
 {
     /// Invalid packet
     INVALID,
+    /// Packet for exchange public key
+    KEY_EXCHANGE,
     /// Text message
     MESSAGE,
     /// Special command for server

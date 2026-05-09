@@ -16,7 +16,6 @@
 #include "dto/CreateChatInfo.h"
 #include "model/ChatMember.h"
 #include "model/Chat.h"
-#include "KeyStore.h"
 
 
 
@@ -220,6 +219,10 @@ void Server::onServerRead()
                 handleChatCreateRequest(socket, packet);
                 break;
 
+            case shared::PacketType::KEY_EXCHANGE:
+                handleKeyExchange(socket, packet);
+                break;
+
             default:
                 handleAuthorizedPacket(packet);
                 break;
@@ -286,6 +289,7 @@ void Server::onClientDisconnected()
         }
 
         qInfo() << "Client session" << disconnectedSessionId.toString() << "disconnected";
+        m_keyStores.remove(disconnectedSessionId);
         m_clients.erase(it);
         break;
     }
@@ -350,8 +354,10 @@ void Server::handleConnect(QTcpSocket* socket, const shared::Packet& packet)
     }
 
     m_clients.insert(sessionId, ClientConnection(sessionId, socket));
+    m_keyStores.insert(sessionId, shared::KeyStore{});
 
-	sendSuccess(sessionId, "Connected");
+    sendSuccess(sessionId, "Connected");
+    sendPublicKey(sessionId);
     qInfo() << "Connected a new client" << sessionId;
 }
 
@@ -858,5 +864,58 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
 
         sendPacket(it.key(), outboundPacket);
     }
+}
+
+void Server::sendPublicKey(const QUuid& receiverSessionId) const
+{
+    const auto it = m_keyStores.constFind(receiverSessionId);
+    if (it == m_keyStores.constEnd())
+    {
+        qWarning() << "Cannot send public key: key store not found for session"
+                   << receiverSessionId.toString();
+        return;
+    }
+
+    const auto packet = shared::PacketFactory::keyExchangePacket(
+        m_uuid,
+        receiverSessionId,
+        it.value().publicKey()
+        );
+
+    sendPacket(receiverSessionId, packet);
+}
+
+void Server::handleKeyExchange(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::KEY_EXCHANGE) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value())
+    {
+        qWarning() << "Client" << packet.sender() << "not yet connected, cannot exchange keys";
+        return;
+    }
+
+    const ClientConnection& connection = connectionOpt->get();
+
+    if (!connection.matchesSocket(socket))
+        return;
+
+    const auto& payload = packet.data();
+    if (!payload.has_value() || payload->isEmpty())
+    {
+        sendError(connection.sessionId(), "Public key payload is missing");
+        return;
+    }
+
+    auto keyStoreIt = m_keyStores.find(connection.sessionId());
+    if (keyStoreIt == m_keyStores.end())
+        keyStoreIt = m_keyStores.insert(connection.sessionId(), shared::KeyStore{});
+
+    QByteArray clientPublicKey = payload.value();
+    keyStoreIt.value().setPeerPublicKey(std::move(clientPublicKey));
+
+    sendSuccess(connection.sessionId(), "Public key registered");
 }
 

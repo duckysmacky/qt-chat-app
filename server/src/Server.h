@@ -30,6 +30,8 @@ private:
     QHash<QUuid, ClientConnection> m_clients; ///< Connected clients
     QHash<QUuid, shared::KeyStore> m_keyStores;
     bool m_isRunning; ///< Server running state (true/false)
+    void handleKeyExchange(const QTcpSocket* socket, const shared::Packet& packet);
+    void sendPublicKey(const QUuid& receiverSessionId) const;
 
 public:
     /**
