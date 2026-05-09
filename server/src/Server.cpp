@@ -16,6 +16,7 @@
 #include "dto/CreateChatInfo.h"
 #include "model/ChatMember.h"
 #include "model/Chat.h"
+#include "KeyStore.h"
 
 
 
