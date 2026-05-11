@@ -1,7 +1,6 @@
 find_package(Qt6 REQUIRED COMPONENTS Qml Quick Network)
 
-qt_add_executable(client_app
-    src/main.cpp
+add_library(client_lib STATIC
     src/Client.cpp
     src/Client.h
     src/RequestManager.cpp
@@ -24,6 +23,21 @@ qt_add_executable(client_app
 	src/ChatCreator.h
 )
 
+target_include_directories(client_lib PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(client_lib PUBLIC
+    shared_lib
+    Qt6::Quick
+    Qt6::Qml
+    Qt6::Network
+)
+
+qt_add_executable(client_app
+    src/main.cpp
+)
+
 qt_add_qml_module(client_app
     URI ChatApp
     VERSION 1.0
@@ -44,10 +58,7 @@ qt_add_qml_module(client_app
 )
 
 target_link_libraries(client_app PRIVATE
-    shared
-    Qt6::Quick
-    Qt6::Qml
-    Qt6::Network
+    client_lib
 )
 
 set_target_properties(client_app PROPERTIES
@@ -67,3 +78,7 @@ install(TARGETS client_app
 if(WIN32)
     enable_qt_windows_deploy(client_app QML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/ui")
 endif()
+
+add_module_tests(client
+    client_lib
+)

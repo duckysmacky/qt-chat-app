@@ -1,4 +1,4 @@
-add_library(shared STATIC
+add_library(shared_lib STATIC
     src/util.cpp
     src/util.h
     src/Packet.cpp
@@ -27,11 +27,15 @@ add_library(shared STATIC
         src/dto/CreateChatInfo.cpp
 )
 
-target_include_directories(shared PUBLIC
+target_include_directories(shared_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(shared PUBLIC
+target_link_libraries(shared_lib PUBLIC
     Qt6::Core
     Qt6::Network
+)
+
+add_module_tests(shared
+    shared_lib
 )

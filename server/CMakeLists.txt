@@ -1,7 +1,6 @@
 find_package(Qt6 REQUIRED COMPONENTS Sql)
 
-qt_add_executable(server_app
-    src/main.cpp
+add_library(server_lib STATIC
 	src/Server.cpp
 	src/Server.h
 	src/Database.cpp
@@ -26,11 +25,23 @@ qt_add_executable(server_app
 	src/model/UserStats.h
 )
 
-target_link_libraries(server_app PRIVATE
-    shared
+target_include_directories(server_lib PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(server_lib PUBLIC
+    shared_lib
     Qt6::Core
     Qt6::Network
     Qt6::Sql
+)
+
+qt_add_executable(server_app
+    src/main.cpp
+)
+
+target_link_libraries(server_app PRIVATE
+    server_lib
 )
 
 include(GNUInstallDirs)
@@ -43,3 +54,7 @@ install(TARGETS server_app
 if(WIN32)
     enable_qt_windows_deploy(server_app)
 endif()
+
+add_module_tests(server
+    server_lib
+)

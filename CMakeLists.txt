@@ -11,6 +11,45 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
+include(CTest)
+enable_testing()
+
+include(FetchContent)
+
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        v1.17.0
+)
+FetchContent_MakeAvailable(googletest)
+
+include(GoogleTest)
+
+function(add_module_tests module_name module_lib)
+    file(GLOB test_sources CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
+    )
+
+    foreach(test_source IN LISTS test_sources)
+        get_filename_component(test_name "${test_source}" NAME_WE)
+        string(REPLACE "-" "_" test_id "${test_name}")
+        set(test_target "${module_name}_${test_id}")
+
+        add_executable(${test_target}
+            ${test_source}
+        )
+
+        target_link_libraries(${test_target} PRIVATE
+            GTest::gtest_main
+            ${module_lib}
+        )
+
+        gtest_discover_tests(${test_target}
+            TEST_PREFIX "${module_name}."
+        )
+    endforeach()
+endfunction()
+
 option(BUILD_CLIENT "Build the client app" ON)
 option(BUILD_SERVER "Build the server server" ON)
 
