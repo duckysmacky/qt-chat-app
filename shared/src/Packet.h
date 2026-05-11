@@ -1,3 +1,8 @@
+/**
+ * @file Packet.h
+ * @brief Defines the Packet class and PacketType enum for network communication.
+ */
+
 #pragma once
 
 #include <QByteArray>
@@ -63,17 +68,55 @@ private:
     PacketType m_type;  ///< Packet type
     QUuid m_sender;     ///< Sender UUID
     QUuid m_receiver;   ///< Receiver UUID
-    std::optional<QByteArray> m_data;
+    std::optional<QByteArray> m_data;  ///< Optional packet data payload
 
 public:
+    /**
+     * @brief Constructs a Packet with type, sender, and receiver.
+     * @param type The type of the packet.
+     * @param sender UUID of the sender.
+     * @param receiver UUID of the receiver.
+     */
     Packet(PacketType type, QUuid sender, QUuid receiver);
+    
+    /**
+     * @brief Constructs a Packet with type, sender, receiver, and data.
+     * @param type The type of the packet.
+     * @param sender UUID of the sender.
+     * @param receiver UUID of the receiver.
+     * @param data The packet data payload.
+     */
     Packet(PacketType type, QUuid sender, QUuid receiver, QByteArray data);
 
+    /**
+     * @brief Copy constructor.
+     * @param other The Packet to copy from.
+     */
     Packet(const Packet& other) = default;
+    
+    /**
+     * @brief Copy assignment operator.
+     * @param other The Packet to copy from.
+     * @return Reference to this Packet.
+     */
     Packet& operator =(const Packet& other) = default;
+    
+    /**
+     * @brief Move constructor.
+     * @param other The Packet to move from.
+     */
     Packet(Packet&& other) noexcept;
+    
+    /**
+     * @brief Move assignment operator.
+     * @param other The Packet to move from.
+     * @return Reference to this Packet.
+     */
     Packet& operator =(Packet&& other) noexcept;
 
+    /**
+     * @brief Destructor.
+     */
     ~Packet() = default;
 
     /**
@@ -89,9 +132,28 @@ public:
      */
     QByteArray serialize() const;
 
+    /**
+     * @brief Gets the packet type.
+     * @return Constant reference to the packet type.
+     */
     const PacketType& type() const { return m_type; }
+    
+    /**
+     * @brief Gets the sender UUID.
+     * @return Constant reference to the sender UUID.
+     */
     const QUuid& sender() const { return m_sender; }
+    
+    /**
+     * @brief Gets the receiver UUID.
+     * @return Constant reference to the receiver UUID.
+     */
     const QUuid& receiver() const { return m_receiver; }
+    
+    /**
+     * @brief Gets the packet data payload.
+     * @return Constant optional reference to the packet data.
+     */
     const std::optional<QByteArray>& data() const { return m_data; }
 };
 

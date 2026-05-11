@@ -14,15 +14,77 @@
  */
 class ChatMessage : public QObject
 {
-    Q_OBJECT
-    Q_PROPERTY(bool isOwn READ isOwn CONSTANT)
-    Q_PROPERTY(QString content READ content CONSTANT)
-    Q_PROPERTY(QString sender READ sender NOTIFY senderChanged)
-    Q_PROPERTY(QString timeSent READ formattedTimeSent NOTIFY timeSentChanged)
-    Q_PROPERTY(QString timeReceived READ formattedTimeReceived NOTIFY timeReceivedChanged)
-    Q_PROPERTY(Status status READ status NOTIFY statusChanged)
-    Q_PROPERTY(QString statusText READ statusText NOTIFY statusChanged)
+    /**
+     * @brief Q_PROPERTY definitions for the ChatMessage class.
+     * 
+     * These properties expose the message attributes to the QML engine.
+     */
 
+    Q_OBJECT
+        /**
+         * @property isOwn
+         * @brief Indicates whether the current user is the sender of this message.
+         * 
+         * Returns true if the message was sent by the currently authenticated user,
+         * false otherwise. This property is constant and does not change over time.
+         */
+        Q_PROPERTY(bool isOwn READ isOwn CONSTANT)
+
+        /**
+         * @property content
+         * @brief The text content of the chat message.
+         * 
+         * Contains the actual message text sent by the user. This property is
+         * constant and immutable after message creation.
+         */
+        Q_PROPERTY(QString content READ content CONSTANT)
+
+        /**
+         * @property sender
+         * @brief The display name or identifier of the message sender.
+         * 
+         * Returns the name of the user who sent this message. This property
+         * emits the senderChanged signal when updated.
+         */
+        Q_PROPERTY(QString sender READ sender NOTIFY senderChanged)
+
+        /**
+         * @property timeSent
+         * @brief The formatted timestamp when the message was sent.
+         * 
+         * Returns a human-readable formatted string representing the time
+         * the message was sent. Emits timeSentChanged signal when updated.
+         */
+        Q_PROPERTY(QString timeSent READ formattedTimeSent NOTIFY timeSentChanged)
+
+        /**
+         * @property timeReceived
+         * @brief The formatted timestamp when the message was received.
+         * 
+         * Returns a human-readable formatted string representing the time
+         * the message was received by the client. Emits timeReceivedChanged
+         * signal when updated.
+         */
+        Q_PROPERTY(QString timeReceived READ formattedTimeReceived NOTIFY timeReceivedChanged)
+
+        /**
+         * @property status
+         * @brief The current delivery status of the message.
+         * 
+         * Indicates the message's delivery state (e.g., sending, sent,
+         * delivered, read, failed). Emits statusChanged signal when updated.
+         */
+        Q_PROPERTY(Status status READ status NOTIFY statusChanged)
+
+        /**
+         * @property statusText
+         * @brief A human-readable description of the message status.
+         * 
+         * Provides user-friendly text describing the current message status
+         * (e.g., "Sending...", "Sent", "Delivered", "Failed to send").
+         * Emits statusChanged signal when updated.
+         */
+        Q_PROPERTY(QString statusText READ statusText NOTIFY statusChanged)
 public:
     /**
      * @enum Status

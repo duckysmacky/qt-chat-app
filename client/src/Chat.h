@@ -46,8 +46,15 @@ public:
      */
     Q_INVOKABLE void submitMessage(const QString& text);
 
+    /**
+     * @brief Gets the label text.
+     * @return The label as a QString.
+     * 
+     * This method is invokable from QML, allowing QML code to retrieve
+     * the label text value.
+     */
     Q_INVOKABLE QString label() const;
-
+    
     const QUuid& id() const { return m_id; }
     const QSet<QUuid>& otherMembers() const { return m_otherMembers; }
     void setOtherMembers(QSet<QUuid> otherMembers);
