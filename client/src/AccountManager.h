@@ -72,6 +72,8 @@ private:
     bool m_loggedIn;                                    ///< Whether the user is currently logged in.
     bool m_busy;                                        ///< Whether an asynchronous operation is in progress.
     PendingAction m_pendingAction;                      ///< Currently pending action type.
+    QString m_statusText;                               ///< Current status message text (e.g., error or info).
+
 
 public:
     /**
