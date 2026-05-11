@@ -30,6 +30,10 @@ client profile="debug":
 server profile="debug":
     just build {{ profile }} server
 
+test profile="debug":
+    @just _validate_profile {{ profile }}
+    @just _test-{{ if os() == "windows" { "windows" } else { "unix" } }} {{ profile }}
+
 _validate_profile profile:
     @{{ if profile == "debug" { "cmake -E true" } else if profile == "release" { "cmake -E true" } else { "cmake -E echo Invalid profile '" + profile + "'. Use debug|release. && cmake -E false" } }}
 
@@ -43,3 +47,13 @@ _build-unix profile component:
 _build-windows profile component:
     & .\scripts\devshell.bat cmake --preset {{ preset_prefix }}-{{ profile }}
     & .\scripts\devshell.bat cmake --build --preset {{ preset_prefix }}-{{ profile }}{{ if component == "all" { "" } else if component == "client" { " --target client_app" } else { " --target server_app" } }}
+
+_test-unix profile:
+    cmake --preset {{ preset_prefix }}-{{ profile }}
+    cmake --build --preset {{ preset_prefix }}-{{ profile }}
+    ctest --test-dir build/{{ profile }} --output-on-failure
+
+_test-windows profile:
+    & .\scripts\devshell.bat cmake --preset {{ preset_prefix }}-{{ profile }}
+    & .\scripts\devshell.bat cmake --build --preset {{ preset_prefix }}-{{ profile }}
+    & .\scripts\devshell.bat ctest --test-dir build/{{ profile }} --output-on-failure

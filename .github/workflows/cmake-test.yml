@@ -1,0 +1,47 @@
+name: CMake Tests
+
+on:
+  workflow_run:
+    workflows:
+      - CMake Build
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run tests
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libpq-dev \
+            libqt6sql6-psql
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.*"
+          host: "linux"
+          target: "desktop"
+          arch: "linux_gcc_64"
+          cache: true
+
+      - name: Configure
+        run: cmake -S . -B build/tests -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=ON -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+
+      - name: Build tests
+        run: cmake --build build/tests --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build/tests --output-on-failure
