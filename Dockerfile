@@ -6,6 +6,7 @@ RUN apt-get update \
  && apt-get install -y \
 			build-essential \
 			cmake \
+			git \
 			qt6-base-dev \
 			libpq-dev \
 			libqt6sql6-psql \
