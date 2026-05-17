@@ -9,8 +9,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
-qt_standard_project_setup(REQUIRES 6.8)
-
 include(FetchContent)
 
 FetchContent_Declare(
@@ -20,11 +18,25 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
     GIT_SUBMODULES_RECURSE TRUE
+    PATCH_COMMAND ${CMAKE_COMMAND}
+        -DQT_SECRET_SOURCE_DIR=<SOURCE_DIR>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/PatchQtSecretTargets.cmake
 )
 
+set(QTSECRET_TESTS OFF CACHE BOOL "Disable Qt-Secret dependency tests" FORCE)
+set(BIGINT_TESTS OFF CACHE BOOL "Disable QtBigint dependency tests" FORCE)
+set(QTSECRET_GUI OFF CACHE BOOL "Disable Qt-Secret GUI example" FORCE)
+
+if(DEFINED BUILD_TESTING)
+    set(CHAT_APP_BUILD_TESTING ${BUILD_TESTING})
+else()
+    set(CHAT_APP_BUILD_TESTING ON)
+endif()
+
+set(BUILD_TESTING OFF)
 FetchContent_MakeAvailable(qt_secret)
 
-option(BUILD_TESTING "Build tests" ON)
+set(BUILD_TESTING ${CHAT_APP_BUILD_TESTING} CACHE BOOL "Build tests" FORCE)
 
 if(BUILD_TESTING)
     enable_testing()
@@ -65,6 +77,7 @@ if(BUILD_TESTING)
     endfunction()
 endif()
 
+qt_standard_project_setup(REQUIRES 6.8)
 
 option(BUILD_CLIENT "Build the client app" ON)
 option(BUILD_SERVER "Build the server server" ON)
