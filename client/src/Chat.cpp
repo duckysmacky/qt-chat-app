@@ -1,60 +1,122 @@
 #include "Chat.h"
 
-#include "Client.h"
+#include <utility>
 
-Chat::Chat(QObject* parent)
-    : QObject(parent)
+#include "AccountManager.h"
+#include "RequestManager.h"
+#include "UserResolver.h"
+
+Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
+    : QObject(parent),
+      m_id(std::move(id)),
+      m_otherMembers(std::move(otherMembers)),
+      m_messageSender(new MessageSender(m_id))
 {
-    connect(&Client::instance(), &Client::messageReceived, this, &Chat::onNewMessage);
+    m_messageSender->moveToThread(&m_senderThread);
+
+    connect(&m_senderThread, &QThread::finished, m_messageSender, &QObject::deleteLater);
+    connect(this, &Chat::messageSubmitted, m_messageSender, &MessageSender::processMessage);
+    connect(m_messageSender, &MessageSender::messageSent, this, &Chat::onMessageSent);
+
+    connect(&RequestManager::instance(), &RequestManager::chatMessageReceived, this, &Chat::onNewMessage);
+    connect(&UserResolver::instance(), &UserResolver::userResolved, this, [this](const QUuid& userId, const shared::PublicUserInfo&) {
+        if (m_otherMembers.contains(userId))
+            emit labelChanged();
+    });
+
+    for (const QUuid& userId : m_otherMembers)
+        UserResolver::instance().resolveUser(userId);
+
+    m_senderThread.start();
+}
+
+Chat::~Chat()
+{
+    m_senderThread.quit();
+    m_senderThread.wait();
 }
 
 void Chat::submitMessage(const QString& text)
 {
     if (text.trimmed().isEmpty()) return;
 
-    Client& client = Client::instance();
-    const QString sender = client.uuid().toString();
+    const QUuid senderUserId = AccountManager::instance().userId().value_or(QUuid());
 
-    ChatMessage* message = new ChatMessage(true, text, sender, this);
+    const auto message = new ChatMessage(true, text, senderUserId, this);
     addChatMessage(message);
 
-    qInfo() << "Sending message:" << text;
-    client.sendMessage(text);
-
-    onMessageSent(message->id());
+    emit messageSubmitted(message);
 }
 
-void Chat::onNewMessage(const QString& sender, const shared::Message& messagePacket)
+QString Chat::label() const
 {
+    QString label;
+
+    for (const QUuid& userId : m_otherMembers)
+    {
+        QString displayName = "Unknown";
+
+        if (!userId.isNull())
+        {
+            const auto userInfo = UserResolver::instance().resolveUser(userId);
+            displayName = userInfo.has_value() ? userInfo->displayName() : "Loading...";
+        }
+
+        if (!label.isEmpty())
+            label.append(", ");
+
+        label.append(displayName);
+    }
+
+    return label;
+}
+
+void Chat::setOtherMembers(QSet<QUuid> otherMembers)
+{
+    if (m_otherMembers == otherMembers)
+        return;
+
+    m_otherMembers = std::move(otherMembers);
+
+    for (const QUuid& userId : m_otherMembers)
+        UserResolver::instance().resolveUser(userId);
+
+    emit labelChanged();
+}
+
+void Chat::onNewMessage(const shared::Message& messagePacket)
+{
+    if (messagePacket.targetChatId() != m_id) return;
     if (messagePacket.type() != shared::MessageType::TEXT) return;
 
-    qInfo() << "Incoming text message from" << sender;
+    const QUuid& senderUserId = messagePacket.senderUserId();
+    qInfo() << "Incoming text message from" << senderUserId;
 
-    ChatMessage* chatMessage = new ChatMessage(false, messagePacket.content(), sender, this);
+    ChatMessage* chatMessage = new ChatMessage(false, messagePacket.content(), senderUserId, this);
     addChatMessage(chatMessage);
 
     onMessageReceived(chatMessage->id());
 }
 
-void Chat::onMessageSent(const QUuid& messageId)
+void Chat::onMessageSent(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->markAsSent();
 }
 
-void Chat::onMessageDelivered(const QUuid& messageId)
+void Chat::onMessageDelivered(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->setStatus(ChatMessage::Status::Delivered);
 }
 
-void Chat::onMessageRead(const QUuid& messageId)
+void Chat::onMessageRead(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->setStatus(ChatMessage::Status::Read);
 }
 
-void Chat::onMessageReceived(const QUuid& messageId)
+void Chat::onMessageReceived(const QUuid& messageId) const
 {
     if (ChatMessage* message = findChatMessage(messageId))
         message->markAsReceived();

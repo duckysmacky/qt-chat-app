@@ -6,13 +6,29 @@ namespace model {
 
 Chat::Chat() = default;
 
-Chat::Chat(QString type,
-           QUuid createdBy,
-           QString title)
+QString chatTypeToString(const ChatType type)
+{
+    switch (type)
+    {
+    case ChatType::Direct:
+        return "direct";
+    case ChatType::Group:
+        return "group";
+    }
+
+    return "direct";
+}
+
+ChatType chatTypeFromString(const QString& type)
+{
+    return type == "group" ? ChatType::Group : ChatType::Direct;
+}
+
+Chat::Chat(ChatType type,
+           QUuid createdBy)
     : m_id(QUuid::createUuid()),
-      m_type(std::move(type)),
+      m_type(type),
       m_createdBy(std::move(createdBy)),
-      m_title(std::move(title)),
       m_createdAt(QDateTime::currentDateTime())
 {
 }
@@ -22,7 +38,7 @@ const QUuid& Chat::id() const
     return m_id;
 }
 
-const QString& Chat::type() const
+ChatType Chat::type() const
 {
     return m_type;
 }
@@ -30,11 +46,6 @@ const QString& Chat::type() const
 const QUuid& Chat::createdBy() const
 {
     return m_createdBy;
-}
-
-const QString& Chat::title() const
-{
-    return m_title;
 }
 
 const QDateTime& Chat::createdAt() const
@@ -47,7 +58,7 @@ void Chat::setId(const QUuid& id)
     m_id = id;
 }
 
-void Chat::setType(const QString& type)
+void Chat::setType(ChatType type)
 {
     m_type = type;
 }
@@ -55,11 +66,6 @@ void Chat::setType(const QString& type)
 void Chat::setCreatedBy(const QUuid& createdBy)
 {
     m_createdBy = createdBy;
-}
-
-void Chat::setTitle(const QString& title)
-{
-    m_title = title;
 }
 
 void Chat::setCreatedAt(const QDateTime& createdAt)

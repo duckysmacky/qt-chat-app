@@ -1,4 +1,4 @@
-name: CMake Target Build
+name: CMake Build
 
 on:
   pull_request:
@@ -126,4 +126,4 @@ jobs:
         run: cmake -S . -B build/shared -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 
       - name: Build shared
-        run: cmake --build build/shared --target shared --parallel
+        run: cmake --build build/shared --target shared_lib --parallel

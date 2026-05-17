@@ -45,6 +45,7 @@ Rectangle {
             TextField {
                 id: loginField
                 Layout.fillWidth: true
+                placeholderText: "@example"
                 enabled: Client.connected && !AccountManager.busy
             }
 

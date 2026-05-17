@@ -49,14 +49,17 @@ Message Message::deserialize(QByteArray bytes)
     {
         const QJsonObject obj = doc.object();
 
-        if (obj.contains("senderUserId") &&
-            obj.contains("targetChatId") &&
+        const QString userKey = obj.contains("user") ? "user" : "senderUserId";
+        const QString targetChatKey = obj.contains("targetChat") ? "targetChat" : "targetChatId";
+
+        if (obj.contains(userKey) &&
+            obj.contains(targetChatKey) &&
             obj.contains("type") &&
             obj.contains("content"))
         {
             return Message(
-                QUuid(obj["senderUserId"].toString()),
-                QUuid(obj["targetChatId"].toString()),
+                QUuid(obj[userKey].toString()),
+                QUuid(obj[targetChatKey].toString()),
                 static_cast<MessageType>(obj["type"].toInt()),
                 obj["content"].toString()
             );
@@ -78,8 +81,8 @@ Message Message::deserialize(QByteArray bytes)
 QByteArray Message::serialize() const
 {
     QJsonObject obj;
-    obj["senderUserId"] = m_senderUserId.toString(QUuid::WithoutBraces);
-    obj["targetChatId"] = m_targetChatId.toString(QUuid::WithoutBraces);
+    obj["user"] = m_senderUserId.toString(QUuid::WithoutBraces);
+    obj["targetChat"] = m_targetChatId.toString(QUuid::WithoutBraces);
     obj["type"] = static_cast<int>(m_type);
     obj["content"] = m_content;
 

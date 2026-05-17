@@ -1,4 +1,4 @@
-add_library(shared STATIC
+add_library(shared_lib STATIC
     src/util.cpp
     src/util.h
     src/Packet.cpp
@@ -9,14 +9,16 @@ add_library(shared STATIC
     src/PacketFactory.h
     src/dto/AuthInfo.h
     src/dto/AuthInfo.cpp
-        src/Result.h
-        src/Result.cpp
+        src/OperationResult.h
+        src/OperationResult.cpp
         src/dto/ProfileInfo.h
         src/dto/ProfileInfo.cpp
         src/dto/ProfileUpdateInfo.h
         src/dto/ProfileUpdateInfo.cpp
         src/dto/PublicUserInfo.h
         src/dto/PublicUserInfo.cpp
+        src/dto/UserInfoRequest.h
+        src/dto/UserInfoRequest.cpp
         src/dto/ChatInfo.h
         src/dto/ChatInfo.cpp
         src/dto/ChatsInfo.h
@@ -27,18 +29,24 @@ add_library(shared STATIC
         src/KeyStore.cpp
 )
 
-target_include_directories(shared PUBLIC
+target_include_directories(shared_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(shared PUBLIC
+target_link_libraries(shared_lib PUBLIC
     Qt6::Core
     Qt6::Network
     Qt-Secret
 )
+
 if(WIN32)
-    target_compile_definitions(shared PRIVATE
+    target_compile_definitions(shared_lib PUBLIC
         Qt_SECRET_LIBRARY
     )
 endif()
 
+if(BUILD_TESTING)
+    add_module_tests(shared
+        shared_lib
+    )
+endif()

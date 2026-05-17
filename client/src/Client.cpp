@@ -1,12 +1,12 @@
 #include "Client.h"
 
 #include <QAbstractSocket>
+#include <QDebug>
+#include <QMetaObject>
 
-#include "dto/AuthInfo.h"
-#include "Packet.h"
-#include "PacketFactory.h"
-#include "Result.h"
-#include "util.h"
+#include <utility>
+
+#include "RequestManager.h"
 
 Client& Client::instance()
 {
@@ -16,7 +16,7 @@ Client& Client::instance()
 
 Client::Client(QObject* parent)
     : QObject(parent),
-      m_uuid(QUuid::createUuid()),
+      m_sessionId(QUuid::createUuid()),
       m_socket(this),
       m_connected(false)
 {
@@ -47,37 +47,9 @@ void Client::disconnect()
     m_socket.disconnectFromHost();
 }
 
-void Client::sendMessage(QString content)
-{
-    const shared::Message message(shared::MessageType::TEXT, std::move(content));
-    sendPacket(shared::PacketType::MESSAGE, message.serialize());
-}
-
-void Client::login(QString login, QString passwordHash)
-{
-    const shared::LoginInfo info(std::move(login), std::move(passwordHash));
-    sendPacket(shared::PacketType::LOGIN, info.serialize());
-}
-
-void Client::registerUser(QString username, QString name, QString email, QString passwordHash)
-{
-    const shared::RegisterInfo info(
-        std::move(username),
-        std::move(name),
-        std::move(email),
-        std::move(passwordHash)
-    );
-    sendPacket(shared::PacketType::REGISTER, info.serialize());
-}
-
-void Client::logout()
-{
-    sendPacket(shared::PacketType::LOGOUT);
-}
-
 void Client::onConnected()
 {
-    sendPacket(shared::PacketType::CONNECT);
+    RequestManager::instance().connectClient();
 
     setStatusText("Connected");
     setConnectionStatus(true);
@@ -101,58 +73,30 @@ void Client::onReadyRead()
     const QByteArray bytes = m_socket.readAll();
     if (bytes.isEmpty()) return;
 
-    const QList<shared::Packet> packets = shared::util::parse(bytes);
-    for (const auto& packet : packets)
-    {
-        switch (packet.type())
-        {
-        case shared::PacketType::MESSAGE:
-            {
-                if (auto data = packet.data())
-                {
-                    const auto msg = shared::Message::deserialize(data.value());
-                    emit messageReceived(packet.sender().toString(), msg);
-                }
-            }
-            break;
-        case shared::PacketType::RESULT:
-            {
-                if (!packet.data().has_value()) break;
-
-                const shared::Result result = shared::Result::deserialize(packet.data().value());
-                const bool success = result.type() == shared::ResultType::SUCCESS;
-
-                if (success)
-                    qInfo() << "Server result:" << result.text();
-                else
-                    qWarning() << "Server result:" << result.text();
-
-                emit resultReceived(success, result.text());
-            }
-            break;
-        default:
-            {
-                qWarning() << "Unknown or unsupported packet received";
-            }
-            break;
-        }
-    }
+    RequestManager::instance().processBytes(bytes);
 }
 
-void Client::sendPacket(const shared::PacketType type)
+void Client::sendBytes(QByteArray bytes)
 {
-    qInfo() << "Sending packet to server";
-
-    const shared::Packet packet(type, m_uuid, QUuid());
-    m_socket.write(shared::util::encapsulate(packet));
+    QMetaObject::invokeMethod(
+        this,
+        [this, bytes = std::move(bytes)] {
+            writeBytes(bytes);
+        },
+        Qt::QueuedConnection
+    );
 }
 
-void Client::sendPacket(const shared::PacketType type, QByteArray data)
+void Client::updateServerId(const QUuid& serverId)
 {
-    qInfo() << "Sending packet to server";
+    if (serverId.isNull() || m_serverId == serverId) return;
 
-    const shared::Packet packet(type, m_uuid, QUuid(), std::move(data));
-    m_socket.write(shared::util::encapsulate(packet));
+    m_serverId = serverId;
+}
+
+void Client::writeBytes(const QByteArray& bytes)
+{
+    m_socket.write(bytes);
 }
 
 void Client::setStatusText(const QString& text)

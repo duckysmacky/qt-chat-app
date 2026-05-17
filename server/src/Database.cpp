@@ -66,7 +66,7 @@ std::optional<model::User> Database::getUserByUsername(const QString& username) 
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, username, name, password_hash, email "
+        "SELECT id, username, display_name, password_hash, email "
         "FROM users WHERE username = :username LIMIT 1"
         );
     query.bindValue(":username", username);
@@ -77,7 +77,7 @@ std::optional<model::User> Database::getUserByUsername(const QString& username) 
     model::User user;
     user.setId(QUuid(query.value(0).toString()));
     user.setUsername(query.value(1).toString());
-    user.setName(query.value(2).toString());
+    user.setDisplayName(query.value(2).toString());
     user.setPasswordHash(query.value(3).toString());
     user.setEmail(query.value(4).toString());
     return user;
@@ -89,7 +89,7 @@ std::optional<model::User> Database::getUserByEmail(const QString& email) const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, username, name, password_hash, email "
+        "SELECT id, username, display_name, password_hash, email "
         "FROM users WHERE email = :email LIMIT 1"
     );
     query.bindValue(":email", email);
@@ -100,7 +100,7 @@ std::optional<model::User> Database::getUserByEmail(const QString& email) const
     model::User user;
     user.setId(QUuid(query.value(0).toString()));
     user.setUsername(query.value(1).toString());
-    user.setName(query.value(2).toString());
+    user.setDisplayName(query.value(2).toString());
     user.setPasswordHash(query.value(3).toString());
     user.setEmail(query.value(4).toString());
     return user;
@@ -112,7 +112,7 @@ std::optional<model::User> Database::authenticateUser(const shared::LoginInfo& l
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, username, name, password_hash, email "
+        "SELECT id, username, display_name, password_hash, email "
         "FROM users "
         "WHERE username = :username AND password_hash = :password_hash "
         "LIMIT 1"
@@ -126,7 +126,7 @@ std::optional<model::User> Database::authenticateUser(const shared::LoginInfo& l
     model::User user;
     user.setId(QUuid(query.value(0).toString()));
     user.setUsername(query.value(1).toString());
-    user.setName(query.value(2).toString());
+    user.setDisplayName(query.value(2).toString());
     user.setPasswordHash(query.value(3).toString());
     user.setEmail(query.value(4).toString());
     return user;
@@ -213,13 +213,13 @@ bool Database::createUser(const model::User& user)
 
     QSqlQuery query(m_db);
     query.prepare(
-        "INSERT INTO users (id, username, name, password_hash, email) "
-        "VALUES (:id, :username, :name, :password_hash, :email)"
+        "INSERT INTO users (id, username, display_name, password_hash, email) "
+        "VALUES (:id, :username, :display_name, :password_hash, :email)"
         );
 
     query.bindValue(":id", user.id().toString(QUuid::WithoutBraces));
     query.bindValue(":username", user.username());
-    query.bindValue(":name", user.name());
+    query.bindValue(":display_name", user.displayName());
     query.bindValue(":password_hash", user.passwordHash());
     query.bindValue(":email", user.email());
 
@@ -259,7 +259,7 @@ std::optional<model::User> Database::getUserById(const QUuid& id) const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, username, name, password_hash, email "
+        "SELECT id, username, display_name, password_hash, email "
         "FROM users "
         "WHERE id = :id "
         "LIMIT 1"
@@ -279,7 +279,7 @@ std::optional<model::User> Database::getUserById(const QUuid& id) const
     model::User user;
     user.setId(QUuid(query.value(0).toString()));
     user.setUsername(query.value(1).toString());
-    user.setName(query.value(2).toString());
+    user.setDisplayName(query.value(2).toString());
     user.setPasswordHash(query.value(3).toString());
     user.setEmail(query.value(4).toString());
 
@@ -294,13 +294,13 @@ std::optional<shared::ProfileInfo> Database::getProfileInfoByUserId(const QUuid&
 
     QUuid profileUserId = user->id();
     QString username = user->username();
-    QString name = user->name();
+    QString displayName = user->displayName();
     QString email = user->email();
 
     return shared::ProfileInfo(
         std::move(profileUserId),
         std::move(username),
-        std::move(name),
+        std::move(displayName),
         std::move(email)
         );
 }
@@ -313,14 +313,31 @@ std::optional<shared::PublicUserInfo> Database::getPublicUserInfoByUserId(const 
 
     QUuid publicUserId = user->id();
     QString username = user->username();
-    QString name = user->name();
+    QString displayName = user->displayName();
 
     return shared::PublicUserInfo(
         std::move(publicUserId),
         std::move(username),
-        std::move(name)
+        std::move(displayName)
         );
 
+}
+
+std::optional<shared::PublicUserInfo> Database::getPublicUserInfoByUsername(const QString& username) const
+{
+    const auto user = getUserByUsername(username);
+    if (!user.has_value())
+        return std::nullopt;
+
+    QUuid publicUserId = user->id();
+    QString publicUsername = user->username();
+    QString displayName = user->displayName();
+
+    return shared::PublicUserInfo(
+        std::move(publicUserId),
+        std::move(publicUsername),
+        std::move(displayName)
+    );
 }
 
 QList<model::User> Database::getAllUsers() const
@@ -334,7 +351,7 @@ QList<model::User> Database::getAllUsers() const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, username, name, password_hash, email "
+        "SELECT id, username, display_name, password_hash, email "
         "FROM users"
         );
 
@@ -347,7 +364,7 @@ QList<model::User> Database::getAllUsers() const
         model::User user;
         user.setId(QUuid(query.value(0).toString()));
         user.setUsername(query.value(1).toString());
-        user.setName(query.value(2).toString());
+        user.setDisplayName(query.value(2).toString());
         user.setPasswordHash(query.value(3).toString());
         user.setEmail(query.value(4).toString());
         users.append(user);
@@ -358,10 +375,10 @@ QList<model::User> Database::getAllUsers() const
 
 QList<model::Chat> Database::searchChats(const QString& queryText) const
 {
-    if (queryText.trimmed().isEmpty())
-        return getAllChats();
-
     QList<model::Chat> chats;
+
+    if (queryText.trimmed().isEmpty())
+        return chats;
 
     if (!m_db.isOpen()) {
         qWarning() << "Database is not connected";
@@ -370,9 +387,9 @@ QList<model::Chat> Database::searchChats(const QString& queryText) const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, type, created_by, title, created_at "
+        "SELECT id, type, created_by, created_at "
         "FROM chats "
-        "WHERE COALESCE(title, '') ILIKE :query "
+        "WHERE type ILIKE :query "
         "ORDER BY created_at DESC"
         );
 
@@ -386,10 +403,9 @@ QList<model::Chat> Database::searchChats(const QString& queryText) const
     while (query.next()) {
         model::Chat chat;
         chat.setId(QUuid(query.value(0).toString()));
-        chat.setType(query.value(1).toString());
+        chat.setType(model::chatTypeFromString(query.value(1).toString()));
         chat.setCreatedBy(QUuid(query.value(2).toString()));
-        chat.setTitle(query.value(3).toString());
-        chat.setCreatedAt(query.value(4).toDateTime());
+        chat.setCreatedAt(query.value(3).toDateTime());
 
         chats.append(chat);
     }
@@ -415,9 +431,9 @@ std::optional<model::User> Database::updateUserProfile(const QUuid& userId, cons
         ? updateInfo.username().value()
         : currentUser.username();
 
-    const QString& newName = updateInfo.name().has_value()
-        ? updateInfo.name().value()
-        : currentUser.name();
+    const QString& newDisplayName = updateInfo.displayName().has_value()
+        ? updateInfo.displayName().value()
+        : currentUser.displayName();
 
     const QString& newEmail = updateInfo.email().has_value()
         ? updateInfo.email().value()
@@ -436,13 +452,13 @@ std::optional<model::User> Database::updateUserProfile(const QUuid& userId, cons
     updateQuery.prepare(
         "UPDATE users "
         "SET username = :username, "
-        "    name = :name, "
+        "    display_name = :display_name, "
         "    email = :email, "
         "    password_hash = :password_hash "
         "WHERE id = :id"
     );
     updateQuery.bindValue(":username", newUsername);
-    updateQuery.bindValue(":name", newName);
+    updateQuery.bindValue(":display_name", newDisplayName);
     updateQuery.bindValue(":email", newEmail);
     updateQuery.bindValue(":password_hash", newPasswordHash);
     updateQuery.bindValue(":id", userId.toString(QUuid::WithoutBraces));
@@ -651,14 +667,13 @@ bool Database::createChat(const model::Chat& chat)
 
     QSqlQuery query(m_db);
     query.prepare(
-        "INSERT INTO chats (id, type, created_by, title, created_at) "
-        "VALUES (:id, :type, :created_by, :title, :created_at)"
+        "INSERT INTO chats (id, type, created_by, created_at) "
+        "VALUES (:id, CAST(:type AS chat_type), :created_by, :created_at)"
         );
 
     query.bindValue(":id", chat.id().toString(QUuid::WithoutBraces));
-    query.bindValue(":type", chat.type());
+    query.bindValue(":type", model::chatTypeToString(chat.type()));
     query.bindValue(":created_by", chat.createdBy().toString(QUuid::WithoutBraces));
-    query.bindValue(":title", chat.title());
     query.bindValue(":created_at", chat.createdAt());
 
     if (!query.exec()) {
@@ -697,7 +712,7 @@ std::optional<model::Chat> Database::getChatById(const QUuid& id) const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, type, created_by, title, created_at "
+        "SELECT id, type, created_by, created_at "
         "FROM chats "
         "WHERE id = :id "
         "LIMIT 1"
@@ -716,15 +731,14 @@ std::optional<model::Chat> Database::getChatById(const QUuid& id) const
 
     model::Chat chat;
     chat.setId(QUuid(query.value(0).toString()));
-    chat.setType(query.value(1).toString());
+    chat.setType(model::chatTypeFromString(query.value(1).toString()));
     chat.setCreatedBy(QUuid(query.value(2).toString()));
-    chat.setTitle(query.value(3).toString());
-    chat.setCreatedAt(query.value(4).toDateTime());
+    chat.setCreatedAt(query.value(3).toDateTime());
 
     return chat;
 }
 
-QList<model::Chat> Database::getAllChats() const
+QList<model::Chat> Database::getChatsByUserId(const QUuid& userId) const
 {
     QList<model::Chat> chats;
 
@@ -735,28 +749,33 @@ QList<model::Chat> Database::getAllChats() const
 
     QSqlQuery query(m_db);
     query.prepare(
-        "SELECT id, type, created_by, title, created_at "
-        "FROM chats"
+        "SELECT c.id, c.type, c.created_by, c.created_at "
+        "FROM chats c "
+        "JOIN chat_members cm ON cm.chat_id = c.id "
+        "WHERE cm.user_id = :user_id "
+        "ORDER BY c.created_at DESC"
         );
 
+    query.bindValue(":user_id", userId.toString(QUuid::WithoutBraces));
+
     if (!query.exec()) {
-        qCritical() << "Failed to get all chats:" << query.lastError().text();
+        qCritical() << "Failed to get chats by user id:" << query.lastError().text();
         return chats;
     }
 
     while (query.next()) {
         model::Chat chat;
         chat.setId(QUuid(query.value(0).toString()));
-        chat.setType(query.value(1).toString());
+        chat.setType(model::chatTypeFromString(query.value(1).toString()));
         chat.setCreatedBy(QUuid(query.value(2).toString()));
-        chat.setTitle(query.value(3).toString());
-        chat.setCreatedAt(query.value(4).toDateTime());
+        chat.setCreatedAt(query.value(3).toDateTime());
 
         chats.append(chat);
     }
 
     return chats;
 }
+
 QList<QUuid> Database::getUserIdsByChatId(const QUuid& chatId) const
 {
     QList<QUuid> userIds;

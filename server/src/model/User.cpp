@@ -7,12 +7,12 @@ namespace model {
 User::User() = default;
 
 User::User(QString username,
-           QString name,
+           QString displayName,
            QString passwordHash,
            QString email)
     : m_id(QUuid::createUuid()),
       m_username(std::move(username)),
-      m_name(std::move(name)),
+      m_displayName(std::move(displayName)),
       m_passwordHash(std::move(passwordHash)),
       m_email(std::move(email))
 {
@@ -28,9 +28,9 @@ const QString& User::username() const
     return m_username;
 }
 
-const QString& User::name() const
+const QString& User::displayName() const
 {
-    return m_name;
+    return m_displayName;
 }
 
 const QString& User::passwordHash() const
@@ -53,9 +53,9 @@ void User::setUsername(const QString& username)
     m_username = username;
 }
 
-void User::setName(const QString& name)
+void User::setDisplayName(const QString& displayName)
 {
-    m_name = name;
+    m_displayName = displayName;
 }
 
 void User::setPasswordHash(const QString& passwordHash)

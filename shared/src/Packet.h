@@ -1,11 +1,14 @@
+/**
+ * @file Packet.h
+ * @brief Defines the Packet class and PacketType enum for network communication.
+ */
+
 #pragma once
 
 #include <QByteArray>
 #include <QUuid>
 
 #include <optional>
-
-
 
 namespace shared {
 
@@ -15,34 +18,44 @@ namespace shared {
  */
 enum class PacketType
 {
-    /// Invalid packet
+    /// Invalid or malformed packet.
     INVALID,
-    /// Packet for exchange public key
-    KEY_EXCHANGE,
-    /// Text message
-    MESSAGE,
-    /// Special command for server
-    COMMAND,
-    /// Client connection handshake
-    CONNECT,
-    // register
-    REGISTER,
-    // login
-    LOGIN,
-    // yspeh
-    RESULT,
-    // vyshel
-    LOGOUT,
-    PROFILE_REQUEST,
-    PROFILE_UPDATE,
-    PROFILE_DATA,
-    USER_INFO_REQUEST,
-    USER_INFO_DATA,
-    CHATS_REQUEST,
-    CHATS_DATA,
-    CHAT_SEARCH_REQUEST,
-    CHAT_CREATE_REQUEST,
-    CHAT_DATA
+    /// Success or error response.
+    OPERATION_RESULT,
+    /// Chat message payload.
+    CHAT_MESSAGE,
+    /// Command sent to the server.
+    SERVER_COMMAND,
+    /// Client connection handshake.
+    CONNECT_CLIENT,
+    /// Register a new user account.
+    REGISTER_USER,
+    /// Log in an existing user.
+    LOGIN_USER,
+    /// Log out the current user.
+    LOGOUT_USER,
+    /// Request the authorized user's profile.
+    GET_USER_PROFILE,
+    /// Update the authorized user's profile.
+    UPDATE_USER_PROFILE,
+    /// Authorized user's profile data.
+    USER_PROFILE_DATA,
+    /// Request public information for a user.
+    GET_USER_INFO,
+    /// Public user information data.
+    PUBLIC_USER_INFO_DATA,
+    /// Request available chats.
+    GET_CHATS,
+    /// Chat list data.
+    CHAT_LIST_DATA,
+    /// Search chats by query.
+    SEARCH_CHATS,
+    /// Create a new chat.
+    CREATE_CHAT,
+    /// Single chat information data.
+    CHAT_INFO_DATA,
+    /// Public key exchange packet.
+    KEY_EXCHANGE
 };
 
 /**
@@ -57,17 +70,55 @@ private:
     PacketType m_type;  ///< Packet type
     QUuid m_sender;     ///< Sender UUID
     QUuid m_receiver;   ///< Receiver UUID
-    std::optional<QByteArray> m_data;
+    std::optional<QByteArray> m_data;  ///< Optional packet data payload
 
 public:
+    /**
+     * @brief Constructs a Packet with type, sender, and receiver.
+     * @param type The type of the packet.
+     * @param sender UUID of the sender.
+     * @param receiver UUID of the receiver.
+     */
     Packet(PacketType type, QUuid sender, QUuid receiver);
+    
+    /**
+     * @brief Constructs a Packet with type, sender, receiver, and data.
+     * @param type The type of the packet.
+     * @param sender UUID of the sender.
+     * @param receiver UUID of the receiver.
+     * @param data The packet data payload.
+     */
     Packet(PacketType type, QUuid sender, QUuid receiver, QByteArray data);
 
+    /**
+     * @brief Copy constructor.
+     * @param other The Packet to copy from.
+     */
     Packet(const Packet& other) = default;
+    
+    /**
+     * @brief Copy assignment operator.
+     * @param other The Packet to copy from.
+     * @return Reference to this Packet.
+     */
     Packet& operator =(const Packet& other) = default;
+    
+    /**
+     * @brief Move constructor.
+     * @param other The Packet to move from.
+     */
     Packet(Packet&& other) noexcept;
+    
+    /**
+     * @brief Move assignment operator.
+     * @param other The Packet to move from.
+     * @return Reference to this Packet.
+     */
     Packet& operator =(Packet&& other) noexcept;
 
+    /**
+     * @brief Destructor.
+     */
     ~Packet() = default;
 
     /**
@@ -83,9 +134,28 @@ public:
      */
     QByteArray serialize() const;
 
+    /**
+     * @brief Gets the packet type.
+     * @return Constant reference to the packet type.
+     */
     const PacketType& type() const { return m_type; }
+    
+    /**
+     * @brief Gets the sender UUID.
+     * @return Constant reference to the sender UUID.
+     */
     const QUuid& sender() const { return m_sender; }
+    
+    /**
+     * @brief Gets the receiver UUID.
+     * @return Constant reference to the receiver UUID.
+     */
     const QUuid& receiver() const { return m_receiver; }
+    
+    /**
+     * @brief Gets the packet data payload.
+     * @return Constant optional reference to the packet data.
+     */
     const std::optional<QByteArray>& data() const { return m_data; }
 };
 

@@ -2,8 +2,12 @@
 
 #include <QDebug>
 
+#include <utility>
+
 #include "Client.h"
 #include "Hasher.h"
+#include "RequestManager.h"
+#include "util.h"
 
 AccountManager& AccountManager::instance()
 {
@@ -18,9 +22,12 @@ AccountManager::AccountManager(QObject* parent)
       m_busy(false),
       m_pendingAction(PendingAction::None)
 {
-    Client& client = Client::instance();
+    const Client& client = Client::instance();
+    const RequestManager& requestManager = RequestManager::instance();
+
     connect(&client, &Client::connectionStatusChanged, this, &AccountManager::onConnectionStatusChanged);
-    connect(&client, &Client::resultReceived, this, &AccountManager::onResultReceived);
+    connect(&requestManager, &RequestManager::operationResultReceived, this, &AccountManager::onOperationResultReceived);
+    connect(&requestManager, &RequestManager::currentUserProfileReceived, this, &AccountManager::onCurrentUserProfileReceived);
 }
 
 void AccountManager::showLogin()
@@ -40,29 +47,39 @@ void AccountManager::showRegister()
 void AccountManager::login(const QString& login, const QString& password)
 {
     if (m_busy || !Client::instance().connected()) return;
-    if (login.trimmed().isEmpty() || password.isEmpty()) return;
+    const QString normalizedLogin = shared::util::normalizeUsername(login);
+    if (normalizedLogin.isEmpty() || password.isEmpty()) return;
 
     m_pendingAction = PendingAction::Login;
-    m_pendingUser = login.trimmed();
+    setUserProfile(std::nullopt);
     setStatusText("");
     setBusy(true);
 
-    Client::instance().login(m_pendingUser, Hasher::sha256(password));
+    RequestManager::instance().loginUser(normalizedLogin, Hasher::sha256(password));
 }
 
-void AccountManager::registerAccount(const QString& username, const QString& name, const QString& email, const QString& password)
+void AccountManager::registerAccount(const QString& username, const QString& displayName, const QString& email, const QString& password)
 {
     if (m_busy || !Client::instance().connected()) return;
-    if (username.trimmed().isEmpty() || name.trimmed().isEmpty() || email.trimmed().isEmpty() || password.isEmpty())
+    const QString normalizedUsername = shared::util::normalizeUsername(username);
+    const QString trimmedDisplayName = displayName.trimmed();
+
+    if (!shared::util::isValidUsername(normalizedUsername)) {
+        setStatusText("Username must be 2-20 characters and contain only lowercase latin letters, numbers, and underscores");
+        return;
+    }
+
+    if (trimmedDisplayName.isEmpty() || email.trimmed().isEmpty() || password.isEmpty())
         return;
 
     m_pendingAction = PendingAction::Register;
+    setUserProfile(std::nullopt);
     setStatusText("");
     setBusy(true);
 
-    Client::instance().registerUser(
-        username.trimmed(),
-        name.trimmed(),
+    RequestManager::instance().registerUser(
+        normalizedUsername,
+        trimmedDisplayName,
         email.trimmed(),
         Hasher::sha256(password)
     );
@@ -77,12 +94,20 @@ void AccountManager::logout()
     setStatusText("");
     setBusy(true);
 
-    Client::instance().logout();
+    RequestManager::instance().logoutCurrentUser();
 }
 
 bool AccountManager::canSendMessages() const
 {
     return Client::instance().connected() && m_loggedIn;
+}
+
+std::optional<QUuid> AccountManager::userId() const
+{
+    if (!m_userProfile.has_value())
+        return std::nullopt;
+
+    return m_userProfile->userId();
 }
 
 void AccountManager::onConnectionStatusChanged()
@@ -91,31 +116,17 @@ void AccountManager::onConnectionStatusChanged()
 
     setBusy(false);
     m_pendingAction = PendingAction::None;
-    m_pendingUser.clear();
     resetAuthorizationState();
 }
 
-void AccountManager::onResultReceived(const bool success, const QString& message)
+void AccountManager::onOperationResultReceived(const shared::OperationResult& result)
 {
+    const bool success = result.type() == shared::OperationResultType::SUCCESS;
+    const QString& message = result.text();
+
     switch (m_pendingAction)
     {
-    case PendingAction::Login:
-        setBusy(false);
-        m_pendingAction = PendingAction::None;
-
-        if (!success)
-        {
-            qWarning() << "Login failed:" << message;
-            setStatusText(message);
-            return;
-        }
-
-        qInfo() << "Login succeeded:" << message;
-        setStatusText("");
-        setCurrentUser(m_pendingUser);
-        setLoggedIn(true);
-        setMode(AccountMode);
-        m_pendingUser.clear();
+    case PendingAction::None:
         break;
 
     case PendingAction::Register:
@@ -134,6 +145,34 @@ void AccountManager::onResultReceived(const bool success, const QString& message
         setMode(LoginMode);
         break;
 
+    case PendingAction::Login:
+        if (!success)
+        {
+            setBusy(false);
+            m_pendingAction = PendingAction::None;
+            qWarning() << "Login failed:" << message;
+            setStatusText(message);
+            return;
+        }
+
+        qInfo() << "Login accepted:" << message;
+        m_pendingAction = PendingAction::FetchProfile;
+        setStatusText("");
+        setMode(AccountMode);
+        RequestManager::instance().getCurrentUserProfile();
+        break;
+
+    case PendingAction::FetchProfile:
+        if (!success)
+        {
+            setBusy(false);
+            m_pendingAction = PendingAction::None;
+            qWarning() << "Profile request failed:" << message;
+            resetAuthorizationState();
+            setStatusText(message);
+        }
+        break;
+
     case PendingAction::Logout:
         setBusy(false);
         m_pendingAction = PendingAction::None;
@@ -148,10 +187,25 @@ void AccountManager::onResultReceived(const bool success, const QString& message
         qInfo() << "Logout succeeded:" << message;
         resetAuthorizationState();
         break;
-
-    case PendingAction::None:
-        break;
     }
+}
+
+void AccountManager::onCurrentUserProfileReceived(const shared::ProfileInfo& profile)
+{
+    if (m_pendingAction != PendingAction::FetchProfile && !m_loggedIn)
+        return;
+
+    setUserProfile(profile);
+
+    if (m_pendingAction != PendingAction::FetchProfile)
+        return;
+
+    qInfo() << "Loaded profile for logged-in user:" << profile.username();
+    m_pendingAction = PendingAction::None;
+    setStatusText("");
+    setLoggedIn(true);
+    setMode(AccountMode);
+    setBusy(false);
 }
 
 void AccountManager::setMode(const Mode mode)
@@ -176,13 +230,6 @@ void AccountManager::setBusy(const bool busy)
     emit busyChanged();
 }
 
-void AccountManager::setCurrentUser(QString currentUser)
-{
-    if (m_currentUser == currentUser) return;
-    m_currentUser = std::move(currentUser);
-    emit currentUserChanged();
-}
-
 void AccountManager::setStatusText(QString statusText)
 {
     if (m_statusText == statusText) return;
@@ -191,10 +238,48 @@ void AccountManager::setStatusText(QString statusText)
     emit statusTextChanged();
 }
 
+QString AccountManager::profileUserId() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return m_userProfile->userId().toString(QUuid::WithoutBraces);
+}
+
+QString AccountManager::profileUsername() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return QString("@") + m_userProfile->username();
+}
+
+QString AccountManager::profileDisplayName() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return m_userProfile->displayName();
+}
+
+QString AccountManager::profileEmail() const
+{
+    if (!m_userProfile.has_value())
+        return "";
+
+    return m_userProfile->email();
+}
+
+void AccountManager::setUserProfile(std::optional<shared::ProfileInfo> profile)
+{
+    m_userProfile = std::move(profile);
+    emit userProfileChanged();
+}
+
 void AccountManager::resetAuthorizationState()
 {
+    setUserProfile(std::nullopt);
     setLoggedIn(false);
-    setCurrentUser("");
     setStatusText("");
     setMode(LoginMode);
 }
