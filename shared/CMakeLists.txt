@@ -39,12 +39,6 @@ target_link_libraries(shared_lib PUBLIC
     Qt-Secret
 )
 
-if(WIN32)
-    target_compile_definitions(shared_lib PUBLIC
-        Qt_SECRET_LIBRARY
-    )
-endif()
-
 if(BUILD_TESTING)
     add_module_tests(shared
         shared_lib

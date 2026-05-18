@@ -11,32 +11,9 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network)
 
 include(FetchContent)
 
-FetchContent_Declare(
-    qt_secret
-    GIT_REPOSITORY https://github.com/quasarapp/qt-secret.git
-    GIT_TAG main
-    GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
-    GIT_SUBMODULES_RECURSE TRUE
-    PATCH_COMMAND ${CMAKE_COMMAND}
-        -DQT_SECRET_SOURCE_DIR=<SOURCE_DIR>
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/PatchQtSecretTargets.cmake
-)
+include(cmake/QtSecret.cmake)
 
-set(QTSECRET_TESTS OFF CACHE BOOL "Disable Qt-Secret dependency tests" FORCE)
-set(BIGINT_TESTS OFF CACHE BOOL "Disable QtBigint dependency tests" FORCE)
-set(QTSECRET_GUI OFF CACHE BOOL "Disable Qt-Secret GUI example" FORCE)
-
-if(DEFINED BUILD_TESTING)
-    set(CHAT_APP_BUILD_TESTING ${BUILD_TESTING})
-else()
-    set(CHAT_APP_BUILD_TESTING ON)
-endif()
-
-set(BUILD_TESTING OFF)
-FetchContent_MakeAvailable(qt_secret)
-
-set(BUILD_TESTING ${CHAT_APP_BUILD_TESTING} CACHE BOOL "Build tests" FORCE)
+option(BUILD_TESTING "Build tests" ON)
 
 if(BUILD_TESTING)
     enable_testing()
