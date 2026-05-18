@@ -1,11 +1,22 @@
 #include <gtest/gtest.h>
 
+#include <QByteArray>
 #include <QString>
+#include <QUuid>
 
+#include "KeyStore.h"
 #include "util.h"
 
 using shared::util::isValidUsername;
 using shared::util::normalizeUsername;
+
+namespace {
+
+const QUuid FirstPeer{"{11111111-1111-1111-1111-111111111111}"};
+const QUuid SecondPeer{"{22222222-2222-2222-2222-222222222222}"};
+const QUuid ServerPeer{};
+
+} // namespace
 
 TEST(UtilTests, NormalizeUsernameTrimsLowercasesAndRemovesSingleAtPrefix)
 {
@@ -38,4 +49,50 @@ TEST(UtilTests, NormalizedUsernameCanBeValidated)
 
     EXPECT_EQ(username, QStringLiteral("valid_user20"));
     EXPECT_TRUE(isValidUsername(username));
+}
+
+TEST(KeyStoreTests, GeneratesLocalKeyPair)
+{
+    shared::KeyStore& keyStore = shared::KeyStore::instance();
+    keyStore.regenerate();
+
+    EXPECT_TRUE(keyStore.hasLocalKeyPair());
+    EXPECT_FALSE(keyStore.publicKey().isEmpty());
+    EXPECT_FALSE(keyStore.privateKey().isEmpty());
+}
+
+TEST(KeyStoreTests, StoresPeerPublicKeysBySessionId)
+{
+    shared::KeyStore& keyStore = shared::KeyStore::instance();
+    keyStore.clearPeerPublicKeys();
+
+    keyStore.setPeerPublicKey(ServerPeer, QByteArray{"server-public-key"});
+    keyStore.setPeerPublicKey(FirstPeer, QByteArray{"first-public-key"});
+    keyStore.setPeerPublicKey(SecondPeer, QByteArray{"second-public-key"});
+
+    ASSERT_TRUE(keyStore.hasPeerPublicKey(ServerPeer));
+    ASSERT_TRUE(keyStore.hasPeerPublicKey(FirstPeer));
+    ASSERT_TRUE(keyStore.hasPeerPublicKey(SecondPeer));
+    EXPECT_EQ(keyStore.peerPublicKey(ServerPeer).value(), QByteArray{"server-public-key"});
+    EXPECT_EQ(keyStore.peerPublicKey(FirstPeer).value(), QByteArray{"first-public-key"});
+    EXPECT_EQ(keyStore.peerPublicKey(SecondPeer).value(), QByteArray{"second-public-key"});
+}
+
+TEST(KeyStoreTests, RemovesPeerPublicKeys)
+{
+    shared::KeyStore& keyStore = shared::KeyStore::instance();
+    keyStore.clearPeerPublicKeys();
+
+    keyStore.setPeerPublicKey(FirstPeer, QByteArray{"first-public-key"});
+    keyStore.setPeerPublicKey(SecondPeer, QByteArray{"second-public-key"});
+
+    keyStore.removePeerPublicKey(FirstPeer);
+
+    EXPECT_FALSE(keyStore.hasPeerPublicKey(FirstPeer));
+    EXPECT_TRUE(keyStore.hasPeerPublicKey(SecondPeer));
+
+    keyStore.clearPeerPublicKeys();
+
+    EXPECT_FALSE(keyStore.hasPeerPublicKey(SecondPeer));
+    EXPECT_FALSE(keyStore.hasPeerPublicKey(FirstPeer));
 }

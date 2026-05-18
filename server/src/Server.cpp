@@ -5,6 +5,8 @@
 #include <QSet>
 #include <qlogging.h>
 
+#include <qrsaencryption.h>
+
 #include "dto/AuthInfo.h"
 #include "Message.h"
 #include "Database.h"
@@ -19,6 +21,7 @@
 #include "model/ChatMember.h"
 #include "model/Chat.h"
 
+#include "KeyStore.h"
 #include "util.h"
 
 namespace {
@@ -309,7 +312,7 @@ void Server::onClientDisconnected()
         }
 
         qInfo() << "Client session" << disconnectedSessionId.toString() << "disconnected";
-        m_keyStores.remove(disconnectedSessionId);
+        shared::KeyStore::instance().removePeerPublicKey(disconnectedSessionId);
         m_clients.erase(it);
         break;
     }
@@ -374,7 +377,6 @@ void Server::handleConnectClient(QTcpSocket* socket, const shared::Packet& packe
     }
 
     m_clients.insert(sessionId, ClientConnection(sessionId, socket));
-    m_keyStores.insert(sessionId, shared::KeyStore{});
 
     sendSuccess(sessionId, "Connected");
     sendPublicKey(sessionId);
@@ -535,7 +537,7 @@ void Server::handleAuthorizedPacket(const shared::Packet& packet) const
     {
     case shared::PacketType::CHAT_MESSAGE:
     {
-        const auto decryptedPacket = shared::util::decryptPacketPayload(packet, m_keyStores);
+        const auto decryptedPacket = shared::util::decryptPacketPayload(packet);
         if (!decryptedPacket.has_value())
         {
             sendError(sessionId, "Failed to decrypt message");
@@ -997,18 +999,10 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
 
 void Server::sendPublicKey(const QUuid& receiverSessionId) const
 {
-    const auto it = m_keyStores.constFind(receiverSessionId);
-    if (it == m_keyStores.constEnd())
-    {
-        qWarning() << "Cannot send public key: key store not found for session"
-                   << receiverSessionId.toString();
-        return;
-    }
-
     const auto packet = shared::PacketFactory::keyExchangePacket(
         m_uuid,
         receiverSessionId,
-        it.value().publicKey()
+        shared::KeyStore::instance().publicKey()
         );
 
     sendPacket(receiverSessionId, packet);
@@ -1038,12 +1032,8 @@ void Server::handleKeyExchange(const QTcpSocket* socket, const shared::Packet& p
         return;
     }
 
-    auto keyStoreIt = m_keyStores.find(connection.sessionId());
-    if (keyStoreIt == m_keyStores.end())
-        keyStoreIt = m_keyStores.insert(connection.sessionId(), shared::KeyStore{});
-
     QByteArray clientPublicKey = payload.value();
-    keyStoreIt.value().setPeerPublicKey(std::move(clientPublicKey));
+    shared::KeyStore::instance().setPeerPublicKey(connection.sessionId(), std::move(clientPublicKey));
 
     sendSuccess(connection.sessionId(), "Public key registered");
 }
@@ -1055,18 +1045,9 @@ void Server::sendEncryptedPacket(const QUuid& receiverSessionId, const shared::P
         return;
     }
 
-    const auto keyStoreIt = m_keyStores.constFind(receiverSessionId);
-    if (keyStoreIt == m_keyStores.constEnd())
-    {
-        qWarning() << "Cannot encrypt packet: key store not found for session"
-                   << receiverSessionId.toString();
-        sendError(receiverSessionId, "Encryption key is not initialized");
-        return;
-    }
-
-    const shared::KeyStore& keyStore = keyStoreIt.value();
-
-    if (!keyStore.hasPeerPublicKey())
+    const shared::KeyStore& keyStore = shared::KeyStore::instance();
+    const auto peerPublicKey = keyStore.peerPublicKey(receiverSessionId);
+    if (!peerPublicKey.has_value())
     {
         qWarning() << "Cannot encrypt packet: peer public key is missing for session"
                    << receiverSessionId.toString();
@@ -1074,19 +1055,14 @@ void Server::sendEncryptedPacket(const QUuid& receiverSessionId, const shared::P
         return;
     }
 
-    const auto encryptedData = keyStore.encryptForPeer(packet.data().value());
-    if (!encryptedData.has_value())
-    {
-        qWarning() << "Cannot encrypt packet payload for session" << receiverSessionId.toString();
-        sendError(receiverSessionId, "Failed to encrypt packet");
-        return;
-    }
+    QRSAEncryption rsa(keyStore.keySize());
+    const QByteArray encryptedData = rsa.encode(packet.data().value(), peerPublicKey.value());
 
     const shared::Packet encryptedPacket(
         packet.type(),
         packet.sender(),
         packet.receiver(),
-        encryptedData.value()
+        encryptedData
         );
 
     sendPacket(receiverSessionId, encryptedPacket);

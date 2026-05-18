@@ -4,6 +4,12 @@
 
 namespace shared {
 
+KeyStore& KeyStore::instance()
+{
+    static KeyStore instance;
+    return instance;
+}
+
 KeyStore::KeyStore(const KeySize keySize)
     : m_keySize(keySize)
 {
@@ -15,19 +21,36 @@ bool KeyStore::hasLocalKeyPair() const
     return !m_publicKey.isEmpty() && !m_privateKey.isEmpty();
 }
 
-bool KeyStore::hasPeerPublicKey() const
+std::optional<QByteArray> KeyStore::peerPublicKey(const QUuid& peerSessionId) const
 {
-    return m_peerPublicKey.has_value() && !m_peerPublicKey->isEmpty();
+    const auto it = m_peerPublicKeys.constFind(peerSessionId);
+    if (it == m_peerPublicKeys.constEnd() || it.value().isEmpty())
+        return std::nullopt;
+
+    return it.value();
 }
 
-void KeyStore::setPeerPublicKey(QByteArray publicKey)
+bool KeyStore::hasPeerPublicKey(const QUuid& peerSessionId) const
 {
-    m_peerPublicKey = std::move(publicKey);
+    return peerPublicKey(peerSessionId).has_value();
 }
 
-void KeyStore::clearPeerPublicKey()
+void KeyStore::setPeerPublicKey(const QUuid& peerSessionId, QByteArray publicKey)
 {
-    m_peerPublicKey.reset();
+    if (publicKey.isEmpty())
+        return;
+
+    m_peerPublicKeys.insert(peerSessionId, std::move(publicKey));
+}
+
+void KeyStore::removePeerPublicKey(const QUuid& peerSessionId)
+{
+    m_peerPublicKeys.remove(peerSessionId);
+}
+
+void KeyStore::clearPeerPublicKeys()
+{
+    m_peerPublicKeys.clear();
 }
 
 void KeyStore::regenerate()
@@ -37,32 +60,9 @@ void KeyStore::regenerate()
     generateKeyPair();
 }
 
-std::optional<QByteArray> KeyStore::encryptForPeer(const QByteArray& plainBytes) const
-{
-    if (!hasPeerPublicKey())
-        return std::nullopt;
-
-    QRSAEncryption rsa = makeRsa();
-    return rsa.encode(plainBytes, m_peerPublicKey.value());
-}
-
-std::optional<QByteArray> KeyStore::decryptForSelf(const QByteArray& encryptedBytes) const
-{
-    if (!hasLocalKeyPair())
-        return std::nullopt;
-
-    QRSAEncryption rsa = makeRsa();
-    return rsa.decode(encryptedBytes, m_privateKey);
-}
-
-QRSAEncryption KeyStore::makeRsa() const
-{
-    return QRSAEncryption(m_keySize);
-}
-
 void KeyStore::generateKeyPair()
 {
-    QRSAEncryption rsa = makeRsa();
+    QRSAEncryption rsa(m_keySize);
     rsa.generatePairKey(m_publicKey, m_privateKey);
 }
 

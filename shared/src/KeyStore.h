@@ -1,30 +1,41 @@
 #pragma once
 
 #include <QByteArray>
+#include <QHash>
+#include <QUuid>
+#include <qrsaencryption.h>
 
 #include <optional>
-
-#include <qrsaencryption.h>
 
 namespace shared {
 
 /**
  * @class KeyStore
- * @brief Stores the local RSA key pair and the peer public key for one session-to-session channel.
+ * @brief Stores the local RSA key pair and peer public keys keyed by session id.
  *
- * One KeyStore instance is intended to be stored in QHash<QUuid, shared::KeyStore>,
- * where QUuid is the session id of the other side.
+ * One KeyStore instance belongs to one local session. It exposes the local key pair
+ * and stores known peer public keys in a QHash<QUuid, QByteArray>, where QUuid is
+ * the peer session id.
  */
 class KeyStore
 {
 public:
     using KeySize = QRSAEncryption::Rsa;
 
-    /**
-     * @brief Constructs a KeyStore and generates a fresh local key pair.
-     * @param keySize RSA key size, RSA_2048 by default.
-     */
-    explicit KeyStore(KeySize keySize = QRSAEncryption::Rsa::RSA_2048);
+private:
+    KeySize m_keySize;
+    QByteArray m_publicKey;
+    QByteArray m_privateKey;
+    QHash<QUuid, QByteArray> m_peerPublicKeys;
+
+public:
+    /// @brief Returns the process-wide key store instance.
+    static KeyStore& instance();
+
+    KeyStore(const KeyStore& other) = delete;
+    KeyStore& operator=(const KeyStore& other) = delete;
+    KeyStore(KeyStore&& other) = delete;
+    KeyStore& operator=(KeyStore&& other) = delete;
 
     /// @brief Returns the configured RSA key size.
     KeySize keySize() const { return m_keySize; }
@@ -35,47 +46,49 @@ public:
     /// @brief Returns the generated local private key.
     const QByteArray& privateKey() const { return m_privateKey; }
 
-    /// @brief Returns the stored peer public key, if it is known.
-    const std::optional<QByteArray>& peerPublicKey() const { return m_peerPublicKey; }
+    /**
+     * @brief Returns the public key for a peer session, if it is known.
+     * @param peerSessionId Session UUID of the peer.
+     */
+    std::optional<QByteArray> peerPublicKey(const QUuid& peerSessionId) const;
 
     /// @brief Checks whether the local key pair was generated successfully.
     bool hasLocalKeyPair() const;
 
-    /// @brief Checks whether the peer public key is already known.
-    bool hasPeerPublicKey() const;
+    /**
+     * @brief Checks whether the public key for a peer session is already known.
+     * @param peerSessionId Session UUID of the peer.
+     */
+    bool hasPeerPublicKey(const QUuid& peerSessionId) const;
 
-    /// @brief Stores or replaces the peer public key.
-    void setPeerPublicKey(QByteArray publicKey);
+    /**
+     * @brief Stores or replaces the public key for a peer session.
+     * @param peerSessionId Session UUID of the peer.
+     * @param publicKey Public key bytes announced by that peer.
+     */
+    void setPeerPublicKey(const QUuid& peerSessionId, QByteArray publicKey);
 
-    /// @brief Removes the stored peer public key.
-    void clearPeerPublicKey();
+    /**
+     * @brief Removes the stored public key for a peer session.
+     * @param peerSessionId Session UUID of the peer.
+     */
+    void removePeerPublicKey(const QUuid& peerSessionId);
+
+    /// @brief Removes all stored peer public keys.
+    void clearPeerPublicKeys();
 
     /// @brief Regenerates the local RSA key pair for this session.
     void regenerate();
 
-    /**
-     * @brief Encrypts bytes for the peer using the peer public key.
-     * @param plainBytes Raw bytes to encrypt.
-     * @return Encrypted bytes or std::nullopt if the peer key is not known.
-     */
-    std::optional<QByteArray> encryptForPeer(const QByteArray& plainBytes) const;
-
-    /**
-     * @brief Decrypts bytes addressed to this side using the local private key.
-     * @param encryptedBytes Raw encrypted bytes.
-     * @return Decrypted bytes or std::nullopt if the local key pair is missing.
-     */
-    std::optional<QByteArray> decryptForSelf(const QByteArray& encryptedBytes) const;
-
 private:
-    QRSAEncryption makeRsa() const;
+
+    /**
+     * @brief Constructs a KeyStore and generates a fresh local key pair.
+     * @param keySize RSA key size, RSA_2048 by default.
+     */
+    KeyStore(KeySize keySize = QRSAEncryption::Rsa::RSA_2048);
+
     void generateKeyPair();
-
-private:
-    KeySize m_keySize;
-    QByteArray m_publicKey;
-    QByteArray m_privateKey;
-    std::optional<QByteArray> m_peerPublicKey;
 };
 
 }

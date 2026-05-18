@@ -2,9 +2,13 @@
 
 #include <QDebug>
 #include <QRegularExpression>
+#include <qrsaencryption.h>
 
 #include <utility>
 
+#include "KeyStore.h"
+
+// TODO: split into multiple
 namespace shared::util {
 
 QList<Packet> parse(const QByteArray& bytes)
@@ -112,38 +116,27 @@ bool isValidUsername(const QString& username)
     return usernamePattern.match(username).hasMatch();
 }
 
-std::optional<Packet> decryptPacketPayload(
-    const Packet& packet,
-    const QHash<QUuid, KeyStore>& keyStores
-)
+std::optional<Packet> decryptPacketPayload(const Packet& packet)
 {
     if (!packet.data().has_value())
         return packet;
 
-    const QUuid& senderSessionId = packet.sender();
-    const auto keyStoreIt = keyStores.constFind(senderSessionId);
+    const KeyStore& keyStore = KeyStore::instance();
 
-    if (keyStoreIt == keyStores.constEnd())
+    if (!keyStore.hasLocalKeyPair())
     {
-        qWarning() << "Cannot decrypt packet: key store not found for session"
-                   << senderSessionId.toString();
+        qWarning() << "Cannot decrypt packet: local key pair is missing";
         return std::nullopt;
     }
 
-    const KeyStore& keyStore = keyStoreIt.value();
-    const auto decryptedData = keyStore.decryptForSelf(packet.data().value());
-
-    if (!decryptedData.has_value())
-    {
-        qWarning() << "Cannot decrypt packet payload from session" << senderSessionId.toString();
-        return std::nullopt;
-    }
+    QRSAEncryption rsa(keyStore.keySize());
+    const QByteArray decryptedData = rsa.decode(packet.data().value(), keyStore.privateKey());
 
     return Packet(
         packet.type(),
         packet.sender(),
         packet.receiver(),
-        std::move(decryptedData.value())
+        std::move(decryptedData)
     );
 }
 
