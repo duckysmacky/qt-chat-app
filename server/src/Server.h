@@ -10,8 +10,8 @@
 #include <QTcpSocket>
 #include <QString>
 #include <QHash>
+#include <optional>
 #include <QSet>
-
 #include <cstdint>
 
 #include "Packet.h"
@@ -22,6 +22,7 @@
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
+#include "KeyStore.h"
 
 /**
  * @class Server
@@ -40,8 +41,11 @@ private:
     const QUuid m_uuid;                              ///< Server UUID for unique identification.
     QTcpServer* m_server;                            ///< TCP server instance for accepting incoming connections.
     QHash<QUuid, ClientConnection> m_clients;        ///< Hash map of connected clients keyed by session UUID.
+    QHash<QUuid, shared::KeyStore> m_keyStores;      ///< Session encryption keys keyed by client session UUID.
     QHash<QTcpSocket*, QByteArray> m_socketBuffers;  ///< Buffer storage for partial data received from each socket.
     bool m_isRunning;                                ///< Server running state flag (true if running, false otherwise).
+    void handleKeyExchange(const QTcpSocket* socket, const shared::Packet& packet);
+    void sendPublicKey(const QUuid& receiverSessionId) const;
 
 public:
     /**
@@ -213,6 +217,13 @@ private:
      * @param info The public user information to send.
      */
     void sendPublicUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
+
+    /**
+     * @brief Sends a packet with encrypted payload to a specific client.
+     * @param receiverSessionId The session UUID of the receiving client.
+     * @param packet The packet whose payload should be encrypted before sending.
+     */
+    void sendEncryptedPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const;
 
     /// @brief Handles a GET_CHATS packet to request the user's chat list.
     /// @param socket The client socket.

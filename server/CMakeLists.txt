@@ -55,6 +55,8 @@ if(WIN32)
     enable_qt_windows_deploy(server_app)
 endif()
 
-add_module_tests(server
-    server_lib
-)
+if(BUILD_TESTING)
+    add_module_tests(server
+        server_lib
+    )
+endif()

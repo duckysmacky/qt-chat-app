@@ -61,7 +61,7 @@ jobs:
           cache: true
 
       - name: Configure
-        run: cmake -S . -B build/server -G Ninja -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+        run: cmake -S . -B build/server -G Ninja -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 
       - name: Build server
         run: cmake --build build/server --target server_app --parallel
@@ -92,7 +92,7 @@ jobs:
           cache: true
 
       - name: Configure
-        run: cmake -S . -B build/client -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+        run: cmake -S . -B build/client -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 
       - name: Build client
         run: cmake --build build/client --target client_app --parallel
@@ -123,7 +123,7 @@ jobs:
           cache: true
 
       - name: Configure
-        run: cmake -S . -B build/shared -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+        run: cmake -S . -B build/shared -G Ninja -DBUILD_CLIENT=ON -DBUILD_SERVER=OFF -DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
 
       - name: Build shared
         run: cmake --build build/shared --target shared_lib --parallel

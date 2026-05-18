@@ -1,6 +1,9 @@
 #include "util.h"
 
+#include <QDebug>
 #include <QRegularExpression>
+
+#include <utility>
 
 namespace shared::util {
 
@@ -109,4 +112,39 @@ bool isValidUsername(const QString& username)
     return usernamePattern.match(username).hasMatch();
 }
 
+std::optional<Packet> decryptPacketPayload(
+    const Packet& packet,
+    const QHash<QUuid, KeyStore>& keyStores
+)
+{
+    if (!packet.data().has_value())
+        return packet;
+
+    const QUuid& senderSessionId = packet.sender();
+    const auto keyStoreIt = keyStores.constFind(senderSessionId);
+
+    if (keyStoreIt == keyStores.constEnd())
+    {
+        qWarning() << "Cannot decrypt packet: key store not found for session"
+                   << senderSessionId.toString();
+        return std::nullopt;
+    }
+
+    const KeyStore& keyStore = keyStoreIt.value();
+    const auto decryptedData = keyStore.decryptForSelf(packet.data().value());
+
+    if (!decryptedData.has_value())
+    {
+        qWarning() << "Cannot decrypt packet payload from session" << senderSessionId.toString();
+        return std::nullopt;
+    }
+
+    return Packet(
+        packet.type(),
+        packet.sender(),
+        packet.receiver(),
+        std::move(decryptedData.value())
+    );
 }
+
+} // namespace shared::util

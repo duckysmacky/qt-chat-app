@@ -53,7 +53,9 @@ enum class PacketType
     /// Create a new chat.
     CREATE_CHAT,
     /// Single chat information data.
-    CHAT_INFO_DATA
+    CHAT_INFO_DATA,
+    /// Public key exchange packet.
+    KEY_EXCHANGE
 };
 
 /**

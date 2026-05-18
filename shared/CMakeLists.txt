@@ -25,6 +25,8 @@ add_library(shared_lib STATIC
         src/dto/ChatsInfo.cpp
         src/dto/CreateChatInfo.h
         src/dto/CreateChatInfo.cpp
+        src/KeyStore.h
+        src/KeyStore.cpp
 )
 
 target_include_directories(shared_lib PUBLIC
@@ -34,8 +36,17 @@ target_include_directories(shared_lib PUBLIC
 target_link_libraries(shared_lib PUBLIC
     Qt6::Core
     Qt6::Network
+    Qt-Secret
 )
 
-add_module_tests(shared
-    shared_lib
-)
+if(WIN32)
+    target_compile_definitions(shared_lib PUBLIC
+        Qt_SECRET_LIBRARY
+    )
+endif()
+
+if(BUILD_TESTING)
+    add_module_tests(shared
+        shared_lib
+    )
+endif()

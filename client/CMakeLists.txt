@@ -79,6 +79,8 @@ if(WIN32)
     enable_qt_windows_deploy(client_app QML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/ui")
 endif()
 
-add_module_tests(client
-    client_lib
-)
+if(BUILD_TESTING)
+    add_module_tests(client
+        client_lib
+    )
+endif()
