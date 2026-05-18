@@ -6,9 +6,13 @@
 #pragma once
 
 #include <QByteArray>
+#include <QHash>
 #include <QList>
 #include <QString>
 
+#include <optional>
+
+#include "KeyStore.h"
 #include "Packet.h"
 
 namespace shared::util {
@@ -59,5 +63,16 @@ QString normalizeUsername(QString username);
  * @return true if valid, false otherwise.
  */
 bool isValidUsername(const QString& username);
+
+/**
+ * @brief Decrypts the payload of a packet using a key store selected by packet sender.
+ * @param packet The encrypted incoming packet.
+ * @param keyStores Session key stores keyed by peer session UUID.
+ * @return Packet with decrypted payload, or std::nullopt if decryption failed.
+ */
+std::optional<Packet> decryptPacketPayload(
+    const Packet& packet,
+    const QHash<QUuid, KeyStore>& keyStores
+);
 
 } // namespace shared::util

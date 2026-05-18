@@ -225,13 +225,6 @@ private:
      */
     void sendEncryptedPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const;
 
-    /**
-     * @brief Decrypts the payload of a packet received from a client.
-     * @param packet The encrypted incoming packet.
-     * @return Packet with decrypted payload, or std::nullopt if decryption failed.
-     */
-    std::optional<shared::Packet> decryptPacketPayload(const shared::Packet& packet) const;
-
     /// @brief Handles a GET_CHATS packet to request the user's chat list.
     /// @param socket The client socket.
     /// @param packet The received packet containing the chat list request.
