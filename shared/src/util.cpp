@@ -2,13 +2,9 @@
 
 #include <QDebug>
 #include <QRegularExpression>
-#include <qrsaencryption.h>
 
 #include <utility>
 
-#include "KeyStore.h"
-
-// TODO: split into multiple
 namespace shared::util {
 
 QList<Packet> parse(const QByteArray& bytes)
@@ -114,30 +110,6 @@ bool isValidUsername(const QString& username)
 {
     static const QRegularExpression usernamePattern("^[a-z0-9_]{2,20}$");
     return usernamePattern.match(username).hasMatch();
-}
-
-std::optional<Packet> decryptPacketPayload(const Packet& packet)
-{
-    if (!packet.data().has_value())
-        return packet;
-
-    const KeyStore& keyStore = KeyStore::instance();
-
-    if (!keyStore.hasLocalKeyPair())
-    {
-        qWarning() << "Cannot decrypt packet: local key pair is missing";
-        return std::nullopt;
-    }
-
-    QRSAEncryption rsa(keyStore.keySize());
-    const QByteArray decryptedData = rsa.decode(packet.data().value(), keyStore.privateKey());
-
-    return Packet(
-        packet.type(),
-        packet.sender(),
-        packet.receiver(),
-        std::move(decryptedData)
-    );
 }
 
 } // namespace shared::util

@@ -20,8 +20,9 @@ namespace shared {
  */
 enum class MessageType
 {
-    TEXT,  ///< Plain text message
-    MEDIA  ///< Media message (image, video, audio, etc.)
+    INVALID, ///< Invalid or malformed message
+    TEXT,    ///< Plain text message
+    MEDIA    ///< Media message (image, video, audio, etc.)
 };
 
 /**
@@ -38,41 +39,22 @@ private:
     QUuid m_senderUserId;      ///< UUID of the user who sent the message.
     QUuid m_targetChatId;      ///< UUID of the chat where the message was sent.
     MessageType m_type;        ///< Type of the message (TEXT or MEDIA).
-    QString m_content;         ///< Content of the message (text or media reference).
+    QByteArray m_content;      ///< Encrypted message content bytes.
 
 public:
     /**
-     * @brief Constructs a Message with specified type and content.
-     * @param type The type of the message (TEXT or MEDIA).
-     * @param content The content of the message.
-     * 
-     * @note This constructor does not initialize senderUserId and targetChatId.
-     * They should be set separately or use the full constructor instead.
-     */
-    Message(MessageType type, QString content);
-    
-    /**
-     * @brief Constructs a complete Message with all fields specified.
+     * @brief Constructs a Message with sender, target chat, and type.
      * @param senderUserId UUID of the user sending the message.
      * @param targetChatId UUID of the target chat.
      * @param type The type of the message (TEXT or MEDIA).
-     * @param content The content of the message.
+     *
+     * @note Content must be set with setContent().
      */
-    Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QString content);
+    Message(QUuid senderUserId, QUuid targetChatId, MessageType type);
 
-    /// @brief Default copy constructor.
     Message(const Message& other) = default;
-
-    /// @brief Default copy assignment operator.
     Message& operator =(const Message& other) = default;
-
-    /// @brief Move constructor.
-    /// @param other The Message object to move from.
     Message(Message&& other) noexcept;
-
-    /// @brief Move assignment operator.
-    /// @param other The Message object to move from.
-    /// @return Reference to this Message.
     Message& operator =(Message&& other) noexcept;
 
     /**
@@ -95,6 +77,13 @@ public:
     QByteArray serialize() const;
 
     /**
+     * @brief Encrypts and stores the message content.
+     * @param content Plain content string.
+     * @param encryptionKey Public key used to encrypt content.
+     */
+    void setContent(const QString& content, const QByteArray& encryptionKey);
+
+    /**
      * @brief Returns the UUID of the message sender.
      * @return Constant reference to the sender's UUID.
      */
@@ -113,10 +102,14 @@ public:
     const MessageType& type() const { return m_type; }
 
     /**
-     * @brief Returns the content of the message.
-     * @return Constant reference to the content string.
+     * @brief Decrypts and returns the message content.
+     * @param decryptionKey Private key used to decrypt content.
+     * @return Decrypted content string.
      */
-    const QString& content() const { return m_content; }
+    QString content(const QByteArray& decryptionKey) const;
+
+private:
+    Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QByteArray contentBytes);
 };
 
 } // namespace shared

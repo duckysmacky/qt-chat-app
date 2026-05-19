@@ -1,6 +1,8 @@
 add_library(shared_lib STATIC
     src/util.cpp
     src/util.h
+    src/crypto.cpp
+    src/crypto.h
     src/Packet.cpp
     src/Packet.h
     src/Message.cpp

@@ -48,29 +48,7 @@ public:
      * @param message The Message object to send.
      * @return Packet containing the chat message.
      */
-    static Packet chatMessagePacket(const QUuid& sender, const QUuid& receiver, Message message);
-
-    /**
-     * @brief Creates a TEXT_CHAT_MESSAGE packet for text-only messages.
-     * @param sender UUID of the sender (client).
-     * @param receiver UUID of the receiver (target chat or server).
-     * @param senderUserId UUID of the user sending the message.
-     * @param targetChatId UUID of the target chat.
-     * @param content The text content of the message.
-     * @return Packet containing a text chat message.
-     */
-    static Packet textChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content);
-
-    /**
-     * @brief Creates a MEDIA_CHAT_MESSAGE packet for media messages (images, videos, files).
-     * @param sender UUID of the sender (client).
-     * @param receiver UUID of the receiver (target chat or server).
-     * @param senderUserId UUID of the user sending the message.
-     * @param targetChatId UUID of the target chat.
-     * @param content The media content or reference.
-     * @return Packet containing a media chat message.
-     */
-    static Packet mediaChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content);
+    static Packet chatMessagePacket(const QUuid& sender, const QUuid& receiver, Message message, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a REGISTER_USER packet for new user registration.
@@ -79,7 +57,7 @@ public:
      * @param info Registration information containing user details.
      * @return Packet containing user registration data.
      */
-    static Packet registerUserPacket(const QUuid& sender, const QUuid& receiver, RegisterInfo info);
+    static Packet registerUserPacket(const QUuid& sender, const QUuid& receiver, RegisterInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a LOGIN_USER packet for user authentication.
@@ -88,7 +66,7 @@ public:
      * @param info Login credentials (username/email and password hash).
      * @return Packet containing login authentication data.
      */
-    static Packet loginUserPacket(const QUuid& sender, const QUuid& receiver, LoginInfo info);
+    static Packet loginUserPacket(const QUuid& sender, const QUuid& receiver, LoginInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a GET_USER_PROFILE packet to request the current user's profile.
@@ -105,7 +83,7 @@ public:
      * @param info Profile update information containing fields to modify.
      * @return Packet containing profile update data.
      */
-    static Packet updateUserProfilePacket(const QUuid& sender, const QUuid& receiver, ProfileUpdateInfo info);
+    static Packet updateUserProfilePacket(const QUuid& sender, const QUuid& receiver, ProfileUpdateInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a USER_PROFILE_DATA packet to send profile information.
@@ -114,7 +92,7 @@ public:
      * @param info The profile information to send.
      * @return Packet containing user profile data.
      */
-    static Packet userProfileDataPacket(const QUuid& sender, const QUuid& receiver, ProfileInfo info);
+    static Packet userProfileDataPacket(const QUuid& sender, const QUuid& receiver, ProfileInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a GET_USER_INFO packet with a request object.
@@ -123,7 +101,7 @@ public:
      * @param request The UserInfoRequest containing search/filter criteria.
      * @return Packet requesting user information with specified criteria.
      */
-    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, UserInfoRequest request);
+    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, UserInfoRequest request, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a GET_USER_INFO packet targeting a specific user ID.
@@ -132,7 +110,7 @@ public:
      * @param userId UUID of the requested user.
      * @return Packet requesting user information for a specific user ID.
      */
-    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId);
+    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a GET_USER_INFO packet targeting a specific username.
@@ -141,7 +119,7 @@ public:
      * @param username Username of the requested user.
      * @return Packet requesting user information for a specific username.
      */
-    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, QString username);
+    static Packet getUserInfoPacket(const QUuid& sender, const QUuid& receiver, QString username, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a PUBLIC_USER_INFO_DATA packet with public user information.
@@ -150,7 +128,7 @@ public:
      * @param info The public user information to send.
      * @return Packet containing public user data.
      */
-    static Packet publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info);
+    static Packet publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates an OPERATION_SUCCESS packet indicating successful operation.
@@ -159,7 +137,7 @@ public:
      * @param message Success message text.
      * @return Packet indicating operation success.
      */
-    static Packet operationSuccessPacket(const QUuid& sender, const QUuid& receiver, QString message);
+    static Packet operationSuccessPacket(const QUuid& sender, const QUuid& receiver, QString message, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates an OPERATION_ERROR packet indicating operation failure.
@@ -168,7 +146,7 @@ public:
      * @param message Error message text.
      * @return Packet indicating operation failure.
      */
-    static Packet operationErrorPacket(const QUuid& sender, const QUuid& receiver, QString message);
+    static Packet operationErrorPacket(const QUuid& sender, const QUuid& receiver, QString message, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a GET_CHATS packet to request the user's chat list.
@@ -185,7 +163,7 @@ public:
      * @param info The ChatsInfo object containing chat list data.
      * @return Packet containing chat list data.
      */
-    static Packet chatListDataPacket(const QUuid& sender, const QUuid& receiver, ChatsInfo info);
+    static Packet chatListDataPacket(const QUuid& sender, const QUuid& receiver, ChatsInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a SEARCH_CHATS packet to search for chats.
@@ -194,7 +172,7 @@ public:
      * @param query The search query string.
      * @return Packet containing chat search criteria.
      */
-    static Packet searchChatsPacket(const QUuid& sender, const QUuid& receiver, QString query);
+    static Packet searchChatsPacket(const QUuid& sender, const QUuid& receiver, QString query, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a CREATE_CHAT packet to create a new chat.
@@ -203,7 +181,7 @@ public:
      * @param info Chat creation information including members and chat type.
      * @return Packet containing chat creation data.
      */
-    static Packet createChatPacket(const QUuid& sender, const QUuid& receiver, ChatCreateInfo info);
+    static Packet createChatPacket(const QUuid& sender, const QUuid& receiver, ChatCreateInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a CHAT_INFO_DATA packet with detailed chat information.
@@ -212,7 +190,7 @@ public:
      * @param info The ChatInfo object containing detailed chat data.
      * @return Packet containing detailed chat information.
      */
-    static Packet chatInfoDataPacket(const QUuid& sender, const QUuid& receiver, ChatInfo info);
+    static Packet chatInfoDataPacket(const QUuid& sender, const QUuid& receiver, ChatInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates a KEY_EXCHANGE packet containing a public key.
@@ -221,7 +199,7 @@ public:
      * @param publicKey Public key bytes.
      * @return Packet containing the sender's public key.
      */
-    static Packet keyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey);
+    static Packet keyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey, const QByteArray& encryptionKey);
 };
 
 } // namespace shared

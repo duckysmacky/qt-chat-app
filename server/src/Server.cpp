@@ -5,8 +5,6 @@
 #include <QSet>
 #include <qlogging.h>
 
-#include <qrsaencryption.h>
-
 #include "dto/AuthInfo.h"
 #include "Message.h"
 #include "Database.h"
@@ -22,6 +20,7 @@
 #include "model/Chat.h"
 
 #include "KeyStore.h"
+#include "crypto.h"
 #include "util.h"
 
 namespace {
@@ -54,6 +53,20 @@ shared::ChatsInfo makeChatsInfo(const Database& db, const QList<model::Chat>& ch
     return shared::ChatsInfo(std::move(chatInfos));
 }
 
+std::optional<QByteArray> decryptPacketPayload(const shared::Packet& packet)
+{
+    if (!packet.hasPayload()) return std::nullopt;
+
+    const QByteArray decryptionKey = shared::KeyStore::instance().privateKey();
+
+    return packet.payload(decryptionKey);
+}
+
+std::optional<QByteArray> peerEncryptionKey(const QUuid& sessionId)
+{
+    return shared::KeyStore::instance().peerPublicKey(sessionId);
+}
+
 }
 
 /**
@@ -68,11 +81,9 @@ Server& Server::instance()
 Server::Server(QObject* parent)
 	: QObject(parent),
 	  m_server(new QTcpServer(this)),
-
 	  m_isRunning(false)
 {
 	connect(m_server, &QTcpServer::newConnection, this, &Server::onNewConnection);
-
 }
 
 Server::~Server()
@@ -98,7 +109,6 @@ void Server::stop() const
 {
 	if (m_isRunning)
 		m_server->close();
-
 }
 
 /**
@@ -119,13 +129,19 @@ void Server::sendPacket(const QUuid& receiverSessionId, const shared::Packet& pa
 
 void Server::sendChatListData(const QUuid& receiverSessionId, const shared::ChatsInfo& info) const
 {
-    const auto packet = shared::PacketFactory::chatListDataPacket(m_uuid, receiverSessionId, info);
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+    const auto packet = shared::PacketFactory::chatListDataPacket(m_uuid, receiverSessionId, info, encryptionKey.value());
     sendPacket(receiverSessionId, packet);
 }
 
 void Server::sendChatInfoData(const QUuid& receiverSessionId, const shared::ChatInfo& info) const
 {
-    const auto packet = shared::PacketFactory::chatInfoDataPacket(m_uuid, receiverSessionId, info);
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+    const auto packet = shared::PacketFactory::chatInfoDataPacket(m_uuid, receiverSessionId, info, encryptionKey.value());
     sendPacket(receiverSessionId, packet);
 }
 
@@ -146,28 +162,39 @@ void Server::sendUpdatedChatLists(const QSet<QUuid>& memberUserIds) const
     }
 }
 
-
 void Server::sendError(const QUuid& receiverSessionId, QString message) const
 {
-	auto packet = shared::PacketFactory::operationErrorPacket(m_uuid, receiverSessionId, std::move(message));
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+	auto packet = shared::PacketFactory::operationErrorPacket(m_uuid, receiverSessionId, std::move(message), encryptionKey.value());
 	sendPacket(receiverSessionId, packet);
 }
 
 void Server::sendSuccess(const QUuid& receiverSessionId, QString message) const
 {
-	auto packet = shared::PacketFactory::operationSuccessPacket(m_uuid, receiverSessionId, std::move(message));
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+	auto packet = shared::PacketFactory::operationSuccessPacket(m_uuid, receiverSessionId, std::move(message), encryptionKey.value());
 	sendPacket(receiverSessionId, packet);
 }
 
 void Server::sendUserProfileData(const QUuid& receiverSessionId, const shared::ProfileInfo& info) const
 {
-    const auto packet = shared::PacketFactory::userProfileDataPacket(m_uuid, receiverSessionId, info);
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+    const auto packet = shared::PacketFactory::userProfileDataPacket(m_uuid, receiverSessionId, info, encryptionKey.value());
     sendPacket(receiverSessionId, packet);
 }
 
 void Server::sendPublicUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const
 {
-    const auto packet = shared::PacketFactory::publicUserInfoDataPacket(m_uuid, receiverSessionId, info);
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+    const auto packet = shared::PacketFactory::publicUserInfoDataPacket(m_uuid, receiverSessionId, info, encryptionKey.value());
     sendPacket(receiverSessionId, packet);
 }
 
@@ -198,6 +225,12 @@ void Server::onServerRead()
 
         for (const auto& packet : packets)
         {
+            if (packet.receiver() != m_uuid)
+            {
+                sendPacket(packet.receiver(), packet);
+                continue;
+            }
+
             switch (packet.type())
             {
             case shared::PacketType::CONNECT_CLIENT:
@@ -248,7 +281,6 @@ void Server::onServerRead()
                 handleAuthorizedPacket(packet);
                 break;
             }
-
 		}
     }
 }
@@ -378,7 +410,6 @@ void Server::handleConnectClient(QTcpSocket* socket, const shared::Packet& packe
 
     m_clients.insert(sessionId, ClientConnection(sessionId, socket));
 
-    sendSuccess(sessionId, "Connected");
     sendPublicKey(sessionId);
     qInfo() << "Connected a new client" << sessionId;
 }
@@ -398,14 +429,20 @@ void Server::handleRegisterUser(const QTcpSocket* socket, const shared::Packet& 
 
     const ClientConnection& connection = connectionOpt->get();
 
-    if (!connection.matchesSocket(socket) || !packet.data().has_value()) return;
+    if (!connection.matchesSocket(socket) || !packet.hasPayload()) return;
 
-    const auto registerInfo = shared::RegisterInfo::deserialize(packet.data().value());
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value()) {
+        sendError(connection.sessionId(), "Unable to decrypt register payload");
+        return;
+    }
+
+    const auto registerInfo = shared::RegisterInfo::deserialize(payload.value());
 
     if (!registerInfo.has_value())
     {
         qWarning() << "Client" << packet.sender() << "sent invalid register payload";
-        sendPacket(connection.sessionId(), shared::PacketFactory::operationErrorPacket(m_uuid, connection.sessionId(), "Invalid register payload"));
+        sendError(connection.sessionId(), "Invalid register payload");
         return;
     }
 
@@ -427,7 +464,7 @@ void Server::handleRegisterUser(const QTcpSocket* socket, const shared::Packet& 
     if (db.getUserByUsername(username).has_value())
     {
         qWarning() << "Username" << username << "already exists";
-        sendPacket(connection.sessionId(), shared::PacketFactory::operationErrorPacket(m_uuid, connection.sessionId(), "Username already exists"));
+        sendError(connection.sessionId(), "Username already exists");
         return;
     }
 
@@ -441,7 +478,7 @@ void Server::handleRegisterUser(const QTcpSocket* socket, const shared::Packet& 
     if (!db.createUser(user))
     {
         qCritical() << "Registration of client" << packet.sender() << "failed";
-        sendPacket(connection.sessionId(), shared::PacketFactory::operationErrorPacket(m_uuid, connection.sessionId(), "Registration failed"));
+        sendError(connection.sessionId(), "Registration failed");
         return;
     }
 
@@ -464,14 +501,20 @@ void Server::handleLoginUser(const QTcpSocket* socket, const shared::Packet& pac
 
     ClientConnection& connection = connectionOpt->get();
 
-    if (!connection.matchesSocket(socket) || !packet.data().has_value()) return;
+    if (!connection.matchesSocket(socket) || !packet.hasPayload()) return;
 
-    const auto loginInfo = shared::LoginInfo::deserialize(packet.data().value());
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value()) {
+        sendError(connection.sessionId(), "Unable to decrypt login payload");
+        return;
+    }
+
+    const auto loginInfo = shared::LoginInfo::deserialize(payload.value());
 
     if (!loginInfo.has_value())
     {
         qWarning() << "Client" << packet.sender() << "sent invalid login payload";
-        sendPacket(connection.sessionId(), shared::PacketFactory::operationErrorPacket(m_uuid, connection.sessionId(), "Invalid login payload"));
+        sendError(connection.sessionId(), "Invalid login payload");
         return;
     }
 
@@ -480,7 +523,7 @@ void Server::handleLoginUser(const QTcpSocket* socket, const shared::Packet& pac
 
     if (!user.has_value())
     {
-        sendPacket(connection.sessionId(), shared::PacketFactory::operationErrorPacket(m_uuid, connection.sessionId(), "Invalid login or password"));
+        sendError(connection.sessionId(), "Invalid login or password");
         return;
     }
 
@@ -536,17 +579,8 @@ void Server::handleAuthorizedPacket(const shared::Packet& packet) const
     switch (packet.type())
     {
     case shared::PacketType::CHAT_MESSAGE:
-    {
-        const auto decryptedPacket = shared::util::decryptPacketPayload(packet);
-        if (!decryptedPacket.has_value())
-        {
-            sendError(sessionId, "Failed to decrypt message");
-            return;
-        }
-
-        handleChatMessage(connection, decryptedPacket.value());
+        handleChatMessage(connection, packet);
         break;
-    }
 
     case shared::PacketType::SERVER_COMMAND:
         qInfo() << "Command from" << sessionId.toString();
@@ -607,12 +641,18 @@ void Server::handleSearchChats(const QTcpSocket* socket, const shared::Packet& p
         return;
     }
 
-    if (!packet.data().has_value()) {
+    if (!packet.hasPayload()) {
         sendError(connection.sessionId(), "Chat search payload is missing");
         return;
     }
 
-    const QString queryText = QString::fromUtf8(packet.data().value()).trimmed();
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value()) {
+        sendError(connection.sessionId(), "Unable to decrypt chat search payload");
+        return;
+    }
+
+    const QString queryText = QString::fromUtf8(payload.value()).trimmed();
 
     const Database& db = Database::instance();
     const QList<model::Chat> chats = db.searchChats(queryText);
@@ -638,12 +678,18 @@ void Server::handleCreateChat(const QTcpSocket* socket, const shared::Packet& pa
         return;
     }
 
-    if (!packet.data().has_value()) {
+    if (!packet.hasPayload()) {
         sendError(connection.sessionId(), "Chat create payload is missing");
         return;
     }
 
-    const auto createInfoOpt = shared::ChatCreateInfo::deserialize(packet.data().value());
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value()) {
+        sendError(connection.sessionId(), "Unable to decrypt chat create payload");
+        return;
+    }
+
+    const auto createInfoOpt = shared::ChatCreateInfo::deserialize(payload.value());
     if (!createInfoOpt.has_value()) {
         sendError(connection.sessionId(), "Invalid chat create payload");
         return;
@@ -746,12 +792,18 @@ void Server::handleUpdateUserProfile(const QTcpSocket* socket, const shared::Pac
         return;
     }
 
-    if (!packet.data().has_value()) {
+    if (!packet.hasPayload()) {
         sendError(connection.sessionId(), "Profile update payload is missing");
         return;
     }
 
-    const auto updateInfoOpt = shared::ProfileUpdateInfo::deserialize(packet.data().value());
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value()) {
+        sendError(connection.sessionId(), "Unable to decrypt profile update payload");
+        return;
+    }
+
+    const auto updateInfoOpt = shared::ProfileUpdateInfo::deserialize(payload.value());
     if (!updateInfoOpt.has_value()) {
         sendError(connection.sessionId(), "Invalid profile update payload");
         return;
@@ -854,13 +906,20 @@ void Server::handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& p
         return;
     }
 
-    if (!packet.data().has_value())
+    if (!packet.hasPayload())
     {
         sendError(connection.sessionId(), "User info request payload is missing");
         return;
     }
 
-    const auto requestOpt = shared::UserInfoRequest::deserialize(packet.data().value());
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value())
+    {
+        sendError(connection.sessionId(), "Unable to decrypt user info payload");
+        return;
+    }
+
+    const auto requestOpt = shared::UserInfoRequest::deserialize(payload.value());
     if (!requestOpt.has_value())
     {
         sendError(connection.sessionId(), "Invalid user info request payload");
@@ -908,13 +967,20 @@ void Server::handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& p
 
 void Server::handleChatMessage(const ClientConnection& connection, const shared::Packet& packet) const
 {
-    if (!packet.data().has_value())
+    if (!packet.hasPayload())
     {
         sendError(connection.sessionId(), "Message payload is missing");
         return;
     }
 
-    const shared::Message incomingMessage = shared::Message::deserialize(packet.data().value());
+    auto messageBytes = decryptPacketPayload(packet);
+    if (!messageBytes.has_value())
+    {
+        sendError(connection.sessionId(), "Unable to decrypt message payload");
+        return;
+    }
+
+    const shared::Message incomingMessage = shared::Message::deserialize(messageBytes.value());
     const QUuid chatId = incomingMessage.targetChatId();
 
     if (chatId.isNull())
@@ -941,10 +1007,15 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         return;
     }
 
+    if (incomingMessage.type() == shared::MessageType::INVALID)
+    {
+        qWarning() << "Declining invalid message from" << connection.sessionId().toString();
+        sendError(connection.sessionId(), "Invalid message payload");
+        return;
+    }
+
     const QUuid authenticatedUserId = connection.userId().value();
-    const QUuid senderUserId = incomingMessage.senderUserId().isNull()
-        ? authenticatedUserId
-        : incomingMessage.senderUserId();
+    const QUuid senderUserId = incomingMessage.senderUserId();
 
     if (senderUserId != authenticatedUserId)
     {
@@ -961,13 +1032,6 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         sendError(connection.sessionId(), "You are not a member of this chat");
         return;
     }
-
-    shared::Message normalizedMessage(
-        senderUserId,
-        chatId,
-        incomingMessage.type(),
-        incomingMessage.content()
-    );
 
     qInfo() << "Routing message from session" << connection.sessionId().toString()
             << "user" << senderUserId.toString()
@@ -986,24 +1050,31 @@ void Server::handleChatMessage(const ClientConnection& connection, const shared:
         if (it.key() == connection.sessionId())
             continue;
 
-        const auto outboundPacket = shared::PacketFactory::chatMessagePacket(
+        const auto encryptionKey = peerEncryptionKey(it.key());
+        if (!encryptionKey.has_value())
+            continue;
+
+        const shared::Packet outboundPacket = shared::PacketFactory::chatMessagePacket(
             m_uuid,
             it.key(),
-            normalizedMessage
+            incomingMessage,
+            encryptionKey.value()
         );
 
-        sendEncryptedPacket(it.key(), outboundPacket);
-
+        sendPacket(it.key(), outboundPacket);
     }
 }
 
 void Server::sendPublicKey(const QUuid& receiverSessionId) const
 {
+    const auto derivedKeyPair = shared::crypto::deriveKeyPair(receiverSessionId);
+
     const auto packet = shared::PacketFactory::keyExchangePacket(
         m_uuid,
         receiverSessionId,
-        shared::KeyStore::instance().publicKey()
-        );
+        shared::KeyStore::instance().publicKey(),
+        derivedKeyPair.first
+    );
 
     sendPacket(receiverSessionId, packet);
 }
@@ -1025,10 +1096,18 @@ void Server::handleKeyExchange(const QTcpSocket* socket, const shared::Packet& p
     if (!connection.matchesSocket(socket))
         return;
 
-    const auto& payload = packet.data();
-    if (!payload.has_value() || payload->isEmpty())
+    if (!packet.hasPayload())
     {
         sendError(connection.sessionId(), "Public key payload is missing");
+        return;
+    }
+
+    const QByteArray decryptionKey = shared::crypto::deriveKeyPair(packet.receiver()).second;
+
+    const auto payload = packet.payload(decryptionKey);
+    if (!payload.has_value() || payload->isEmpty())
+    {
+        sendError(connection.sessionId(), "Unable to decrypt public key payload");
         return;
     }
 
@@ -1036,34 +1115,4 @@ void Server::handleKeyExchange(const QTcpSocket* socket, const shared::Packet& p
     shared::KeyStore::instance().setPeerPublicKey(connection.sessionId(), std::move(clientPublicKey));
 
     sendSuccess(connection.sessionId(), "Public key registered");
-}
-void Server::sendEncryptedPacket(const QUuid& receiverSessionId, const shared::Packet& packet) const
-{
-    if (!packet.data().has_value())
-    {
-        sendPacket(receiverSessionId, packet);
-        return;
-    }
-
-    const shared::KeyStore& keyStore = shared::KeyStore::instance();
-    const auto peerPublicKey = keyStore.peerPublicKey(receiverSessionId);
-    if (!peerPublicKey.has_value())
-    {
-        qWarning() << "Cannot encrypt packet: peer public key is missing for session"
-                   << receiverSessionId.toString();
-        sendError(receiverSessionId, "Encryption key is not registered");
-        return;
-    }
-
-    QRSAEncryption rsa(keyStore.keySize());
-    const QByteArray encryptedData = rsa.encode(packet.data().value(), peerPublicKey.value());
-
-    const shared::Packet encryptedPacket(
-        packet.type(),
-        packet.sender(),
-        packet.receiver(),
-        encryptedData
-        );
-
-    sendPacket(receiverSessionId, encryptedPacket);
 }

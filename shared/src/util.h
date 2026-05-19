@@ -9,8 +9,6 @@
 #include <QList>
 #include <QString>
 
-#include <optional>
-
 #include "Packet.h"
 
 namespace shared::util {
@@ -61,12 +59,5 @@ QString normalizeUsername(QString username);
  * @return true if valid, false otherwise.
  */
 bool isValidUsername(const QString& username);
-
-/**
- * @brief Decrypts the payload of a packet using the local private key.
- * @param packet The encrypted incoming packet.
- * @return Packet with decrypted payload, or std::nullopt if decryption failed.
- */
-std::optional<Packet> decryptPacketPayload(const Packet& packet);
 
 } // namespace shared::util

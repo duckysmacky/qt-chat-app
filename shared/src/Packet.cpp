@@ -6,6 +6,8 @@
 
 #include <utility>
 
+#include "crypto.h"
+
 namespace shared {
 
 static constexpr auto PACKET_TYPE_SIZE = 1;
@@ -19,11 +21,11 @@ Packet::Packet(const PacketType type, QUuid sender, QUuid receiver)
 {
 }
 
-Packet::Packet(const PacketType type, QUuid sender, QUuid receiver, QByteArray data)
+Packet::Packet(const PacketType type, QUuid sender, QUuid receiver, QByteArray encryptedPayload)
     : m_type(type),
       m_sender(std::move(sender)),
       m_receiver(std::move(receiver)),
-      m_data(std::move(data))
+      m_payload(std::move(encryptedPayload))
 {
 }
 
@@ -31,7 +33,7 @@ Packet::Packet(Packet&& other) noexcept
     : m_type(other.m_type),
       m_sender(std::move(other.m_sender)),
       m_receiver(std::move(other.m_receiver)),
-      m_data(std::move(other.m_data))
+      m_payload(std::move(other.m_payload))
 {
 }
 
@@ -41,8 +43,32 @@ Packet& Packet::operator =(Packet&& other) noexcept
     m_type = other.m_type;
     m_sender = std::move(other.m_sender);
     m_receiver = std::move(other.m_receiver);
-    m_data = std::move(other.m_data);
+    m_payload = std::move(other.m_payload);
     return *this;
+}
+
+void Packet::setPayload(const QByteArray& payload, const QByteArray& encryptionKey)
+{
+    if (encryptionKey.isEmpty())
+    {
+        qWarning() << "Cannot encrypt packet payload without an encryption key";
+        return;
+    }
+
+    m_payload = crypto::encryptBytes(payload, encryptionKey);
+}
+
+std::optional<QByteArray> Packet::payload(const QByteArray &decryptionKey) const
+{
+    if (decryptionKey.isEmpty())
+    {
+        qWarning() << "Cannot decrypt packet payload without a decryption key";
+        return std::nullopt;
+    }
+
+    return m_payload.has_value()
+        ? std::make_optional(crypto::decryptBytes(m_payload.value(), decryptionKey))
+        : std::nullopt;
 }
 
 Packet Packet::deserialize(QByteArray bytes)
@@ -81,8 +107,8 @@ QByteArray Packet::serialize() const
     bytes.append(m_sender.toRfc4122());
     bytes.append(m_receiver.toRfc4122());
 
-    if (m_data.has_value())
-        bytes.append(m_data.value());
+    if (m_payload.has_value())
+        bytes.append(m_payload.value());
 
     return bytes;
 }

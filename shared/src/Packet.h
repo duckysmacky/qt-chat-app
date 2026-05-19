@@ -70,7 +70,7 @@ private:
     PacketType m_type;  ///< Packet type
     QUuid m_sender;     ///< Sender UUID
     QUuid m_receiver;   ///< Receiver UUID
-    std::optional<QByteArray> m_data;  ///< Optional packet data payload
+    std::optional<QByteArray> m_payload;  ///< Optional packet data payload
 
 public:
     /**
@@ -80,15 +80,6 @@ public:
      * @param receiver UUID of the receiver.
      */
     Packet(PacketType type, QUuid sender, QUuid receiver);
-    
-    /**
-     * @brief Constructs a Packet with type, sender, receiver, and data.
-     * @param type The type of the packet.
-     * @param sender UUID of the sender.
-     * @param receiver UUID of the receiver.
-     * @param data The packet data payload.
-     */
-    Packet(PacketType type, QUuid sender, QUuid receiver, QByteArray data);
 
     /**
      * @brief Copy constructor.
@@ -134,6 +125,10 @@ public:
      */
     QByteArray serialize() const;
 
+    void setPayload(const QByteArray& payload, const QByteArray& encryptionKey);
+
+    bool hasPayload() const { return m_payload.has_value(); };
+
     /**
      * @brief Gets the packet type.
      * @return Constant reference to the packet type.
@@ -156,7 +151,10 @@ public:
      * @brief Gets the packet data payload.
      * @return Constant optional reference to the packet data.
      */
-    const std::optional<QByteArray>& data() const { return m_data; }
+    std::optional<QByteArray> payload(const QByteArray& decryptionKey) const;
+
+private:
+    Packet(PacketType type, QUuid sender, QUuid receiver, QByteArray encryptedPayload);
 };
 
 }

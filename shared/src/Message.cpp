@@ -6,18 +6,31 @@
 
 #include <utility>
 
+#include "crypto.h"
+
 namespace shared {
 
-Message::Message(MessageType type, QString content)
-    : Message(QUuid(), QUuid(), type, std::move(content))
+namespace {
+
+constexpr auto senderUserIdKey = "senderUserId";
+constexpr auto targetChatIdKey = "targetChatId";
+constexpr auto typeKey = "type";
+constexpr auto contentKey = "content";
+
+} // namespace
+
+Message::Message(QUuid senderUserId, QUuid targetChatId, MessageType type)
+    : m_senderUserId(std::move(senderUserId)),
+      m_targetChatId(std::move(targetChatId)),
+      m_type(type)
 {
 }
 
-Message::Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QString content)
+Message::Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QByteArray contentBytes)
     : m_senderUserId(std::move(senderUserId)),
       m_targetChatId(std::move(targetChatId)),
       m_type(type),
-      m_content(std::move(content))
+      m_content(std::move(contentBytes))
 {
 }
 
@@ -49,19 +62,16 @@ Message Message::deserialize(QByteArray bytes)
     {
         const QJsonObject obj = doc.object();
 
-        const QString userKey = obj.contains("user") ? "user" : "senderUserId";
-        const QString targetChatKey = obj.contains("targetChat") ? "targetChat" : "targetChatId";
-
-        if (obj.contains(userKey) &&
-            obj.contains(targetChatKey) &&
-            obj.contains("type") &&
-            obj.contains("content"))
+        if (obj.contains(senderUserIdKey) &&
+            obj.contains(targetChatIdKey) &&
+            obj.contains(typeKey) &&
+            obj.contains(contentKey))
         {
             return Message(
-                QUuid(obj[userKey].toString()),
-                QUuid(obj[targetChatKey].toString()),
-                static_cast<MessageType>(obj["type"].toInt()),
-                obj["content"].toString()
+                QUuid(obj[senderUserIdKey].toString()),
+                QUuid(obj[targetChatIdKey].toString()),
+                static_cast<MessageType>(obj[typeKey].toInt()),
+                QByteArray::fromBase64(obj[contentKey].toString().toLatin1())
             );
         }
     }
@@ -69,24 +79,34 @@ Message Message::deserialize(QByteArray bytes)
     if (bytes.isEmpty())
     {
         qWarning() << "Invalid empty message payload";
-        return Message(MessageType::TEXT, "");
+        return Message{QUuid(), QUuid(), MessageType::INVALID};
     }
 
     const auto type = static_cast<MessageType>(bytes[0]);
     bytes.remove(0, 1);
 
-    return Message(QUuid(), QUuid(), type, QString::fromUtf8(bytes));
+    return Message(QUuid(), QUuid(), type, std::move(bytes));
 }
 
 QByteArray Message::serialize() const
 {
     QJsonObject obj;
-    obj["user"] = m_senderUserId.toString(QUuid::WithoutBraces);
-    obj["targetChat"] = m_targetChatId.toString(QUuid::WithoutBraces);
-    obj["type"] = static_cast<int>(m_type);
-    obj["content"] = m_content;
+    obj[senderUserIdKey] = m_senderUserId.toString(QUuid::WithoutBraces);
+    obj[targetChatIdKey] = m_targetChatId.toString(QUuid::WithoutBraces);
+    obj[typeKey] = static_cast<int>(m_type);
+    obj[contentKey] = QString::fromLatin1(m_content.toBase64());
 
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+void Message::setContent(const QString& content, const QByteArray& encryptionKey)
+{
+    m_content = crypto::encryptBytes(content.toUtf8(), encryptionKey);
+}
+
+QString Message::content(const QByteArray& decryptionKey) const
+{
+    return QString::fromUtf8(crypto::decryptBytes(m_content, decryptionKey));
 }
 
 } // shared

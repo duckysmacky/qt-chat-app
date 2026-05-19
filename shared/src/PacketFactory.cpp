@@ -21,30 +21,25 @@ Packet PacketFactory::connectClientPacket(const QUuid& sender, const QUuid& rece
 }
 
 
-Packet PacketFactory::chatMessagePacket(const QUuid& sender, const QUuid& receiver, Message message)
+Packet PacketFactory::chatMessagePacket(const QUuid& sender, const QUuid& receiver, Message message, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::CHAT_MESSAGE, sender, receiver, message.serialize()};
+    Packet packet{PacketType::CHAT_MESSAGE, sender, receiver};
+    packet.setPayload(message.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::textChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content)
+Packet PacketFactory::registerUserPacket(const QUuid& sender, const QUuid& receiver, RegisterInfo info, const QByteArray& encryptionKey)
 {
-    const Message message(senderUserId, targetChatId, MessageType::TEXT, std::move(content));
-    return chatMessagePacket(sender, receiver, message);
+    Packet packet{PacketType::REGISTER_USER, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::mediaChatMessagePacket(const QUuid& sender, const QUuid& receiver, const QUuid& senderUserId, const QUuid& targetChatId, QString content)
+Packet PacketFactory::loginUserPacket(const QUuid& sender, const QUuid& receiver, LoginInfo info, const QByteArray& encryptionKey)
 {
-    const Message message(senderUserId, targetChatId, MessageType::MEDIA, std::move(content));
-    return chatMessagePacket(sender, receiver, message);
-}
-
-Packet PacketFactory::registerUserPacket(const QUuid& sender, const QUuid& receiver, RegisterInfo info)
-{
-    return Packet{PacketType::REGISTER_USER, sender, receiver, info.serialize()};
-}
-Packet PacketFactory::loginUserPacket(const QUuid& sender, const QUuid& receiver, LoginInfo info)
-{
-    return Packet{PacketType::LOGIN_USER, sender, receiver, info.serialize()};
+    Packet packet{PacketType::LOGIN_USER, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
 Packet PacketFactory::getUserProfilePacket(const QUuid& sender, const QUuid& receiver)
@@ -52,46 +47,58 @@ Packet PacketFactory::getUserProfilePacket(const QUuid& sender, const QUuid& rec
     return Packet{PacketType::GET_USER_PROFILE, sender, receiver};
 }
 
-Packet PacketFactory::updateUserProfilePacket(const QUuid& sender, const QUuid& receiver, ProfileUpdateInfo info)
+Packet PacketFactory::updateUserProfilePacket(const QUuid& sender, const QUuid& receiver, ProfileUpdateInfo info, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::UPDATE_USER_PROFILE, sender, receiver, info.serialize()};
+    Packet packet{PacketType::UPDATE_USER_PROFILE, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::userProfileDataPacket(const QUuid& sender, const QUuid& receiver, ProfileInfo info)
+Packet PacketFactory::userProfileDataPacket(const QUuid& sender, const QUuid& receiver, ProfileInfo info, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::USER_PROFILE_DATA, sender, receiver, info.serialize()};
+    Packet packet{PacketType::USER_PROFILE_DATA, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, UserInfoRequest request)
+Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, UserInfoRequest request, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::GET_USER_INFO, sender, receiver, request.serialize()};
+    Packet packet{PacketType::GET_USER_INFO, sender, receiver};
+    packet.setPayload(request.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId)
+Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId, const QByteArray& encryptionKey)
 {
-    return getUserInfoPacket(sender, receiver, UserInfoRequest(userId));
+    return getUserInfoPacket(sender, receiver, UserInfoRequest(userId), encryptionKey);
 }
 
-Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, QString username)
+Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiver, QString username, const QByteArray& encryptionKey)
 {
-    return getUserInfoPacket(sender, receiver, UserInfoRequest(std::move(username)));
+    return getUserInfoPacket(sender, receiver, UserInfoRequest(std::move(username)), encryptionKey);
 }
 
-Packet PacketFactory::publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info)
+Packet PacketFactory::publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::PUBLIC_USER_INFO_DATA, sender, receiver, info.serialize()};
+    Packet packet{PacketType::PUBLIC_USER_INFO_DATA, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::operationSuccessPacket(const QUuid& sender, const QUuid& receiver, QString message)
+Packet PacketFactory::operationSuccessPacket(const QUuid& sender, const QUuid& receiver, QString message, const QByteArray& encryptionKey)
 {
     const OperationResult result(OperationResultType::SUCCESS, std::move(message));
-    return Packet{PacketType::OPERATION_RESULT, sender, receiver, result.serialize()};
+    Packet packet{PacketType::OPERATION_RESULT, sender, receiver};
+    packet.setPayload(result.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::operationErrorPacket(const QUuid& sender, const QUuid& receiver, QString message)
+Packet PacketFactory::operationErrorPacket(const QUuid& sender, const QUuid& receiver, QString message, const QByteArray& encryptionKey)
 {
     const OperationResult result(OperationResultType::ERROR, std::move(message));
-    return Packet{PacketType::OPERATION_RESULT, sender, receiver, result.serialize()};
+    Packet packet{PacketType::OPERATION_RESULT, sender, receiver};
+    packet.setPayload(result.serialize(), encryptionKey);
+    return packet;
 }
 
 Packet PacketFactory::getChatsPacket(const QUuid& sender, const QUuid& receiver)
@@ -99,31 +106,39 @@ Packet PacketFactory::getChatsPacket(const QUuid& sender, const QUuid& receiver)
     return Packet{PacketType::GET_CHATS, sender, receiver};
 }
 
-Packet PacketFactory::chatListDataPacket(const QUuid& sender, const QUuid& receiver, ChatsInfo info)
+Packet PacketFactory::chatListDataPacket(const QUuid& sender, const QUuid& receiver, ChatsInfo info, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::CHAT_LIST_DATA, sender, receiver, info.serialize()};
+    Packet packet{PacketType::CHAT_LIST_DATA, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::searchChatsPacket(const QUuid& sender, const QUuid& receiver, QString query)
+Packet PacketFactory::searchChatsPacket(const QUuid& sender, const QUuid& receiver, QString query, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::SEARCH_CHATS, sender, receiver, query.toUtf8()};
+    Packet packet{PacketType::SEARCH_CHATS, sender, receiver};
+    packet.setPayload(query.toUtf8(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::createChatPacket(const QUuid& sender, const QUuid& receiver, ChatCreateInfo info)
+Packet PacketFactory::createChatPacket(const QUuid& sender, const QUuid& receiver, ChatCreateInfo info, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::CREATE_CHAT, sender, receiver, info.serialize()};
+    Packet packet{PacketType::CREATE_CHAT, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::chatInfoDataPacket(const QUuid& sender, const QUuid& receiver, ChatInfo info)
+Packet PacketFactory::chatInfoDataPacket(const QUuid& sender, const QUuid& receiver, ChatInfo info, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::CHAT_INFO_DATA, sender, receiver, info.serialize()};
+    Packet packet{PacketType::CHAT_INFO_DATA, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
 }
 
-Packet PacketFactory::keyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey)
+Packet PacketFactory::keyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey, const QByteArray& encryptionKey)
 {
-    return Packet{PacketType::KEY_EXCHANGE, sender, receiver, std::move(publicKey)};
+    Packet packet{PacketType::KEY_EXCHANGE, sender, receiver};
+    packet.setPayload(publicKey, encryptionKey);
+    return packet;
 }
-
-
 
 }
