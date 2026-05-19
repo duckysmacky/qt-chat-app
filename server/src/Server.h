@@ -18,6 +18,7 @@
 #include "ClientConnection.h"
 #include "dto/ProfileInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/SessionInfo.h"
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 
@@ -154,10 +155,10 @@ private:
     /// @return An optional reference to the const ClientConnection if found.
     std::optional<std::reference_wrapper<const ClientConnection>> findConnection(const QTcpSocket* clientSocket) const;
 
-    /// @brief Handles a CONNECT_CLIENT packet for initial client handshake.
+    /// @brief Handles a CONNECT packet for initial handshake.
     /// @param socket The client socket.
     /// @param packet The received packet containing client information.
-    void handleConnectClient(QTcpSocket* socket, const shared::Packet& packet);
+    void handleConnect(QTcpSocket* socket, const shared::Packet& packet);
 
     /// @brief Handles a chat message packet from an authenticated client.
     /// @param connection The client connection.
@@ -198,6 +199,8 @@ private:
     /// @param packet The received packet containing the user info request.
     void handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& packet);
 
+    void handleGetUserSession(const QTcpSocket* socket, const shared::Packet& packet);
+
     /**
      * @brief Sends user profile data to a specific client.
      * @param receiverSessionId The session UUID of the receiving client.
@@ -211,6 +214,8 @@ private:
      * @param info The public user information to send.
      */
     void sendPublicUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
+
+    void sendUserSessionData(const QUuid& receiverSessionId, const shared::SessionInfo& info) const;
 
     /// @brief Handles a GET_CHATS packet to request the user's chat list.
     /// @param socket The client socket.

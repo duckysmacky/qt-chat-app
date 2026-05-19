@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "AccountManager.h"
+#include "KeyStore.h"
 #include "RequestManager.h"
 #include "UserResolver.h"
 
@@ -92,7 +93,9 @@ void Chat::onNewMessage(const shared::Message& messagePacket)
     const QUuid& senderUserId = messagePacket.senderUserId();
     qInfo() << "Incoming text message from" << senderUserId;
 
-    ChatMessage* chatMessage = new ChatMessage(false, messagePacket.content(), senderUserId, this);
+    QString content = messagePacket.content(shared::KeyStore::instance().privateKey());
+    auto* chatMessage = new ChatMessage(false, std::move(content), senderUserId, this);
+
     addChatMessage(chatMessage);
 
     onMessageReceived(chatMessage->id());

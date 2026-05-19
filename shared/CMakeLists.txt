@@ -21,6 +21,8 @@ add_library(shared_lib STATIC
         src/dto/PublicUserInfo.cpp
         src/dto/UserInfoRequest.h
         src/dto/UserInfoRequest.cpp
+        src/dto/SessionInfo.h
+        src/dto/SessionInfo.cpp
         src/dto/ChatInfo.h
         src/dto/ChatInfo.cpp
         src/dto/ChatsInfo.h

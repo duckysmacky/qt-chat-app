@@ -15,6 +15,7 @@
 #include "dto/CreateChatInfo.h"
 #include "dto/UserInfoRequest.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/SessionInfo.h"
 
 namespace shared {
 
@@ -34,12 +35,12 @@ class PacketFactory
 {
 public:
     /**
-     * @brief Creates a CONNECT_CLIENT packet for initial client handshake.
+     * @brief Creates a CONNECT packet for initial handshake.
      * @param sender UUID of the sender (client).
      * @param receiver UUID of the receiver (server).
      * @return Packet configured as a client connection request.
      */
-    static Packet connectClientPacket(const QUuid& sender, const QUuid& receiver);
+    static Packet connectPacket(const QUuid& sender, const QUuid& receiver);
 
     /**
      * @brief Creates a CHAT_MESSAGE packet containing a complete message.
@@ -129,6 +130,10 @@ public:
      * @return Packet containing public user data.
      */
     static Packet publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info, const QByteArray& encryptionKey);
+
+    static Packet getUserSessionPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId, const QByteArray& encryptionKey);
+
+    static Packet userSessionDataPacket(const QUuid& sender, const QUuid& receiver, SessionInfo info, const QByteArray& encryptionKey);
 
     /**
      * @brief Creates an OPERATION_SUCCESS packet indicating successful operation.

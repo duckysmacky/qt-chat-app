@@ -13,6 +13,7 @@
 #include "dto/ProfileUpdateInfo.h"
 #include "dto/PublicUserInfo.h"
 #include "dto/UserInfoRequest.h"
+#include "dto/SessionInfo.h"
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
@@ -57,7 +58,9 @@ std::optional<QByteArray> decryptPacketPayload(const shared::Packet& packet)
 {
     if (!packet.hasPayload()) return std::nullopt;
 
-    const QByteArray decryptionKey = shared::KeyStore::instance().privateKey();
+    const QByteArray decryptionKey = packet.type() == shared::PacketType::KEY_EXCHANGE
+        ? shared::crypto::deriveKeyPair(packet.receiver()).second
+        : shared::KeyStore::instance().privateKey();
 
     return packet.payload(decryptionKey);
 }
@@ -80,6 +83,7 @@ Server& Server::instance()
 
 Server::Server(QObject* parent)
 	: QObject(parent),
+      m_uuid(QUuid::createUuid()),
 	  m_server(new QTcpServer(this)),
 	  m_isRunning(false)
 {
@@ -198,6 +202,15 @@ void Server::sendPublicUserInfoData(const QUuid& receiverSessionId, const shared
     sendPacket(receiverSessionId, packet);
 }
 
+void Server::sendUserSessionData(const QUuid& receiverSessionId, const shared::SessionInfo& info) const
+{
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+    const auto packet = shared::PacketFactory::userSessionDataPacket(m_uuid, receiverSessionId, info, encryptionKey.value());
+    sendPacket(receiverSessionId, packet);
+}
+
 /**
  * Handles new incoming TCP connections; returns None if socket is not defined
  */
@@ -227,16 +240,16 @@ void Server::onServerRead()
         {
             if (packet.receiver() != m_uuid)
             {
-                sendPacket(packet.receiver(), packet);
+                if (packet.type() == shared::PacketType::CONNECT)
+                    handleConnect(socket, packet);
+                else
+                    sendPacket(packet.receiver(), packet);
+
                 continue;
             }
 
             switch (packet.type())
             {
-            case shared::PacketType::CONNECT_CLIENT:
-                handleConnectClient(socket, packet);
-                break;
-
             case shared::PacketType::REGISTER_USER:
                 handleRegisterUser(socket, packet);
                 break;
@@ -259,6 +272,10 @@ void Server::onServerRead()
 
             case shared::PacketType::GET_USER_INFO:
                 handleGetUserInfo(socket, packet);
+                break;
+
+            case shared::PacketType::GET_USER_SESSION:
+                handleGetUserSession(socket, packet);
                 break;
 
             case shared::PacketType::GET_CHATS:
@@ -395,10 +412,10 @@ std::optional<std::reference_wrapper<const ClientConnection>> Server::findConnec
     return std::nullopt;
 }
 
-void Server::handleConnectClient(QTcpSocket* socket, const shared::Packet& packet)
+void Server::handleConnect(QTcpSocket* socket, const shared::Packet& packet)
 {
     if (!socket) return;
-    if (packet.type() != shared::PacketType::CONNECT_CLIENT) return;
+    if (packet.type() != shared::PacketType::CONNECT) return;
 
     const QUuid sessionId = packet.sender();
 
@@ -410,7 +427,7 @@ void Server::handleConnectClient(QTcpSocket* socket, const shared::Packet& packe
 
     m_clients.insert(sessionId, ClientConnection(sessionId, socket));
 
-    sendPublicKey(sessionId);
+    sendPacket(sessionId, shared::PacketFactory::connectPacket(m_uuid, sessionId));
     qInfo() << "Connected a new client" << sessionId;
 }
 
@@ -965,6 +982,54 @@ void Server::handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& p
     sendPublicUserInfoData(connection.sessionId(), publicUserInfo.value());
 }
 
+void Server::handleGetUserSession(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::GET_USER_SESSION) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value())
+        return;
+
+    const ClientConnection& connection = connectionOpt->get();
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized())
+    {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    if (!packet.hasPayload())
+    {
+        sendError(connection.sessionId(), "User session request payload is missing");
+        return;
+    }
+
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value() || payload->size() != 16)
+    {
+        sendError(connection.sessionId(), "Invalid user session request payload");
+        return;
+    }
+
+    const QUuid requestedUserId = QUuid::fromRfc4122(payload.value());
+    QUuid requestedSessionId;
+
+    for (auto it = m_clients.constBegin(); it != m_clients.constEnd(); ++it)
+    {
+        const ClientConnection& client = it.value();
+        if (!client.isAuthorized() || !client.userId().has_value())
+            continue;
+
+        if (client.userId().value() == requestedUserId)
+        {
+            requestedSessionId = client.sessionId();
+            break;
+        }
+    }
+
+    sendUserSessionData(connection.sessionId(), shared::SessionInfo(requestedUserId, requestedSessionId));
+}
+
 void Server::handleChatMessage(const ClientConnection& connection, const shared::Packet& packet) const
 {
     if (!packet.hasPayload())
@@ -1111,8 +1176,12 @@ void Server::handleKeyExchange(const QTcpSocket* socket, const shared::Packet& p
         return;
     }
 
+    const bool alreadyHadPeerKey = shared::KeyStore::instance().hasPeerPublicKey(connection.sessionId());
     QByteArray clientPublicKey = payload.value();
     shared::KeyStore::instance().setPeerPublicKey(connection.sessionId(), std::move(clientPublicKey));
+
+    if (!alreadyHadPeerKey)
+        sendPublicKey(connection.sessionId());
 
     sendSuccess(connection.sessionId(), "Public key registered");
 }

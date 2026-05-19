@@ -87,13 +87,6 @@ void Client::sendBytes(QByteArray bytes)
     );
 }
 
-void Client::updateServerId(const QUuid& serverId)
-{
-    if (serverId.isNull() || m_serverId == serverId) return;
-
-    m_serverId = serverId;
-}
-
 void Client::writeBytes(const QByteArray& bytes)
 {
     m_socket.write(bytes);

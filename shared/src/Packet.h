@@ -20,14 +20,14 @@ enum class PacketType
 {
     /// Invalid or malformed packet.
     INVALID,
+    /// Connection handshake.
+    CONNECT,
     /// Success or error response.
     OPERATION_RESULT,
     /// Chat message payload.
     CHAT_MESSAGE,
     /// Command sent to the server.
     SERVER_COMMAND,
-    /// Client connection handshake.
-    CONNECT_CLIENT,
     /// Register a new user account.
     REGISTER_USER,
     /// Log in an existing user.
@@ -55,7 +55,11 @@ enum class PacketType
     /// Single chat information data.
     CHAT_INFO_DATA,
     /// Public key exchange packet.
-    KEY_EXCHANGE
+    KEY_EXCHANGE,
+    /// Request the current session id for a user id.
+    GET_USER_SESSION,
+    /// Current session id for a user id.
+    USER_SESSION_DATA
 };
 
 /**

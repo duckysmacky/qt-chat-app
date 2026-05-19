@@ -22,9 +22,7 @@ void MessageSender::processMessage(const ChatMessage* message) const
     if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
         senderUserId = userId.value();
 
-    RequestManager::instance().sendChatMessage(
-        shared::Message(senderUserId, m_chatId, shared::MessageType::TEXT, message->content())
-    );
+    RequestManager::instance().sendTextChatMessage(m_chatId, message->content());
 
     emit messageSent(message->id());
 }

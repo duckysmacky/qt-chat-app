@@ -3,8 +3,10 @@ find_package(Qt6 REQUIRED COMPONENTS Qml Quick Network)
 add_library(client_lib STATIC
     src/Client.cpp
     src/Client.h
-    src/RequestManager.cpp
-    src/RequestManager.h
+	src/RequestManager.cpp
+	src/RequestManager.h
+    src/SessionResolver.cpp
+    src/SessionResolver.h
     src/Chat.cpp
     src/Chat.h
     src/ChatMessage.cpp

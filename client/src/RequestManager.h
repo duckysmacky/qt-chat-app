@@ -8,8 +8,11 @@
 #include <QByteArray>
 #include <QList>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QUuid>
+
+#include <optional>
 
 #include "Message.h"
 #include "OperationResult.h"
@@ -20,6 +23,7 @@
 #include "dto/ProfileInfo.h"
 #include "dto/ProfileUpdateInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/SessionInfo.h"
 #include "dto/UserInfoRequest.h"
 
 /**
@@ -37,7 +41,15 @@ class RequestManager : public QObject
     Q_OBJECT
 
 private:
+    struct QueuedPacket
+    {
+        shared::Packet packet;
+        QByteArray payload;
+    };
+
     QByteArray m_incomingBuffer; ///< Buffer for accumulating incoming byte data before packet parsing.
+    mutable QList<QueuedPacket> m_packetQueue;
+    mutable QSet<QUuid> m_requestedKeyExchanges;
 
 public:
     /**
@@ -158,6 +170,8 @@ public:
      * Unlike getUserInfo(), this method returns only publicly available information.
      */
     void getPublicUserInfo(const QUuid& userId) const;
+
+    void getUserSession(const QUuid& userId) const;
     
     /**
      * @brief Requests the list of chats for the currently logged-in user.
@@ -218,6 +232,8 @@ signals:
      * @param chat The ChatInfo object containing chat details.
      */
     void chatInfoReceived(const shared::ChatInfo& chat);
+
+    void userSessionReceived(const shared::SessionInfo& sessionInfo);
     
     /**
      * @brief Emitted when a packet is received but its format is invalid.
@@ -253,5 +269,11 @@ private:
      * 
      * Converts the packet to a byte array and sends it through the network connection.
      */
-    void sendPacket(shared::Packet packet) const;
+    void sendPlainPacket(shared::Packet packet) const;
+
+    void sendEncryptedPacket(shared::Packet packet, QByteArray payload) const;
+    void requestKeyExchange(const QUuid& receiverSessionId) const;
+    void handleKeyExchange(const shared::Packet& packet);
+    void flushQueuedPackets(const QUuid& receiverSessionId) const;
+    std::optional<QByteArray> decryptPayload(const shared::Packet& packet) const;
 };

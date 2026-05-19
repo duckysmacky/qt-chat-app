@@ -10,14 +10,15 @@
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
 #include "dto/UserInfoRequest.h"
+#include "dto/SessionInfo.h"
 
 
 
 namespace shared {
 
-Packet PacketFactory::connectClientPacket(const QUuid& sender, const QUuid& receiver)
+Packet PacketFactory::connectPacket(const QUuid& sender, const QUuid& receiver)
 {
-    return {PacketType::CONNECT_CLIENT, sender, receiver};
+    return {PacketType::CONNECT, sender, receiver};
 }
 
 
@@ -81,6 +82,20 @@ Packet PacketFactory::getUserInfoPacket(const QUuid& sender, const QUuid& receiv
 Packet PacketFactory::publicUserInfoDataPacket(const QUuid& sender, const QUuid& receiver, PublicUserInfo info, const QByteArray& encryptionKey)
 {
     Packet packet{PacketType::PUBLIC_USER_INFO_DATA, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
+}
+
+Packet PacketFactory::getUserSessionPacket(const QUuid& sender, const QUuid& receiver, const QUuid& userId, const QByteArray& encryptionKey)
+{
+    Packet packet{PacketType::GET_USER_SESSION, sender, receiver};
+    packet.setPayload(userId.toRfc4122(), encryptionKey);
+    return packet;
+}
+
+Packet PacketFactory::userSessionDataPacket(const QUuid& sender, const QUuid& receiver, SessionInfo info, const QByteArray& encryptionKey)
+{
+    Packet packet{PacketType::USER_SESSION_DATA, sender, receiver};
     packet.setPayload(info.serialize(), encryptionKey);
     return packet;
 }
