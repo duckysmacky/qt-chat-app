@@ -14,6 +14,7 @@
 #include "dto/PublicUserInfo.h"
 #include "dto/UserInfoRequest.h"
 #include "dto/SessionInfo.h"
+#include "dto/StoredChatKeyInfo.h"
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 #include "dto/CreateChatInfo.h"
@@ -211,6 +212,15 @@ void Server::sendUserSessionData(const QUuid& receiverSessionId, const shared::S
     sendPacket(receiverSessionId, packet);
 }
 
+void Server::sendChatKeysData(const QUuid& receiverSessionId, const shared::ChatKeysInfo& info) const
+{
+    const auto encryptionKey = peerEncryptionKey(receiverSessionId);
+    if (!encryptionKey.has_value()) return;
+
+    const auto packet = shared::PacketFactory::chatKeysDataPacket(m_uuid, receiverSessionId, info, encryptionKey.value());
+    sendPacket(receiverSessionId, packet);
+}
+
 /**
  * Handles new incoming TCP connections; returns None if socket is not defined
  */
@@ -276,6 +286,14 @@ void Server::onServerRead()
 
             case shared::PacketType::GET_USER_SESSION:
                 handleGetUserSession(socket, packet);
+                break;
+
+            case shared::PacketType::STORE_CHAT_KEY:
+                handleStoreChatKey(socket, packet);
+                break;
+
+            case shared::PacketType::GET_CHAT_KEYS:
+                handleGetChatKeys(socket, packet);
                 break;
 
             case shared::PacketType::GET_CHATS:
@@ -1028,6 +1046,85 @@ void Server::handleGetUserSession(const QTcpSocket* socket, const shared::Packet
     }
 
     sendUserSessionData(connection.sessionId(), shared::SessionInfo(requestedUserId, requestedSessionId));
+}
+
+void Server::handleStoreChatKey(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::STORE_CHAT_KEY) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value())
+        return;
+
+    const ClientConnection& connection = connectionOpt->get();
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized() || !connection.userId().has_value())
+    {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    if (!packet.hasPayload())
+    {
+        sendError(connection.sessionId(), "Chat key payload is missing");
+        return;
+    }
+
+    const auto payload = decryptPacketPayload(packet);
+    if (!payload.has_value())
+    {
+        sendError(connection.sessionId(), "Unable to decrypt chat key payload");
+        return;
+    }
+
+    const auto info = shared::StoredChatKeyInfo::deserialize(payload.value());
+    if (!info.has_value())
+    {
+        sendError(connection.sessionId(), "Invalid chat key payload");
+        return;
+    }
+
+    const QUuid authenticatedUserId = connection.userId().value();
+    if (info->userId() != authenticatedUserId)
+    {
+        sendError(connection.sessionId(), "Invalid chat key user id");
+        return;
+    }
+
+    const Database& db = Database::instance();
+    if (!db.getChatMember(info->chatId(), authenticatedUserId).has_value())
+    {
+        sendError(connection.sessionId(), "You are not a member of this chat");
+        return;
+    }
+
+    if (!Database::instance().upsertChatKey(info.value()))
+    {
+        sendError(connection.sessionId(), "Unable to store chat key");
+        return;
+    }
+
+    sendSuccess(connection.sessionId(), "Chat key stored");
+}
+
+void Server::handleGetChatKeys(const QTcpSocket* socket, const shared::Packet& packet)
+{
+    if (!socket) return;
+    if (packet.type() != shared::PacketType::GET_CHAT_KEYS) return;
+
+    const auto connectionOpt = findConnection(packet.sender());
+    if (!connectionOpt.has_value())
+        return;
+
+    const ClientConnection& connection = connectionOpt->get();
+    if (!connection.matchesSocket(socket) || !connection.isAuthorized() || !connection.userId().has_value())
+    {
+        sendError(connection.sessionId(), "Not authorized");
+        return;
+    }
+
+    const QList<shared::StoredChatKeyInfo> keys = Database::instance().getChatKeysByUserId(connection.userId().value());
+    sendChatKeysData(connection.sessionId(), shared::ChatKeysInfo(keys));
 }
 
 void Server::handleChatMessage(const ClientConnection& connection, const shared::Packet& packet) const

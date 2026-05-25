@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "AccountManager.h"
+#include "ChatKeyStore.h"
 #include "Client.h"
 #include "KeyStore.h"
 #include "PacketFactory.h"
@@ -14,6 +15,7 @@
 #include "dto/AuthInfo.h"
 #include "dto/ChatKeyInfo.h"
 #include "dto/SessionInfo.h"
+#include "dto/StoredChatKeyInfo.h"
 #include "util.h"
 
 RequestManager& RequestManager::instance()
@@ -187,6 +189,43 @@ void RequestManager::processPacket(const shared::Packet& packet)
         }
         break;
 
+    case shared::PacketType::CHAT_KEYS_DATA:
+        {
+            const auto payload = decryptPayload(packet);
+            if (!payload.has_value()) {
+                qWarning() << "Chat key backups payload is missing";
+                break;
+            }
+
+            const auto chatKeysInfo = shared::ChatKeysInfo::deserialize(payload.value());
+            if (!chatKeysInfo.has_value()) {
+                qWarning() << "Invalid chat key backups payload";
+                break;
+            }
+
+            const auto currentUserId = AccountManager::instance().userId();
+            if (!currentUserId.has_value()) {
+                qWarning() << "Ignoring chat key backups without authorized user";
+                break;
+            }
+
+            for (const auto& keyInfo : chatKeysInfo->keys())
+            {
+                if (keyInfo.userId() != currentUserId.value())
+                    continue;
+
+                if (!ChatKeyStore::instance().importStoredChatKeyInfo(keyInfo))
+                    continue;
+
+                const auto chatKey = ChatKeyStore::instance().chatKey(keyInfo.userId(), keyInfo.chatId());
+                if (chatKey.has_value())
+                    emit chatKeyReceived(shared::ChatKeyInfo(keyInfo.chatId(), chatKey.value()));
+            }
+
+            emit chatKeyBackupsReceived(chatKeysInfo.value());
+        }
+        break;
+
     default:
         qWarning() << "Unknown or unsupported packet received";
         emit unsupportedPacketReceived(packet);
@@ -332,6 +371,30 @@ void RequestManager::sendChatMasterKey(const QUuid& receiverSessionId, const QUu
         shared::Packet(shared::PacketType::CHAT_KEY_EXCHANGE, client.sessionId(), receiverSessionId),
         info.serialize()
     );
+}
+
+void RequestManager::storeChatKeyBackup(const QUuid& chatId) const
+{
+    const auto currentUserId = AccountManager::instance().userId();
+    if (!currentUserId.has_value())
+        return;
+
+    const auto keyInfo = ChatKeyStore::instance().storedChatKeyInfo(currentUserId.value(), chatId);
+    if (!keyInfo.has_value())
+        return;
+
+    const Client& client = Client::instance();
+    const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
+    sendEncryptedPacket(
+        shared::Packet(shared::PacketType::STORE_CHAT_KEY, client.sessionId(), serverSessionId),
+        keyInfo->serialize()
+    );
+}
+
+void RequestManager::getChatKeyBackups() const
+{
+    const Client& client = Client::instance();
+    sendPlainPacket(shared::PacketFactory::getChatKeysPacket(client.sessionId(), SessionResolver::instance().serverSessionId()));
 }
 
 void RequestManager::getCurrentUserChats() const

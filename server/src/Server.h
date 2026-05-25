@@ -19,6 +19,7 @@
 #include "dto/ProfileInfo.h"
 #include "dto/PublicUserInfo.h"
 #include "dto/SessionInfo.h"
+#include "dto/StoredChatKeyInfo.h"
 #include "dto/ChatInfo.h"
 #include "dto/ChatsInfo.h"
 
@@ -200,6 +201,8 @@ private:
     void handleGetUserInfo(const QTcpSocket* socket, const shared::Packet& packet);
 
     void handleGetUserSession(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleStoreChatKey(const QTcpSocket* socket, const shared::Packet& packet);
+    void handleGetChatKeys(const QTcpSocket* socket, const shared::Packet& packet);
 
     /**
      * @brief Sends user profile data to a specific client.
@@ -216,6 +219,7 @@ private:
     void sendPublicUserInfoData(const QUuid& receiverSessionId, const shared::PublicUserInfo& info) const;
 
     void sendUserSessionData(const QUuid& receiverSessionId, const shared::SessionInfo& info) const;
+    void sendChatKeysData(const QUuid& receiverSessionId, const shared::ChatKeysInfo& info) const;
 
     /// @brief Handles a GET_CHATS packet to request the user's chat list.
     /// @param socket The client socket.

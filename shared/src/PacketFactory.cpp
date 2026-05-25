@@ -12,6 +12,7 @@
 #include "dto/UserInfoRequest.h"
 #include "dto/SessionInfo.h"
 #include "dto/ChatKeyInfo.h"
+#include "dto/StoredChatKeyInfo.h"
 
 
 
@@ -160,6 +161,25 @@ Packet PacketFactory::publicKeyExchangePacket(const QUuid& sender, const QUuid& 
 Packet PacketFactory::chatKeyExchangePacket(const QUuid& sender, const QUuid& receiver, ChatKeyInfo info, const QByteArray& encryptionKey)
 {
     Packet packet{PacketType::CHAT_KEY_EXCHANGE, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
+}
+
+Packet PacketFactory::storeChatKeyPacket(const QUuid& sender, const QUuid& receiver, StoredChatKeyInfo info, const QByteArray& encryptionKey)
+{
+    Packet packet{PacketType::STORE_CHAT_KEY, sender, receiver};
+    packet.setPayload(info.serialize(), encryptionKey);
+    return packet;
+}
+
+Packet PacketFactory::getChatKeysPacket(const QUuid& sender, const QUuid& receiver)
+{
+    return Packet{PacketType::GET_CHAT_KEYS, sender, receiver};
+}
+
+Packet PacketFactory::chatKeysDataPacket(const QUuid& sender, const QUuid& receiver, ChatKeysInfo info, const QByteArray& encryptionKey)
+{
+    Packet packet{PacketType::CHAT_KEYS_DATA, sender, receiver};
     packet.setPayload(info.serialize(), encryptionKey);
     return packet;
 }

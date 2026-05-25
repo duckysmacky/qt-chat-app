@@ -8,6 +8,8 @@
 
 #include <optional>
 
+#include "dto/StoredChatKeyInfo.h"
+
 class ChatKeyStore
 {
 private:
@@ -16,6 +18,7 @@ private:
     QHash<QUuid, QHash<QUuid, QString>> m_chatKeyChecksums;
     QHash<QUuid, QByteArray> m_userSalts;
     QHash<QUuid, QByteArray> m_userPasswordKeys;
+    QHash<QUuid, QString> m_userPasswordHashes;
 
 public:
     static ChatKeyStore& instance();
@@ -30,6 +33,8 @@ public:
     bool isUnlocked(const QUuid& userId) const;
 
     std::optional<QByteArray> chatKey(const QUuid& userId, const QUuid& chatId) const;
+    std::optional<shared::StoredChatKeyInfo> storedChatKeyInfo(const QUuid& userId, const QUuid& chatId) const;
+    bool importStoredChatKeyInfo(const shared::StoredChatKeyInfo& info);
     void setChatKey(const QUuid& userId, const QUuid& chatId, QByteArray key);
     void removeChatKey(const QUuid& userId, const QUuid& chatId);
     void clearUser(const QUuid& userId);

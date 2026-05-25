@@ -25,6 +25,8 @@ add_library(shared_lib STATIC
         src/dto/SessionInfo.cpp
         src/dto/ChatKeyInfo.h
         src/dto/ChatKeyInfo.cpp
+        src/dto/StoredChatKeyInfo.h
+        src/dto/StoredChatKeyInfo.cpp
         src/dto/ChatInfo.h
         src/dto/ChatInfo.cpp
         src/dto/ChatsInfo.h

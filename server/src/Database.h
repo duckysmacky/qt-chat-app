@@ -8,6 +8,7 @@
 #include "dto/ProfileInfo.h"
 #include "dto/ProfileUpdateInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/StoredChatKeyInfo.h"
 #include "model/Chat.h"
 #include "model/ChatMember.h"
 #include "model/Content.h"
@@ -141,6 +142,9 @@ public:
 	/// @brief Retrieves all chat member relationships from the database.
 	/// @return A list of all chat member objects.
     QList<model::ChatMember> getAllChatMembers() const;
+
+    bool upsertChatKey(const shared::StoredChatKeyInfo& info);
+    QList<shared::StoredChatKeyInfo> getChatKeysByUserId(const QUuid& userId) const;
 
 	/// @brief Creates a new message in the database.
 	/// @param message The message object to create.

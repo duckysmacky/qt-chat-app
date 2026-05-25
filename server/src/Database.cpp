@@ -918,6 +918,75 @@ QList<model::ChatMember> Database::getAllChatMembers() const
 
     return chatMembers;
 }
+
+bool Database::upsertChatKey(const shared::StoredChatKeyInfo& info)
+{
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "INSERT INTO chat_keys (chat_id, user_id, salt, encrypted_key, checksum, updated_at) "
+        "VALUES (:chat_id, :user_id, :salt, :encrypted_key, :checksum, CURRENT_TIMESTAMP) "
+        "ON CONFLICT(chat_id, user_id) DO UPDATE SET "
+        "salt = excluded.salt, "
+        "encrypted_key = excluded.encrypted_key, "
+        "checksum = excluded.checksum, "
+        "updated_at = CURRENT_TIMESTAMP"
+    );
+
+    query.bindValue(":chat_id", info.chatId().toString(QUuid::WithoutBraces));
+    query.bindValue(":user_id", info.userId().toString(QUuid::WithoutBraces));
+    query.bindValue(":salt", info.salt());
+    query.bindValue(":encrypted_key", info.encryptedKey());
+    query.bindValue(":checksum", info.checksum());
+
+    if (!query.exec()) {
+        qCritical() << "Failed to upsert chat key:" << query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
+
+QList<shared::StoredChatKeyInfo> Database::getChatKeysByUserId(const QUuid& userId) const
+{
+    QList<shared::StoredChatKeyInfo> keys;
+
+    if (!m_db.isOpen()) {
+        qWarning() << "Database is not connected";
+        return keys;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(
+        "SELECT user_id, chat_id, salt, encrypted_key, checksum "
+        "FROM chat_keys "
+        "WHERE user_id = :user_id"
+    );
+    query.bindValue(":user_id", userId.toString(QUuid::WithoutBraces));
+
+    if (!query.exec()) {
+        qCritical() << "Failed to get chat keys by user id:" << query.lastError().text();
+        return keys;
+    }
+
+    while (query.next())
+    {
+        keys.append(shared::StoredChatKeyInfo(
+            QUuid(query.value(0).toString()),
+            QUuid(query.value(1).toString()),
+            query.value(2).toByteArray(),
+            query.value(3).toByteArray(),
+            query.value(4).toString()
+        ));
+    }
+
+    return keys;
+}
+
 bool Database::createMessage(const model::DbMessage& message)
 {
     if (!m_db.isOpen()) {

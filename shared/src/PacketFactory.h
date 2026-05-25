@@ -17,6 +17,7 @@
 #include "dto/PublicUserInfo.h"
 #include "dto/SessionInfo.h"
 #include "dto/ChatKeyInfo.h"
+#include "dto/StoredChatKeyInfo.h"
 
 namespace shared {
 
@@ -208,6 +209,10 @@ public:
     static Packet publicKeyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey, const QByteArray& encryptionKey);
 
     static Packet chatKeyExchangePacket(const QUuid& sender, const QUuid& receiver, ChatKeyInfo info, const QByteArray& encryptionKey);
+
+    static Packet storeChatKeyPacket(const QUuid& sender, const QUuid& receiver, StoredChatKeyInfo info, const QByteArray& encryptionKey);
+    static Packet getChatKeysPacket(const QUuid& sender, const QUuid& receiver);
+    static Packet chatKeysDataPacket(const QUuid& sender, const QUuid& receiver, ChatKeysInfo info, const QByteArray& encryptionKey);
 };
 
 } // namespace shared

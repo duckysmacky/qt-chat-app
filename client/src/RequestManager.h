@@ -25,6 +25,7 @@
 #include "dto/PublicUserInfo.h"
 #include "dto/ChatKeyInfo.h"
 #include "dto/SessionInfo.h"
+#include "dto/StoredChatKeyInfo.h"
 #include "dto/UserInfoRequest.h"
 
 /**
@@ -174,6 +175,8 @@ public:
 
     void getUserSession(const QUuid& userId) const;
     void sendChatMasterKey(const QUuid& receiverSessionId, const QUuid& chatId, const QByteArray& masterKey) const;
+    void storeChatKeyBackup(const QUuid& chatId) const;
+    void getChatKeyBackups() const;
     
     /**
      * @brief Requests the list of chats for the currently logged-in user.
@@ -237,6 +240,7 @@ signals:
 
     void userSessionReceived(const shared::SessionInfo& sessionInfo);
     void chatKeyReceived(const shared::ChatKeyInfo& chatKeyInfo);
+    void chatKeyBackupsReceived(const shared::ChatKeysInfo& chatKeysInfo);
     
     /**
      * @brief Emitted when a packet is received but its format is invalid.

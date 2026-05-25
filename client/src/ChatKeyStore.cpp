@@ -58,13 +58,7 @@ bool ChatKeyStore::unlockUser(const QUuid& userId, const QString& passwordHash)
         return false;
 
     QByteArray salt = m_userSalts.value(userId);
-    if (salt.isEmpty())
-    {
-        salt = shared::crypto::generateRandomBytes(saltSize);
-        m_userSalts.insert(userId, salt);
-    }
-
-    const QByteArray passwordKey = userPasswordKey(userId, passwordHash, salt);
+    QByteArray passwordKey = salt.isEmpty() ? QByteArray() : userPasswordKey(userId, passwordHash, salt);
     QHash<QUuid, QByteArray> decryptedKeys = m_userChatKeys.value(userId);
 
     const auto encryptedIt = m_encryptedUserChatKeys.constFind(userId);
@@ -91,10 +85,19 @@ bool ChatKeyStore::unlockUser(const QUuid& userId, const QString& passwordHash)
         }
     }
 
-    m_userPasswordKeys.insert(userId, passwordKey);
+    if (salt.isEmpty() && !decryptedKeys.isEmpty())
+    {
+        salt = shared::crypto::generateRandomBytes(saltSize);
+        m_userSalts.insert(userId, salt);
+        passwordKey = userPasswordKey(userId, passwordHash, salt);
+    }
+
+    m_userPasswordHashes.insert(userId, passwordHash);
+    if (!passwordKey.isEmpty())
+        m_userPasswordKeys.insert(userId, passwordKey);
     m_userChatKeys.insert(userId, decryptedKeys);
 
-    for (auto keyIt = decryptedKeys.constBegin(); keyIt != decryptedKeys.constEnd(); ++keyIt)
+    for (auto keyIt = decryptedKeys.constBegin(); !passwordKey.isEmpty() && keyIt != decryptedKeys.constEnd(); ++keyIt)
     {
         m_encryptedUserChatKeys[userId].insert(
             keyIt.key(),
@@ -111,11 +114,12 @@ void ChatKeyStore::lockUser(const QUuid& userId)
 {
     m_userChatKeys.remove(userId);
     m_userPasswordKeys.remove(userId);
+    m_userPasswordHashes.remove(userId);
 }
 
 bool ChatKeyStore::isUnlocked(const QUuid& userId) const
 {
-    return m_userPasswordKeys.contains(userId);
+    return m_userPasswordHashes.contains(userId);
 }
 
 std::optional<QByteArray> ChatKeyStore::chatKey(const QUuid& userId, const QUuid& chatId) const
@@ -134,6 +138,76 @@ std::optional<QByteArray> ChatKeyStore::chatKey(const QUuid& userId, const QUuid
     return chatIt.value();
 }
 
+std::optional<shared::StoredChatKeyInfo> ChatKeyStore::storedChatKeyInfo(const QUuid& userId, const QUuid& chatId) const
+{
+    if (userId.isNull() || chatId.isNull() || !isUnlocked(userId))
+        return std::nullopt;
+
+    const QByteArray salt = m_userSalts.value(userId);
+    const QByteArray encryptedKey = m_encryptedUserChatKeys.value(userId).value(chatId);
+    const QString storedChecksum = m_chatKeyChecksums.value(userId).value(chatId);
+    if (salt.isEmpty() || encryptedKey.isEmpty() || storedChecksum.isEmpty())
+        return std::nullopt;
+
+    return shared::StoredChatKeyInfo(userId, chatId, salt, encryptedKey, storedChecksum);
+}
+
+bool ChatKeyStore::importStoredChatKeyInfo(const shared::StoredChatKeyInfo& info)
+{
+    const QUuid& userId = info.userId();
+    const QUuid& chatId = info.chatId();
+    if (userId.isNull() || chatId.isNull() || info.salt().isEmpty() || info.encryptedKey().isEmpty() || info.checksum().isEmpty())
+        return false;
+
+    if (!isUnlocked(userId))
+    {
+        qWarning() << "Cannot import chat key backup for locked user" << userId;
+        return false;
+    }
+
+    if (m_userSalts.contains(userId) && m_userSalts.value(userId) != info.salt())
+    {
+        if (m_userChatKeys.value(userId).isEmpty() && m_encryptedUserChatKeys.value(userId).isEmpty())
+        {
+            m_userSalts.insert(userId, info.salt());
+            m_userPasswordKeys.insert(userId, userPasswordKey(userId, m_userPasswordHashes.value(userId), info.salt()));
+        }
+        else
+        {
+            qWarning() << "Ignoring chat key backup with mismatched salt for user" << userId;
+            return false;
+        }
+    }
+
+    m_userSalts.insert(userId, info.salt());
+    if (!m_userPasswordKeys.contains(userId))
+        m_userPasswordKeys.insert(userId, userPasswordKey(userId, m_userPasswordHashes.value(userId), info.salt()));
+
+    const QByteArray passwordKey = m_userPasswordKeys.value(userId);
+    const QByteArray decrypted = shared::crypto::decryptWithMasterKey(info.encryptedKey(), passwordKey);
+    if (decrypted.size() != shared::crypto::masterKeySize())
+    {
+        qWarning() << "Ignoring undecryptable chat key backup for chat" << chatId;
+        return false;
+    }
+
+    if (info.checksum() != checksum(userId, chatId, decrypted, passwordKey))
+    {
+        qWarning() << "Ignoring chat key backup with invalid checksum for chat" << chatId;
+        return false;
+    }
+
+    const auto existingKey = chatKey(userId, chatId);
+    if (existingKey.has_value() && existingKey.value() == decrypted)
+        return false;
+
+    m_userChatKeys[userId].insert(chatId, decrypted);
+    m_encryptedUserChatKeys[userId].insert(chatId, info.encryptedKey());
+    m_chatKeyChecksums[userId].insert(chatId, info.checksum());
+    save();
+    return true;
+}
+
 void ChatKeyStore::setChatKey(const QUuid& userId, const QUuid& chatId, QByteArray key)
 {
     if (userId.isNull() || chatId.isNull() || key.isEmpty())
@@ -148,6 +222,13 @@ void ChatKeyStore::setChatKey(const QUuid& userId, const QUuid& chatId, QByteArr
     const auto existingKey = chatKey(userId, chatId);
     if (existingKey.has_value() && existingKey.value() == key)
         return;
+
+    if (!m_userSalts.contains(userId))
+    {
+        const QByteArray salt = shared::crypto::generateRandomBytes(saltSize);
+        m_userSalts.insert(userId, salt);
+        m_userPasswordKeys.insert(userId, userPasswordKey(userId, m_userPasswordHashes.value(userId), salt));
+    }
 
     const QByteArray passwordKey = m_userPasswordKeys.value(userId);
     m_userChatKeys[userId].insert(chatId, key);
@@ -197,6 +278,7 @@ void ChatKeyStore::clearUser(const QUuid& userId)
         m_userSalts.remove(userId);
 
     m_userPasswordKeys.remove(userId);
+    m_userPasswordHashes.remove(userId);
 
     if (changed)
         save();
@@ -208,6 +290,8 @@ void ChatKeyStore::load()
     m_encryptedUserChatKeys.clear();
     m_chatKeyChecksums.clear();
     m_userSalts.clear();
+    m_userPasswordKeys.clear();
+    m_userPasswordHashes.clear();
 
     QString error;
     const auto bytes = appFiles::readFile(appFiles::Location::Data, keystoreFileName, &error);

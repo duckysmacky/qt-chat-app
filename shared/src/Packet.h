@@ -61,7 +61,13 @@ enum class PacketType
     /// Request the current session id for a user id.
     GET_USER_SESSION,
     /// Current session id for a user id.
-    USER_SESSION_DATA
+    USER_SESSION_DATA,
+    /// Store encrypted chat master key backup for the authorized user.
+    STORE_CHAT_KEY,
+    /// Request encrypted chat master key backups for the authorized user.
+    GET_CHAT_KEYS,
+    /// Encrypted chat master key backup data.
+    CHAT_KEYS_DATA
 };
 
 /**
