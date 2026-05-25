@@ -17,6 +17,7 @@ QByteArray encryptWithPublicKey(const QByteArray& bytes, const QByteArray& encry
 QByteArray decryptWithPrivateKey(const QByteArray& bytes, const QByteArray& decryptionKey);
 
 QByteArray generateMasterKey();
+qsizetype masterKeySize();
 
 QByteArray encryptWithMasterKey(const QByteArray& bytes, const QByteArray& masterKey);
 QByteArray decryptWithMasterKey(const QByteArray& bytes, const QByteArray& masterKey);

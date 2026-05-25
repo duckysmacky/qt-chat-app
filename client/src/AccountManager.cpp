@@ -4,6 +4,7 @@
 
 #include <utility>
 
+#include "ChatKeyStore.h"
 #include "Client.h"
 #include "Hasher.h"
 #include "RequestManager.h"
@@ -51,11 +52,12 @@ void AccountManager::login(const QString& login, const QString& password)
     if (normalizedLogin.isEmpty() || password.isEmpty()) return;
 
     m_pendingAction = PendingAction::Login;
+    m_pendingLoginPasswordHash = Hasher::sha256(password);
     setUserProfile(std::nullopt);
     setStatusText("");
     setBusy(true);
 
-    RequestManager::instance().loginUser(normalizedLogin, Hasher::sha256(password));
+    RequestManager::instance().loginUser(normalizedLogin, m_pendingLoginPasswordHash);
 }
 
 void AccountManager::registerAccount(const QString& username, const QString& displayName, const QString& email, const QString& password)
@@ -116,6 +118,7 @@ void AccountManager::onConnectionStatusChanged()
 
     setBusy(false);
     m_pendingAction = PendingAction::None;
+    m_pendingLoginPasswordHash.clear();
     resetAuthorizationState();
 }
 
@@ -150,6 +153,7 @@ void AccountManager::onOperationResultReceived(const shared::OperationResult& re
         {
             setBusy(false);
             m_pendingAction = PendingAction::None;
+            m_pendingLoginPasswordHash.clear();
             qWarning() << "Login failed:" << message;
             setStatusText(message);
             return;
@@ -167,6 +171,7 @@ void AccountManager::onOperationResultReceived(const shared::OperationResult& re
         {
             setBusy(false);
             m_pendingAction = PendingAction::None;
+            m_pendingLoginPasswordHash.clear();
             qWarning() << "Profile request failed:" << message;
             resetAuthorizationState();
             setStatusText(message);
@@ -185,6 +190,7 @@ void AccountManager::onOperationResultReceived(const shared::OperationResult& re
         }
 
         qInfo() << "Logout succeeded:" << message;
+        m_pendingLoginPasswordHash.clear();
         resetAuthorizationState();
         break;
     }
@@ -201,6 +207,8 @@ void AccountManager::onCurrentUserProfileReceived(const shared::ProfileInfo& pro
         return;
 
     qInfo() << "Loaded profile for logged-in user:" << profile.username();
+    ChatKeyStore::instance().unlockUser(profile.userId(), m_pendingLoginPasswordHash);
+    m_pendingLoginPasswordHash.clear();
     m_pendingAction = PendingAction::None;
     setStatusText("");
     setLoggedIn(true);
@@ -278,6 +286,10 @@ void AccountManager::setUserProfile(std::optional<shared::ProfileInfo> profile)
 
 void AccountManager::resetAuthorizationState()
 {
+    if (m_userProfile.has_value())
+        ChatKeyStore::instance().lockUser(m_userProfile->userId());
+
+    m_pendingLoginPasswordHash.clear();
     setUserProfile(std::nullopt);
     setLoggedIn(false);
     setStatusText("");

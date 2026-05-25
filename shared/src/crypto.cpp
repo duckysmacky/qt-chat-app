@@ -58,6 +58,11 @@ QByteArray generateMasterKey()
     return generateRandomBytes(AES_KEY_SIZE);
 }
 
+qsizetype masterKeySize()
+{
+    return AES_KEY_SIZE;
+}
+
 QByteArray encryptWithMasterKey(const QByteArray& bytes, const QByteArray& masterKey)
 {
     if (bytes.isEmpty())
