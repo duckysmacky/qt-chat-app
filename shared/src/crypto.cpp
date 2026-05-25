@@ -41,7 +41,7 @@ QByteArray encryptWithPublicKey(const QByteArray& bytes, const QByteArray& encry
         return bytes;
 
     QRSAEncryption rsa(KeyStore::instance().keySize());
-    return rsa.encode(bytes, encryptionKey);
+    return rsa.encode(bytes, encryptionKey, QRSAEncryption::BlockSize::OneByte);
 }
 
 QByteArray decryptWithPrivateKey(const QByteArray& bytes, const QByteArray& decryptionKey)
@@ -50,7 +50,7 @@ QByteArray decryptWithPrivateKey(const QByteArray& bytes, const QByteArray& decr
         return bytes;
 
     QRSAEncryption rsa(KeyStore::instance().keySize());
-    return rsa.decode(bytes, decryptionKey);
+    return rsa.decode(bytes, decryptionKey, QRSAEncryption::BlockSize::OneByte);
 }
 
 QByteArray generateMasterKey()
