@@ -6,6 +6,7 @@
 
 #include "AccountManager.h"
 #include "Chat.h"
+#include "ChatKeyStore.h"
 #include "RequestManager.h"
 
 ChatManager::ChatManager(QObject* parent)
@@ -50,6 +51,24 @@ void ChatManager::addChat(Chat* chat)
     if (const auto key = m_pendingChatMasterKeys.take(chat->id()); !key.isEmpty())
         chat->setMasterKey(key);
 
+    if (!chat->hasMasterKey())
+    {
+        const auto currentUserId = AccountManager::instance().userId();
+        if (currentUserId.has_value())
+        {
+            const auto storedKey = ChatKeyStore::instance().chatKey(currentUserId.value(), chat->id());
+            if (storedKey.has_value())
+                chat->setMasterKey(storedKey.value());
+        }
+    }
+
+    if (chat->hasMasterKey())
+    {
+        const auto currentUserId = AccountManager::instance().userId();
+        if (currentUserId.has_value())
+            ChatKeyStore::instance().setChatKey(currentUserId.value(), chat->id(), chat->masterKey());
+    }
+
     m_chatStorage.insert(chat->id(), chat);
     m_chatList.append(chat);
     emit chatsChanged();
@@ -62,9 +81,14 @@ void ChatManager::setChatMasterKey(const QUuid& chatId, QByteArray masterKey)
 
     if (Chat* chat = m_chatStorage.value(chatId, nullptr))
     {
-        chat->setMasterKey(std::move(masterKey));
+        chat->setMasterKey(masterKey);
+        if (const auto currentUserId = AccountManager::instance().userId(); currentUserId.has_value())
+            ChatKeyStore::instance().setChatKey(currentUserId.value(), chatId, std::move(masterKey));
         return;
     }
+
+    if (const auto currentUserId = AccountManager::instance().userId(); currentUserId.has_value())
+        ChatKeyStore::instance().setChatKey(currentUserId.value(), chatId, masterKey);
 
     m_pendingChatMasterKeys.insert(chatId, std::move(masterKey));
 }

@@ -10,6 +10,9 @@ namespace appFiles {
 
 namespace {
 
+constexpr auto settingsFileName = "settings.json";
+constexpr auto keystoreFileName = "keystore.json";
+
 QString cleanRelativePath(const QString& relativePath)
 {
     QString cleanPath = QDir::cleanPath(relativePath);
@@ -110,6 +113,16 @@ QString path(const Location location, const QString& relativePath)
         return directory(location);
 
     return QDir(directory(location)).filePath(cleanPath);
+}
+
+QString settingsPath()
+{
+    return path(Location::Config, settingsFileName);
+}
+
+QString keystorePath()
+{
+    return path(Location::Data, keystoreFileName);
 }
 
 bool ensureDirectory(const Location location, QString* error)
