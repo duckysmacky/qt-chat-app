@@ -226,6 +226,18 @@ void RequestManager::processPacket(const shared::Packet& packet)
         }
         break;
 
+    case shared::PacketType::REQUEST_CHAT_KEY:
+        {
+            const auto payload = decryptPayload(packet);
+            if (!payload.has_value() || payload->size() != 16) {
+                qWarning() << "Invalid chat key request payload";
+                break;
+            }
+
+            emit chatKeyRequested(QUuid::fromRfc4122(payload.value()), packet.sender());
+        }
+        break;
+
     default:
         qWarning() << "Unknown or unsupported packet received";
         emit unsupportedPacketReceived(packet);
@@ -370,6 +382,18 @@ void RequestManager::sendChatMasterKey(const QUuid& receiverSessionId, const QUu
     sendEncryptedPacket(
         shared::Packet(shared::PacketType::CHAT_KEY_EXCHANGE, client.sessionId(), receiverSessionId),
         info.serialize()
+    );
+}
+
+void RequestManager::requestChatMasterKey(const QUuid& receiverSessionId, const QUuid& chatId) const
+{
+    if (receiverSessionId.isNull() || chatId.isNull())
+        return;
+
+    const Client& client = Client::instance();
+    sendEncryptedPacket(
+        shared::Packet(shared::PacketType::REQUEST_CHAT_KEY, client.sessionId(), receiverSessionId),
+        chatId.toRfc4122()
     );
 }
 

@@ -67,7 +67,9 @@ enum class PacketType
     /// Request encrypted chat master key backups for the authorized user.
     GET_CHAT_KEYS,
     /// Encrypted chat master key backup data.
-    CHAT_KEYS_DATA
+    CHAT_KEYS_DATA,
+    /// Request a chat master key from another online chat member.
+    REQUEST_CHAT_KEY
 };
 
 /**

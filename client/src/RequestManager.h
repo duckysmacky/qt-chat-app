@@ -175,6 +175,7 @@ public:
 
     void getUserSession(const QUuid& userId) const;
     void sendChatMasterKey(const QUuid& receiverSessionId, const QUuid& chatId, const QByteArray& masterKey) const;
+    void requestChatMasterKey(const QUuid& receiverSessionId, const QUuid& chatId) const;
     void storeChatKeyBackup(const QUuid& chatId) const;
     void getChatKeyBackups() const;
     
@@ -241,6 +242,7 @@ signals:
     void userSessionReceived(const shared::SessionInfo& sessionInfo);
     void chatKeyReceived(const shared::ChatKeyInfo& chatKeyInfo);
     void chatKeyBackupsReceived(const shared::ChatKeysInfo& chatKeysInfo);
+    void chatKeyRequested(const QUuid& chatId, const QUuid& requesterSessionId);
     
     /**
      * @brief Emitted when a packet is received but its format is invalid.

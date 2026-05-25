@@ -184,4 +184,11 @@ Packet PacketFactory::chatKeysDataPacket(const QUuid& sender, const QUuid& recei
     return packet;
 }
 
+Packet PacketFactory::requestChatKeyPacket(const QUuid& sender, const QUuid& receiver, const QUuid& chatId, const QByteArray& encryptionKey)
+{
+    Packet packet{PacketType::REQUEST_CHAT_KEY, sender, receiver};
+    packet.setPayload(chatId.toRfc4122(), encryptionKey);
+    return packet;
+}
+
 }

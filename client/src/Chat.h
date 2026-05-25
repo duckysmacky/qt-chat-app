@@ -25,6 +25,7 @@ class Chat : public QObject
     Q_PROPERTY(QUuid id READ id CONSTANT)
     Q_PROPERTY(QString label READ label NOTIFY labelChanged)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
+    Q_PROPERTY(QString keyStatusText READ keyStatusText NOTIFY keyStatusTextChanged)
 
 private:
     const QUuid m_id;
@@ -33,6 +34,10 @@ private:
     QList<ChatMessage*> m_pendingOutgoingMessages;
     QList<shared::Message> m_pendingIncomingMessages;
     QSet<QUuid> m_pendingMasterKeyUserIds;
+    QSet<QUuid> m_pendingMasterKeyRequestUserIds;
+    bool m_masterKeyRequestStarted;
+    bool m_masterKeyRequestSent;
+    QString m_keyStatusText;
     QHash<QUuid, ChatMessage*> m_messageStorage; ///< Hash map storing chat messages by their UUID
     QVariantList m_messageList;                  ///< List of messages exposed to QML
     QThread m_senderThread;
@@ -66,8 +71,10 @@ public:
     const QSet<QUuid>& otherMembers() const { return m_otherMembers; }
     const QByteArray& masterKey() const { return m_masterKey; }
     bool hasMasterKey() const { return !m_masterKey.isEmpty(); }
+    const QString& keyStatusText() const { return m_keyStatusText; }
     void setMasterKey(QByteArray masterKey);
     void distributeMasterKey();
+    void requestMasterKeyFromMembers();
     void setOtherMembers(QSet<QUuid> otherMembers);
     /// @brief Returns the list of messages for QML consumption.
     /// @return Constant reference to the message list.
@@ -78,6 +85,7 @@ signals:
 
     void labelChanged();
     void messagesChanged(); ///< Emitted when the message list changes.
+    void keyStatusTextChanged();
 
 private slots:
     /**
@@ -121,7 +129,9 @@ private:
     void flushPendingOutgoingMessages();
     void flushPendingIncomingMessages();
     void sendMasterKeyToUser(const QUuid& userId);
+    void requestMasterKeyFromUser(const QUuid& userId);
     void handleMessage(const shared::Message& messagePacket);
+    void setKeyStatusText(QString keyStatusText);
 
     /**
      * @brief Adds a chat message to storage and updates the QML list.

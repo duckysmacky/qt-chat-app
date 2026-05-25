@@ -15,6 +15,8 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     : QObject(parent),
       m_id(std::move(id)),
       m_otherMembers(std::move(otherMembers)),
+      m_masterKeyRequestStarted(false),
+      m_masterKeyRequestSent(false),
       m_messageSender(new MessageSender(m_id))
 {
     initialize();
@@ -25,6 +27,8 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QByteArray masterKey, QObject* pa
       m_id(std::move(id)),
       m_otherMembers(std::move(otherMembers)),
       m_masterKey(std::move(masterKey)),
+      m_masterKeyRequestStarted(false),
+      m_masterKeyRequestSent(false),
       m_messageSender(new MessageSender(m_id))
 {
     initialize();
@@ -42,11 +46,41 @@ void Chat::initialize()
     connect(&RequestManager::instance(), &RequestManager::chatMessageReceived, this, &Chat::onNewMessage);
     connect(&RequestManager::instance(), &RequestManager::userSessionReceived, this, [this](const shared::SessionInfo& sessionInfo) {
         if (!m_pendingMasterKeyUserIds.contains(sessionInfo.userId()))
+        {
+            if (!m_pendingMasterKeyRequestUserIds.contains(sessionInfo.userId()))
+                return;
+
+            m_pendingMasterKeyRequestUserIds.remove(sessionInfo.userId());
+            if (!sessionInfo.sessionId().isNull())
+            {
+                m_masterKeyRequestSent = true;
+                RequestManager::instance().requestChatMasterKey(sessionInfo.sessionId(), m_id);
+                setKeyStatusText("Waiting for chat key from online members...");
+            }
+            else if (m_pendingMasterKeyRequestUserIds.isEmpty() && !m_masterKeyRequestSent && !hasMasterKey())
+            {
+                setKeyStatusText("Chat key unavailable. Need a chat member online.");
+            }
+
             return;
+        }
 
         m_pendingMasterKeyUserIds.remove(sessionInfo.userId());
         if (!sessionInfo.sessionId().isNull())
             RequestManager::instance().sendChatMasterKey(sessionInfo.sessionId(), m_id, m_masterKey);
+    });
+    connect(&RequestManager::instance(), &RequestManager::chatKeyRequested, this, [this](const QUuid& chatId, const QUuid& requesterSessionId) {
+        if (chatId != m_id || requesterSessionId.isNull() || !hasMasterKey())
+            return;
+
+        const QUuid requesterUserId = SessionResolver::instance().sessionUserId(requesterSessionId);
+        if (!m_otherMembers.contains(requesterUserId))
+        {
+            qWarning() << "Rejected chat key request from non-member session" << requesterSessionId << "for chat" << m_id;
+            return;
+        }
+
+        RequestManager::instance().sendChatMasterKey(requesterSessionId, m_id, m_masterKey);
     });
 
     connect(&UserResolver::instance(), &UserResolver::userResolved, this, [this](const QUuid& userId, const shared::PublicUserInfo&) {
@@ -126,6 +160,9 @@ void Chat::setMasterKey(QByteArray masterKey)
         return;
 
     m_masterKey = std::move(masterKey);
+    m_pendingMasterKeyRequestUserIds.clear();
+    m_masterKeyRequestSent = false;
+    setKeyStatusText("");
     QMetaObject::invokeMethod(
         m_messageSender,
         [sender = m_messageSender, masterKey = m_masterKey] {
@@ -162,6 +199,44 @@ void Chat::sendMasterKeyToUser(const QUuid& userId)
     RequestManager::instance().getUserSession(userId);
 }
 
+void Chat::requestMasterKeyFromMembers()
+{
+    if (hasMasterKey() || m_masterKeyRequestStarted)
+        return;
+
+    m_masterKeyRequestStarted = true;
+    m_masterKeyRequestSent = false;
+    m_pendingMasterKeyRequestUserIds.clear();
+
+    if (m_otherMembers.isEmpty())
+    {
+        setKeyStatusText("Chat key unavailable. Need a chat member online.");
+        return;
+    }
+
+    setKeyStatusText("Looking for an online chat member to get the key...");
+    for (const QUuid& userId : m_otherMembers)
+        requestMasterKeyFromUser(userId);
+}
+
+void Chat::requestMasterKeyFromUser(const QUuid& userId)
+{
+    if (userId.isNull() || hasMasterKey())
+        return;
+
+    const QUuid sessionId = SessionResolver::instance().userSessionId(userId);
+    if (!sessionId.isNull())
+    {
+        m_masterKeyRequestSent = true;
+        RequestManager::instance().requestChatMasterKey(sessionId, m_id);
+        setKeyStatusText("Waiting for chat key from online members...");
+        return;
+    }
+
+    m_pendingMasterKeyRequestUserIds.insert(userId);
+    RequestManager::instance().getUserSession(userId);
+}
+
 void Chat::onNewMessage(const shared::Message& messagePacket)
 {
     if (messagePacket.targetChatId() != m_id) return;
@@ -170,6 +245,7 @@ void Chat::onNewMessage(const shared::Message& messagePacket)
     if (!hasMasterKey())
     {
         m_pendingIncomingMessages.append(messagePacket);
+        requestMasterKeyFromMembers();
         return;
     }
 
@@ -214,6 +290,15 @@ void Chat::flushPendingIncomingMessages()
 
     for (const shared::Message& message : messages)
         handleMessage(message);
+}
+
+void Chat::setKeyStatusText(QString keyStatusText)
+{
+    if (m_keyStatusText == keyStatusText)
+        return;
+
+    m_keyStatusText = std::move(keyStatusText);
+    emit keyStatusTextChanged();
 }
 
 void Chat::onMessageSent(const QUuid& messageId) const

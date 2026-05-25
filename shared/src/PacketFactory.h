@@ -213,6 +213,7 @@ public:
     static Packet storeChatKeyPacket(const QUuid& sender, const QUuid& receiver, StoredChatKeyInfo info, const QByteArray& encryptionKey);
     static Packet getChatKeysPacket(const QUuid& sender, const QUuid& receiver);
     static Packet chatKeysDataPacket(const QUuid& sender, const QUuid& receiver, ChatKeysInfo info, const QByteArray& encryptionKey);
+    static Packet requestChatKeyPacket(const QUuid& sender, const QUuid& receiver, const QUuid& chatId, const QByteArray& encryptionKey);
 };
 
 } // namespace shared

@@ -70,6 +70,10 @@ void ChatManager::addChat(Chat* chat)
 
     m_chatStorage.insert(chat->id(), chat);
     m_chatList.append(chat);
+
+    if (!chat->hasMasterKey())
+        chat->requestMasterKeyFromMembers();
+
     emit chatsChanged();
 }
 
@@ -140,6 +144,8 @@ void ChatManager::onChatListReceived(const shared::ChatsInfo& chats)
         if (Chat* existingChat = m_chatStorage.value(chatInfo.id(), nullptr))
         {
             existingChat->setOtherMembers(std::move(memberIds));
+            if (!existingChat->hasMasterKey())
+                existingChat->requestMasterKeyFromMembers();
             continue;
         }
 

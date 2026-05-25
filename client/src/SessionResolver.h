@@ -8,6 +8,7 @@ class SessionResolver
 private:
     QUuid m_serverSessionId;
     QHash<QUuid, QUuid> m_userSessionIds;
+    QHash<QUuid, QUuid> m_sessionUserIds;
 
 public:
     static SessionResolver& instance();
@@ -21,6 +22,7 @@ public:
     void setServerSessionId(const QUuid& sessionId);
 
     QUuid userSessionId(const QUuid& userId) const;
+    QUuid sessionUserId(const QUuid& sessionId) const;
     void setUserSessionId(const QUuid& userId, const QUuid& sessionId);
 
 private:

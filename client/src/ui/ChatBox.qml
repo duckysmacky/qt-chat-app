@@ -44,6 +44,15 @@ Rectangle {
             }
         }
 
+        Label {
+            Layout.fillWidth: true
+            visible: root.currentChat && root.currentChat.keyStatusText.length > 0
+            text: root.currentChat ? root.currentChat.keyStatusText : ""
+            color: "#8a5a20"
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignHCenter
+        }
+
         RowLayout {
             id: inputRow
             spacing: 5
