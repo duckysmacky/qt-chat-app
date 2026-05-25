@@ -55,7 +55,9 @@ enum class PacketType
     /// Single chat information data.
     CHAT_INFO_DATA,
     /// Public key exchange packet.
-    KEY_EXCHANGE,
+    PUBLIC_KEY_EXCHANGE,
+    /// Chat master key transfer packet.
+    CHAT_KEY_EXCHANGE,
     /// Request the current session id for a user id.
     GET_USER_SESSION,
     /// Current session id for a user id.

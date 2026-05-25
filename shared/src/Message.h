@@ -79,7 +79,7 @@ public:
     /**
      * @brief Encrypts and stores the message content.
      * @param content Plain content string.
-     * @param encryptionKey Public key used to encrypt content.
+     * @param encryptionKey Chat master key used to encrypt content.
      */
     void setContent(const QString& content, const QByteArray& encryptionKey);
 
@@ -103,7 +103,7 @@ public:
 
     /**
      * @brief Decrypts and returns the message content.
-     * @param decryptionKey Private key used to decrypt content.
+     * @param decryptionKey Chat master key used to decrypt content.
      * @return Decrypted content string.
      */
     QString content(const QByteArray& decryptionKey) const;

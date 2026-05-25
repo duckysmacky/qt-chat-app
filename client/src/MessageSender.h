@@ -6,6 +6,7 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QUuid>
 
 #include "ChatMessage.h"
@@ -25,6 +26,7 @@ class MessageSender : public QObject
 
 private:
     QUuid m_chatId;  ///< UUID of the chat associated with this message sender
+    QByteArray m_chatMasterKey;
 
 public:
     /**
@@ -33,6 +35,7 @@ public:
      * @param parent Parent QObject (default nullptr).
      */
     explicit MessageSender(QUuid chatId, QObject* parent = nullptr);
+    void setChatMasterKey(QByteArray chatMasterKey);
 
 public slots:
     /**

@@ -23,6 +23,7 @@
 #include "dto/ProfileInfo.h"
 #include "dto/ProfileUpdateInfo.h"
 #include "dto/PublicUserInfo.h"
+#include "dto/ChatKeyInfo.h"
 #include "dto/SessionInfo.h"
 #include "dto/UserInfoRequest.h"
 
@@ -97,21 +98,21 @@ public:
      * @brief Sends a chat message to the server.
      * @param message The complete Message object to be sent.
      */
-    void sendChatMessage(shared::Message message) const;
+    void sendChatMessage(const shared::Message& message) const;
     
     /**
      * @brief Sends a text-only chat message.
      * @param targetChatId The unique identifier of the target chat.
      * @param content The text content of the message.
      */
-    void sendTextChatMessage(const QUuid& targetChatId, QString content) const;
+    void sendTextChatMessage(const QUuid& targetChatId, const QString& content, const QByteArray& chatMasterKey) const;
     
     /**
      * @brief Sends a media chat message (e.g., image, video, file).
      * @param targetChatId The unique identifier of the target chat.
      * @param content The media content or reference to media.
      */
-    void sendMediaChatMessage(const QUuid& targetChatId, QString content) const;
+    void sendMediaChatMessage(const QUuid& targetChatId, const QString& content, const QByteArray& chatMasterKey) const;
     
     /**
      * @brief Authenticates a user with the server.
@@ -143,13 +144,13 @@ public:
      * @brief Updates the profile of the currently logged-in user.
      * @param info The profile update information containing fields to be updated.
      */
-    void updateCurrentUserProfile(shared::ProfileUpdateInfo info) const;
+    void updateCurrentUserProfile(const shared::ProfileUpdateInfo& info) const;
     
     /**
      * @brief Requests user information based on the provided request criteria.
      * @param request The UserInfoRequest object containing search/request parameters.
      */
-    void getUserInfo(shared::UserInfoRequest request) const;
+    void getUserInfo(const shared::UserInfoRequest& request) const;
     
     /**
      * @brief Requests user information by user ID.
@@ -172,6 +173,7 @@ public:
     void getPublicUserInfo(const QUuid& userId) const;
 
     void getUserSession(const QUuid& userId) const;
+    void sendChatMasterKey(const QUuid& receiverSessionId, const QUuid& chatId, const QByteArray& masterKey) const;
     
     /**
      * @brief Requests the list of chats for the currently logged-in user.
@@ -234,6 +236,7 @@ signals:
     void chatInfoReceived(const shared::ChatInfo& chat);
 
     void userSessionReceived(const shared::SessionInfo& sessionInfo);
+    void chatKeyReceived(const shared::ChatKeyInfo& chatKeyInfo);
     
     /**
      * @brief Emitted when a packet is received but its format is invalid.

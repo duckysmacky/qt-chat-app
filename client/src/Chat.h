@@ -2,6 +2,8 @@
 
 #include <QObject>
 #include <QHash>
+#include <QList>
+#include <QSet>
 #include <QVariantList>
 #include <QThread>
 
@@ -27,6 +29,10 @@ class Chat : public QObject
 private:
     const QUuid m_id;
     QSet<QUuid> m_otherMembers;
+    QByteArray m_masterKey;
+    QList<ChatMessage*> m_pendingOutgoingMessages;
+    QList<shared::Message> m_pendingIncomingMessages;
+    QSet<QUuid> m_pendingMasterKeyUserIds;
     QHash<QUuid, ChatMessage*> m_messageStorage; ///< Hash map storing chat messages by their UUID
     QVariantList m_messageList;                  ///< List of messages exposed to QML
     QThread m_senderThread;
@@ -37,7 +43,8 @@ public:
      * @brief Constructs a Chat object.
      * @param parent Parent QObject (default nullptr).
      */
-    explicit Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent = nullptr);
+    Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent = nullptr);
+    Chat(QUuid id, QSet<QUuid> otherMembers, QByteArray masterKey, QObject* parent = nullptr);
     ~Chat() override;
 
     /**
@@ -57,6 +64,10 @@ public:
     
     const QUuid& id() const { return m_id; }
     const QSet<QUuid>& otherMembers() const { return m_otherMembers; }
+    const QByteArray& masterKey() const { return m_masterKey; }
+    bool hasMasterKey() const { return !m_masterKey.isEmpty(); }
+    void setMasterKey(QByteArray masterKey);
+    void distributeMasterKey();
     void setOtherMembers(QSet<QUuid> otherMembers);
     /// @brief Returns the list of messages for QML consumption.
     /// @return Constant reference to the message list.
@@ -106,6 +117,12 @@ private slots:
     void onMessageDeleted(const QUuid& messageId);
 
 private:
+    void initialize();
+    void flushPendingOutgoingMessages();
+    void flushPendingIncomingMessages();
+    void sendMasterKeyToUser(const QUuid& userId);
+    void handleMessage(const shared::Message& messagePacket);
+
     /**
      * @brief Adds a chat message to storage and updates the QML list.
      * @param message The ChatMessage to add.

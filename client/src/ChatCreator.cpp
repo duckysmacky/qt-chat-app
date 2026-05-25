@@ -9,6 +9,7 @@
 #include "ChatManager.h"
 #include "RequestManager.h"
 #include "UserResolver.h"
+#include "crypto.h"
 #include "util.h"
 
 ChatCreator& ChatCreator::instance()
@@ -203,8 +204,15 @@ void ChatCreator::onChatInfoReceived(const shared::ChatInfo& chatInfo)
     if (const std::optional<QUuid> currentUserId = AccountManager::instance().userId(); currentUserId.has_value())
         memberIds.remove(currentUserId.value());
 
-    ChatManager::instance().addChat(new Chat(chatInfo.id(), std::move(memberIds), &ChatManager::instance()));
+    auto* chat = new Chat(
+        chatInfo.id(),
+        std::move(memberIds),
+        shared::crypto::generateMasterKey(),
+        &ChatManager::instance()
+    );
+    ChatManager::instance().addChat(chat);
     ChatManager::instance().selectChat(chatInfo.id());
+    chat->distributeMasterKey();
 
     reset();
 }

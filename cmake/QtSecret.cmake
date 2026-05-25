@@ -43,9 +43,11 @@ target_include_directories(QtBigint PUBLIC
 )
 
 add_library(Qt-Secret STATIC
+    "${_qt_secret_src}/Qt-AES/qaesencryption.h"
     "${_qt_secret_src}/Qt-AES/qaesencryption.cpp"
     "${_qt_secret_src}/Qt-RSA/qrsaencryption.cpp"
 )
+set_target_properties(Qt-Secret PROPERTIES AUTOMOC ON)
 
 target_include_directories(Qt-Secret PUBLIC
     "${_qt_secret_src}"

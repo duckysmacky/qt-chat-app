@@ -16,6 +16,7 @@
 #include "dto/UserInfoRequest.h"
 #include "dto/PublicUserInfo.h"
 #include "dto/SessionInfo.h"
+#include "dto/ChatKeyInfo.h"
 
 namespace shared {
 
@@ -204,7 +205,9 @@ public:
      * @param publicKey Public key bytes.
      * @return Packet containing the sender's public key.
      */
-    static Packet keyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey, const QByteArray& encryptionKey);
+    static Packet publicKeyExchangePacket(const QUuid& sender, const QUuid& receiver, QByteArray publicKey, const QByteArray& encryptionKey);
+
+    static Packet chatKeyExchangePacket(const QUuid& sender, const QUuid& receiver, ChatKeyInfo info, const QByteArray& encryptionKey);
 };
 
 } // namespace shared

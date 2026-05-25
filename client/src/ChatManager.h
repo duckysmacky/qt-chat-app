@@ -1,11 +1,13 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QHash>
 #include <QUuid>
 
 #include "Chat.h"
 #include "dto/ChatsInfo.h"
+#include "dto/ChatKeyInfo.h"
 
 /**
  * @brief Singleton manager for chat objects.
@@ -24,6 +26,7 @@ class ChatManager : public QObject
 
 private:
     QHash<QUuid, Chat*> m_chatStorage; ///< Hash map for fast lookup by chat ID.
+    QHash<QUuid, QByteArray> m_pendingChatMasterKeys;
     QList<Chat*> m_chatList;           ///< List of all chats, used for QML access.
     Chat* m_selectedChat;              ///< Currently selected chat, or nullptr.
 
@@ -65,6 +68,8 @@ public:
      * The chatsChanged() signal is emitted after the list is updated.
      */
     void addChat(Chat* chat);
+
+    void setChatMasterKey(const QUuid& chatId, QByteArray masterKey);
 
     /**
      * @brief Removes a chat by its ID.
@@ -115,6 +120,8 @@ private slots:
      * Updates the internal storage with the received data.
      */
     void onChatListReceived(const shared::ChatsInfo& chats);
+
+    void onChatKeyReceived(const shared::ChatKeyInfo& chatKeyInfo);
 
 private:
     /**

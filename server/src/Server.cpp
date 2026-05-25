@@ -58,7 +58,7 @@ std::optional<QByteArray> decryptPacketPayload(const shared::Packet& packet)
 {
     if (!packet.hasPayload()) return std::nullopt;
 
-    const QByteArray decryptionKey = packet.type() == shared::PacketType::KEY_EXCHANGE
+    const QByteArray decryptionKey = packet.type() == shared::PacketType::PUBLIC_KEY_EXCHANGE
         ? shared::crypto::deriveKeyPair(packet.receiver()).second
         : shared::KeyStore::instance().privateKey();
 
@@ -290,7 +290,7 @@ void Server::onServerRead()
                 handleCreateChat(socket, packet);
                 break;
 
-            case shared::PacketType::KEY_EXCHANGE:
+            case shared::PacketType::PUBLIC_KEY_EXCHANGE:
                 handleKeyExchange(socket, packet);
                 break;
 
@@ -1134,7 +1134,7 @@ void Server::sendPublicKey(const QUuid& receiverSessionId) const
 {
     const auto derivedKeyPair = shared::crypto::deriveKeyPair(receiverSessionId);
 
-    const auto packet = shared::PacketFactory::keyExchangePacket(
+    const auto packet = shared::PacketFactory::publicKeyExchangePacket(
         m_uuid,
         receiverSessionId,
         shared::KeyStore::instance().publicKey(),
@@ -1147,7 +1147,7 @@ void Server::sendPublicKey(const QUuid& receiverSessionId) const
 void Server::handleKeyExchange(const QTcpSocket* socket, const shared::Packet& packet)
 {
     if (!socket) return;
-    if (packet.type() != shared::PacketType::KEY_EXCHANGE) return;
+    if (packet.type() != shared::PacketType::PUBLIC_KEY_EXCHANGE) return;
 
     const auto connectionOpt = findConnection(packet.sender());
     if (!connectionOpt.has_value())

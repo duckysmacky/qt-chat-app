@@ -1,11 +1,15 @@
 #include "Chat.h"
 
+#include <QMetaObject>
+
 #include <utility>
 
 #include "AccountManager.h"
 #include "KeyStore.h"
 #include "RequestManager.h"
+#include "SessionResolver.h"
 #include "UserResolver.h"
+#include "crypto.h"
 
 Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     : QObject(parent),
@@ -13,6 +17,22 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
       m_otherMembers(std::move(otherMembers)),
       m_messageSender(new MessageSender(m_id))
 {
+    initialize();
+}
+
+Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QByteArray masterKey, QObject* parent)
+    : QObject(parent),
+      m_id(std::move(id)),
+      m_otherMembers(std::move(otherMembers)),
+      m_masterKey(std::move(masterKey)),
+      m_messageSender(new MessageSender(m_id))
+{
+    initialize();
+}
+
+void Chat::initialize()
+{
+    m_messageSender->setChatMasterKey(m_masterKey);
     m_messageSender->moveToThread(&m_senderThread);
 
     connect(&m_senderThread, &QThread::finished, m_messageSender, &QObject::deleteLater);
@@ -20,6 +40,15 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     connect(m_messageSender, &MessageSender::messageSent, this, &Chat::onMessageSent);
 
     connect(&RequestManager::instance(), &RequestManager::chatMessageReceived, this, &Chat::onNewMessage);
+    connect(&RequestManager::instance(), &RequestManager::userSessionReceived, this, [this](const shared::SessionInfo& sessionInfo) {
+        if (!m_pendingMasterKeyUserIds.contains(sessionInfo.userId()))
+            return;
+
+        m_pendingMasterKeyUserIds.remove(sessionInfo.userId());
+        if (!sessionInfo.sessionId().isNull())
+            RequestManager::instance().sendChatMasterKey(sessionInfo.sessionId(), m_id, m_masterKey);
+    });
+
     connect(&UserResolver::instance(), &UserResolver::userResolved, this, [this](const QUuid& userId, const shared::PublicUserInfo&) {
         if (m_otherMembers.contains(userId))
             emit labelChanged();
@@ -45,6 +74,12 @@ void Chat::submitMessage(const QString& text)
 
     const auto message = new ChatMessage(true, text, senderUserId, this);
     addChatMessage(message);
+
+    if (!hasMasterKey())
+    {
+        m_pendingOutgoingMessages.append(message);
+        return;
+    }
 
     emit messageSubmitted(message);
 }
@@ -85,20 +120,100 @@ void Chat::setOtherMembers(QSet<QUuid> otherMembers)
     emit labelChanged();
 }
 
+void Chat::setMasterKey(QByteArray masterKey)
+{
+    if (masterKey.isEmpty() || m_masterKey == masterKey)
+        return;
+
+    m_masterKey = std::move(masterKey);
+    QMetaObject::invokeMethod(
+        m_messageSender,
+        [sender = m_messageSender, masterKey = m_masterKey] {
+            sender->setChatMasterKey(masterKey);
+        },
+        Qt::QueuedConnection
+    );
+    flushPendingOutgoingMessages();
+    flushPendingIncomingMessages();
+}
+
+void Chat::distributeMasterKey()
+{
+    if (!hasMasterKey())
+        return;
+
+    for (const QUuid& userId : m_otherMembers)
+        sendMasterKeyToUser(userId);
+}
+
+void Chat::sendMasterKeyToUser(const QUuid& userId)
+{
+    if (userId.isNull() || !hasMasterKey())
+        return;
+
+    const QUuid sessionId = SessionResolver::instance().userSessionId(userId);
+    if (!sessionId.isNull())
+    {
+        RequestManager::instance().sendChatMasterKey(sessionId, m_id, m_masterKey);
+        return;
+    }
+
+    m_pendingMasterKeyUserIds.insert(userId);
+    RequestManager::instance().getUserSession(userId);
+}
+
 void Chat::onNewMessage(const shared::Message& messagePacket)
 {
     if (messagePacket.targetChatId() != m_id) return;
     if (messagePacket.type() != shared::MessageType::TEXT) return;
 
+    if (!hasMasterKey())
+    {
+        m_pendingIncomingMessages.append(messagePacket);
+        return;
+    }
+
+    handleMessage(messagePacket);
+}
+
+void Chat::handleMessage(const shared::Message& messagePacket)
+{
     const QUuid& senderUserId = messagePacket.senderUserId();
     qInfo() << "Incoming text message from" << senderUserId;
 
-    QString content = messagePacket.content(shared::KeyStore::instance().privateKey());
+    QString content = messagePacket.content(m_masterKey);
     auto* chatMessage = new ChatMessage(false, std::move(content), senderUserId, this);
 
     addChatMessage(chatMessage);
 
     onMessageReceived(chatMessage->id());
+}
+
+void Chat::flushPendingOutgoingMessages()
+{
+    if (!hasMasterKey())
+        return;
+
+    const QList<ChatMessage*> messages = std::move(m_pendingOutgoingMessages);
+    m_pendingOutgoingMessages.clear();
+
+    for (ChatMessage* message : messages)
+    {
+        if (message != nullptr)
+            emit messageSubmitted(message);
+    }
+}
+
+void Chat::flushPendingIncomingMessages()
+{
+    if (!hasMasterKey())
+        return;
+
+    const QList<shared::Message> messages = std::move(m_pendingIncomingMessages);
+    m_pendingIncomingMessages.clear();
+
+    for (const shared::Message& message : messages)
+        handleMessage(message);
 }
 
 void Chat::onMessageSent(const QUuid& messageId) const

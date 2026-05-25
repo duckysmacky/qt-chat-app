@@ -14,6 +14,7 @@ ChatManager::ChatManager(QObject* parent)
 {
     connect(&AccountManager::instance(), &AccountManager::loggedInChanged, this, &ChatManager::onLoggedInChanged);
     connect(&RequestManager::instance(), &RequestManager::chatListReceived, this, &ChatManager::onChatListReceived);
+    connect(&RequestManager::instance(), &RequestManager::chatKeyReceived, this, &ChatManager::onChatKeyReceived);
 }
 
 ChatManager& ChatManager::instance()
@@ -46,9 +47,26 @@ void ChatManager::addChat(Chat* chat)
 {
     if (chat == nullptr || m_chatStorage.contains(chat->id())) return;
 
+    if (const auto key = m_pendingChatMasterKeys.take(chat->id()); !key.isEmpty())
+        chat->setMasterKey(key);
+
     m_chatStorage.insert(chat->id(), chat);
     m_chatList.append(chat);
     emit chatsChanged();
+}
+
+void ChatManager::setChatMasterKey(const QUuid& chatId, QByteArray masterKey)
+{
+    if (chatId.isNull() || masterKey.isEmpty())
+        return;
+
+    if (Chat* chat = m_chatStorage.value(chatId, nullptr))
+    {
+        chat->setMasterKey(std::move(masterKey));
+        return;
+    }
+
+    m_pendingChatMasterKeys.insert(chatId, std::move(masterKey));
 }
 
 void ChatManager::removeChat(const QUuid& chatId)
@@ -116,6 +134,11 @@ void ChatManager::onChatListReceived(const shared::ChatsInfo& chats)
 
     if (!selectedChatId.isNull() && m_chatStorage.contains(selectedChatId))
         selectChat(selectedChatId);
+}
+
+void ChatManager::onChatKeyReceived(const shared::ChatKeyInfo& chatKeyInfo)
+{
+    setChatMasterKey(chatKeyInfo.chatId(), chatKeyInfo.masterKey());
 }
 
 void ChatManager::fetchChatList()

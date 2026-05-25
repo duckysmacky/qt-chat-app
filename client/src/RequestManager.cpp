@@ -12,6 +12,7 @@
 #include "SessionResolver.h"
 #include "crypto.h"
 #include "dto/AuthInfo.h"
+#include "dto/ChatKeyInfo.h"
 #include "dto/SessionInfo.h"
 #include "util.h"
 
@@ -46,7 +47,7 @@ void RequestManager::processPacket(const shared::Packet& packet)
         requestKeyExchange(packet.sender());
         break;
 
-    case shared::PacketType::KEY_EXCHANGE:
+    case shared::PacketType::PUBLIC_KEY_EXCHANGE:
         handleKeyExchange(packet);
         break;
 
@@ -168,6 +169,24 @@ void RequestManager::processPacket(const shared::Packet& packet)
         }
         break;
 
+    case shared::PacketType::CHAT_KEY_EXCHANGE:
+        {
+            const auto payload = decryptPayload(packet);
+            if (!payload.has_value()) {
+                qWarning() << "Chat key payload is missing";
+                break;
+            }
+
+            const auto chatKeyInfo = shared::ChatKeyInfo::deserialize(payload.value());
+            if (!chatKeyInfo.has_value()) {
+                qWarning() << "Invalid chat key payload";
+                break;
+            }
+
+            emit chatKeyReceived(chatKeyInfo.value());
+        }
+        break;
+
     default:
         qWarning() << "Unknown or unsupported packet received";
         emit unsupportedPacketReceived(packet);
@@ -194,47 +213,39 @@ void RequestManager::sendServerCommand(QByteArray data) const
     sendEncryptedPacket(shared::Packet(shared::PacketType::SERVER_COMMAND, client.sessionId(), serverSessionId), std::move(data));
 }
 
-void RequestManager::sendChatMessage(shared::Message message) const
+void RequestManager::sendChatMessage(const shared::Message& message) const
 {
     const Client& client = Client::instance();
     const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
     sendEncryptedPacket(shared::Packet(shared::PacketType::CHAT_MESSAGE, client.sessionId(), serverSessionId), message.serialize());
 }
 
-void RequestManager::sendTextChatMessage(const QUuid& targetChatId, QString content) const
+void RequestManager::sendTextChatMessage(const QUuid& targetChatId, const QString& content, const QByteArray& chatMasterKey) const
 {
     QUuid senderUserId;
     if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
         senderUserId = userId.value();
 
-    const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
-    const auto serverKey = shared::KeyStore::instance().peerPublicKey(serverSessionId);
-    if (!serverKey.has_value()) {
-        requestKeyExchange(serverSessionId);
+    if (chatMasterKey.isEmpty())
         return;
-    }
 
     shared::Message message(senderUserId, targetChatId, shared::MessageType::TEXT);
-    message.setContent(content, serverKey.value());
-    sendChatMessage(std::move(message));
+    message.setContent(content, chatMasterKey);
+    sendChatMessage(message);
 }
 
-void RequestManager::sendMediaChatMessage(const QUuid& targetChatId, QString content) const
+void RequestManager::sendMediaChatMessage(const QUuid& targetChatId, const QString& content, const QByteArray& chatMasterKey) const
 {
     QUuid senderUserId;
     if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
         senderUserId = userId.value();
 
-    const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
-    const auto serverKey = shared::KeyStore::instance().peerPublicKey(serverSessionId);
-    if (!serverKey.has_value()) {
-        requestKeyExchange(serverSessionId);
+    if (chatMasterKey.isEmpty())
         return;
-    }
 
     shared::Message message(senderUserId, targetChatId, shared::MessageType::MEDIA);
-    message.setContent(content, serverKey.value());
-    sendChatMessage(std::move(message));
+    message.setContent(content, chatMasterKey);
+    sendChatMessage(message);
 }
 
 void RequestManager::loginUser(QString login, QString passwordHash) const
@@ -270,14 +281,14 @@ void RequestManager::getCurrentUserProfile() const
     sendPlainPacket(shared::PacketFactory::getUserProfilePacket(client.sessionId(), SessionResolver::instance().serverSessionId()));
 }
 
-void RequestManager::updateCurrentUserProfile(shared::ProfileUpdateInfo info) const
+void RequestManager::updateCurrentUserProfile(const shared::ProfileUpdateInfo& info) const
 {
     const Client& client = Client::instance();
     const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
     sendEncryptedPacket(shared::Packet(shared::PacketType::UPDATE_USER_PROFILE, client.sessionId(), serverSessionId), info.serialize());
 }
 
-void RequestManager::getUserInfo(shared::UserInfoRequest request) const
+void RequestManager::getUserInfo(const shared::UserInfoRequest& request) const
 {
     const Client& client = Client::instance();
     const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
@@ -308,6 +319,19 @@ void RequestManager::getUserSession(const QUuid& userId) const
     const Client& client = Client::instance();
     const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
     sendEncryptedPacket(shared::Packet(shared::PacketType::GET_USER_SESSION, client.sessionId(), serverSessionId), userId.toRfc4122());
+}
+
+void RequestManager::sendChatMasterKey(const QUuid& receiverSessionId, const QUuid& chatId, const QByteArray& masterKey) const
+{
+    if (receiverSessionId.isNull() || chatId.isNull() || masterKey.isEmpty())
+        return;
+
+    const Client& client = Client::instance();
+    const shared::ChatKeyInfo info(chatId, masterKey);
+    sendEncryptedPacket(
+        shared::Packet(shared::PacketType::CHAT_KEY_EXCHANGE, client.sessionId(), receiverSessionId),
+        info.serialize()
+    );
 }
 
 void RequestManager::getCurrentUserChats() const
@@ -374,7 +398,7 @@ void RequestManager::requestKeyExchange(const QUuid& receiverSessionId) const
         return;
 
     const auto derivedKeyPair = shared::crypto::deriveKeyPair(receiverSessionId);
-    const auto packet = shared::PacketFactory::keyExchangePacket(
+    const auto packet = shared::PacketFactory::publicKeyExchangePacket(
         Client::instance().sessionId(),
         receiverSessionId,
         shared::KeyStore::instance().publicKey(),
@@ -431,7 +455,7 @@ std::optional<QByteArray> RequestManager::decryptPayload(const shared::Packet& p
     if (!packet.hasPayload())
         return std::nullopt;
 
-    const QByteArray decryptionKey = packet.type() == shared::PacketType::KEY_EXCHANGE
+    const QByteArray decryptionKey = packet.type() == shared::PacketType::PUBLIC_KEY_EXCHANGE
         ? shared::crypto::deriveKeyPair(packet.receiver()).second
         : shared::KeyStore::instance().privateKey();
 
