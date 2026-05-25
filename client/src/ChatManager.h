@@ -144,4 +144,5 @@ private:
      * and emits chatsChanged() and selectedChatChanged() if needed.
      */
     void clearChatList();
+    void persistChatMasterKey(const QUuid& chatId, const QByteArray& masterKey) const;
 };

@@ -49,7 +49,10 @@ void ChatManager::addChat(Chat* chat)
     if (chat == nullptr || m_chatStorage.contains(chat->id())) return;
 
     if (const auto key = m_pendingChatMasterKeys.take(chat->id()); !key.isEmpty())
+    {
         chat->setMasterKey(key);
+        persistChatMasterKey(chat->id(), key);
+    }
 
     if (!chat->hasMasterKey())
     {
@@ -63,11 +66,7 @@ void ChatManager::addChat(Chat* chat)
     }
 
     if (chat->hasMasterKey())
-    {
-        const auto currentUserId = AccountManager::instance().userId();
-        if (currentUserId.has_value())
-            ChatKeyStore::instance().setChatKey(currentUserId.value(), chat->id(), chat->masterKey());
-    }
+        persistChatMasterKey(chat->id(), chat->masterKey());
 
     m_chatStorage.insert(chat->id(), chat);
     m_chatList.append(chat);
@@ -82,13 +81,11 @@ void ChatManager::setChatMasterKey(const QUuid& chatId, QByteArray masterKey)
     if (Chat* chat = m_chatStorage.value(chatId, nullptr))
     {
         chat->setMasterKey(masterKey);
-        if (const auto currentUserId = AccountManager::instance().userId(); currentUserId.has_value())
-            ChatKeyStore::instance().setChatKey(currentUserId.value(), chatId, std::move(masterKey));
+        persistChatMasterKey(chatId, masterKey);
         return;
     }
 
-    if (const auto currentUserId = AccountManager::instance().userId(); currentUserId.has_value())
-        ChatKeyStore::instance().setChatKey(currentUserId.value(), chatId, masterKey);
+    persistChatMasterKey(chatId, masterKey);
 
     m_pendingChatMasterKeys.insert(chatId, std::move(masterKey));
 }
@@ -177,4 +174,18 @@ void ChatManager::clearChatList()
     {
         removeChat(chat->id());
     }
+}
+
+void ChatManager::persistChatMasterKey(const QUuid& chatId, const QByteArray& masterKey) const
+{
+    const auto currentUserId = AccountManager::instance().userId();
+    if (!currentUserId.has_value() || chatId.isNull() || masterKey.isEmpty())
+        return;
+
+    const auto existingKey = ChatKeyStore::instance().chatKey(currentUserId.value(), chatId);
+    if (existingKey.has_value() && existingKey.value() == masterKey)
+        return;
+
+    ChatKeyStore::instance().setChatKey(currentUserId.value(), chatId, masterKey);
+    RequestManager::instance().storeChatKeyBackup(chatId);
 }

@@ -208,6 +208,7 @@ void AccountManager::onCurrentUserProfileReceived(const shared::ProfileInfo& pro
 
     qInfo() << "Loaded profile for logged-in user:" << profile.username();
     ChatKeyStore::instance().unlockUser(profile.userId(), m_pendingLoginPasswordHash);
+    RequestManager::instance().getChatKeyBackups();
     m_pendingLoginPasswordHash.clear();
     m_pendingAction = PendingAction::None;
     setStatusText("");
