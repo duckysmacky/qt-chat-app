@@ -55,7 +55,7 @@ void Packet::setPayload(const QByteArray& payload, const QByteArray& encryptionK
         return;
     }
 
-    m_payload = crypto::encryptBytes(payload, encryptionKey);
+    m_payload = crypto::encryptHybrid(payload, encryptionKey);
 }
 
 std::optional<QByteArray> Packet::payload(const QByteArray &decryptionKey) const
@@ -67,7 +67,7 @@ std::optional<QByteArray> Packet::payload(const QByteArray &decryptionKey) const
     }
 
     return m_payload.has_value()
-        ? std::make_optional(crypto::decryptBytes(m_payload.value(), decryptionKey))
+        ? std::make_optional(crypto::decryptHybrid(m_payload.value(), decryptionKey))
         : std::nullopt;
 }
 

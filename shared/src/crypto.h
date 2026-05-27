@@ -9,8 +9,8 @@ namespace shared::crypto {
 
 using KeyPair = std::pair<QByteArray, QByteArray>;
 
-QByteArray encryptBytes(const QByteArray& bytes, const QByteArray& encryptionKey);
-QByteArray decryptBytes(const QByteArray& bytes, const QByteArray& decryptionKey);
+QByteArray encryptHybrid(const QByteArray& bytes, const QByteArray& publicKey);
+QByteArray decryptHybrid(const QByteArray& bytes, const QByteArray& privateKey);
 KeyPair deriveKeyPair(const QUuid& sessionId);
 
 } // namespace shared::crypto

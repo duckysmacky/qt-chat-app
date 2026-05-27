@@ -101,12 +101,12 @@ QByteArray Message::serialize() const
 
 void Message::setContent(const QString& content, const QByteArray& encryptionKey)
 {
-    m_content = crypto::encryptBytes(content.toUtf8(), encryptionKey);
+    m_content = crypto::encryptHybrid(content.toUtf8(), encryptionKey);
 }
 
 QString Message::content(const QByteArray& decryptionKey) const
 {
-    return QString::fromUtf8(crypto::decryptBytes(m_content, decryptionKey));
+    return QString::fromUtf8(crypto::decryptHybrid(m_content, decryptionKey));
 }
 
 } // shared

@@ -1,27 +1,62 @@
 #include "crypto.h"
 
+#include <QRandomGenerator>
+#include <qaesencryption.h>
 #include <qrsaencryption.h>
 
 #include "KeyStore.h"
 
 namespace shared::crypto {
 
-QByteArray encryptBytes(const QByteArray& bytes, const QByteArray& encryptionKey)
-{
-    if (bytes.isEmpty())
-        return bytes;
+namespace {
 
-    QRSAEncryption rsa(KeyStore::instance().keySize());
-    return rsa.encode(bytes, encryptionKey, QRSAEncryption::BlockSize::OneByte);
+constexpr auto AES_KEY_SIZE = 32;
+constexpr auto AES_IV_SIZE = 16;
+constexpr auto RSA_2048_OUTPUT_SIZE = 256;
+
+QByteArray generateRandomBytes(const qsizetype size)
+{
+    QByteArray bytes(size, Qt::Uninitialized);
+    for (qsizetype i = 0; i < size; ++i)
+        bytes[i] = static_cast<char>(QRandomGenerator::global()->bounded(256));
+    return bytes;
 }
 
-QByteArray decryptBytes(const QByteArray& bytes, const QByteArray& decryptionKey)
+} // namespace
+
+QByteArray encryptHybrid(const QByteArray& bytes, const QByteArray& publicKey)
 {
-    if (bytes.isEmpty())
-        return bytes;
+    if (bytes.isEmpty() || publicKey.isEmpty())
+        return {};
+
+    const QByteArray aesKey = generateRandomBytes(AES_KEY_SIZE);
+    const QByteArray iv     = generateRandomBytes(AES_IV_SIZE);
+
+    const QByteArray aesEncrypted = QAESEncryption::Crypt(
+        QAESEncryption::AES_256, QAESEncryption::CBC, bytes, aesKey, iv);
 
     QRSAEncryption rsa(KeyStore::instance().keySize());
-    return rsa.decode(bytes, decryptionKey, QRSAEncryption::BlockSize::OneByte);
+    const QByteArray encryptedKey = rsa.encode(aesKey, publicKey, QRSAEncryption::BlockSize::OneByte);
+
+    return encryptedKey + iv + aesEncrypted;
+}
+
+QByteArray decryptHybrid(const QByteArray& bytes, const QByteArray& privateKey)
+{
+    if (bytes.size() <= RSA_2048_OUTPUT_SIZE + AES_IV_SIZE || privateKey.isEmpty())
+        return {};
+
+    const QByteArray encryptedKey = bytes.first(RSA_2048_OUTPUT_SIZE);
+    const QByteArray iv           = bytes.sliced(RSA_2048_OUTPUT_SIZE, AES_IV_SIZE);
+    const QByteArray aesEncrypted = bytes.sliced(RSA_2048_OUTPUT_SIZE + AES_IV_SIZE);
+
+    QRSAEncryption rsa(KeyStore::instance().keySize());
+    const QByteArray aesKey = rsa.decode(encryptedKey, privateKey, QRSAEncryption::BlockSize::OneByte);
+
+    const QByteArray decrypted = QAESEncryption::Decrypt(
+        QAESEncryption::AES_256, QAESEncryption::CBC, aesEncrypted, aesKey, iv);
+
+    return QAESEncryption::RemovePadding(decrypted);
 }
 
 KeyPair deriveKeyPair(const QUuid& sessionId)
