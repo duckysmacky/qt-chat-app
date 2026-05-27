@@ -24,15 +24,17 @@ class MessageSender : public QObject
     Q_OBJECT
 
 private:
-    QUuid m_chatId;  ///< UUID of the chat associated with this message sender
+    QUuid m_chatId;         ///< UUID of the chat associated with this message sender
+    QUuid m_receiverUserId; ///< User ID of the receiver for direct chats; null for group chats
 
 public:
     /**
      * @brief Constructs a MessageSender for a specific chat.
      * @param chatId UUID of the chat that this sender will handle.
+     * @param receiverUserId User ID of the other member for direct chats; null UUID for group chats.
      * @param parent Parent QObject (default nullptr).
      */
-    explicit MessageSender(QUuid chatId, QObject* parent = nullptr);
+    explicit MessageSender(QUuid chatId, QUuid receiverUserId, QObject* parent = nullptr);
 
 public slots:
     /**

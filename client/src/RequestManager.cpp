@@ -207,15 +207,19 @@ void RequestManager::sendTextChatMessage(const QUuid& targetChatId, QString cont
     if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
         senderUserId = userId.value();
 
-    const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
-    const auto serverKey = shared::KeyStore::instance().peerPublicKey(serverSessionId);
-    if (!serverKey.has_value()) {
-        requestKeyExchange(serverSessionId);
-        return;
-    }
+    shared::Message message(senderUserId, targetChatId, shared::MessageType::TEXT);
+    message.setRawContent(content);
+    sendChatMessage(std::move(message));
+}
+
+void RequestManager::sendTextChatMessage(const QUuid& targetChatId, QString content, const QByteArray& receiverPublicKey) const
+{
+    QUuid senderUserId;
+    if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
+        senderUserId = userId.value();
 
     shared::Message message(senderUserId, targetChatId, shared::MessageType::TEXT);
-    message.setContent(content, serverKey.value());
+    message.setContent(content, receiverPublicKey);
     sendChatMessage(std::move(message));
 }
 
@@ -225,16 +229,25 @@ void RequestManager::sendMediaChatMessage(const QUuid& targetChatId, QString con
     if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
         senderUserId = userId.value();
 
-    const QUuid serverSessionId = SessionResolver::instance().serverSessionId();
-    const auto serverKey = shared::KeyStore::instance().peerPublicKey(serverSessionId);
-    if (!serverKey.has_value()) {
-        requestKeyExchange(serverSessionId);
-        return;
-    }
+    shared::Message message(senderUserId, targetChatId, shared::MessageType::MEDIA);
+    message.setRawContent(content);
+    sendChatMessage(std::move(message));
+}
+
+void RequestManager::sendMediaChatMessage(const QUuid& targetChatId, QString content, const QByteArray& receiverPublicKey) const
+{
+    QUuid senderUserId;
+    if (const auto& userId = AccountManager::instance().userId(); userId.has_value())
+        senderUserId = userId.value();
 
     shared::Message message(senderUserId, targetChatId, shared::MessageType::MEDIA);
-    message.setContent(content, serverKey.value());
+    message.setContent(content, receiverPublicKey);
     sendChatMessage(std::move(message));
+}
+
+void RequestManager::initiatePeerKeyExchange(const QUuid& peerSessionId) const
+{
+    requestKeyExchange(peerSessionId);
 }
 
 void RequestManager::loginUser(QString login, QString passwordHash) const

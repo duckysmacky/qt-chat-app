@@ -39,7 +39,8 @@ private:
     QUuid m_senderUserId;      ///< UUID of the user who sent the message.
     QUuid m_targetChatId;      ///< UUID of the chat where the message was sent.
     MessageType m_type;        ///< Type of the message (TEXT or MEDIA).
-    QByteArray m_content;      ///< Encrypted message content bytes.
+    QByteArray m_content;      ///< Message content bytes (may be encrypted or raw).
+    bool m_encrypted = false;  ///< Whether m_content is hybrid-encrypted.
 
 public:
     /**
@@ -79,9 +80,17 @@ public:
     /**
      * @brief Encrypts and stores the message content.
      * @param content Plain content string.
-     * @param encryptionKey Public key used to encrypt content.
+     * @param encryptionKey Public key used to encrypt content (hybrid RSA+AES).
      */
     void setContent(const QString& content, const QByteArray& encryptionKey);
+
+    /**
+     * @brief Stores the message content as raw UTF-8 (no encryption).
+     * @param content Plain content string.
+     */
+    void setRawContent(const QString& content);
+
+    bool isEncrypted() const { return m_encrypted; }
 
     /**
      * @brief Returns the UUID of the message sender.
@@ -109,7 +118,7 @@ public:
     QString content(const QByteArray& decryptionKey) const;
 
 private:
-    Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QByteArray contentBytes);
+    Message(QUuid senderUserId, QUuid targetChatId, MessageType type, QByteArray contentBytes, bool encrypted);
 };
 
 } // namespace shared

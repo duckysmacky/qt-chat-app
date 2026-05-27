@@ -107,6 +107,11 @@ private slots:
 
 private:
     /**
+     * @brief Returns the single other member's user ID for direct chats, or null UUID for group chats.
+     */
+    QUuid receiverUserId() const;
+
+    /**
      * @brief Adds a chat message to storage and updates the QML list.
      * @param message The ChatMessage to add.
      */

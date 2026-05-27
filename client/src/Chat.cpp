@@ -5,13 +5,15 @@
 #include "AccountManager.h"
 #include "KeyStore.h"
 #include "RequestManager.h"
+#include "SessionResolver.h"
 #include "UserResolver.h"
+#include "dto/SessionInfo.h"
 
 Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
     : QObject(parent),
       m_id(std::move(id)),
       m_otherMembers(std::move(otherMembers)),
-      m_messageSender(new MessageSender(m_id))
+      m_messageSender(new MessageSender(m_id, receiverUserId()))
 {
     m_messageSender->moveToThread(&m_senderThread);
 
@@ -27,6 +29,28 @@ Chat::Chat(QUuid id, QSet<QUuid> otherMembers, QObject* parent)
 
     for (const QUuid& userId : m_otherMembers)
         UserResolver::instance().resolveUser(userId);
+
+    const QUuid receiver = receiverUserId();
+
+    if (!receiver.isNull())
+    {
+        const QUuid receiverSessionId = SessionResolver::instance().userSessionId(receiver);
+
+        if (!receiverSessionId.isNull())
+        {
+            RequestManager::instance().initiatePeerKeyExchange(receiverSessionId);
+        }
+        else
+        {
+            connect(&RequestManager::instance(), &RequestManager::userSessionReceived, this,
+                [receiver](const shared::SessionInfo& sessionInfo) {
+                    if (sessionInfo.userId() == receiver)
+                        RequestManager::instance().initiatePeerKeyExchange(sessionInfo.sessionId());
+                });
+
+            RequestManager::instance().getUserSession(receiver);
+        }
+    }
 
     m_senderThread.start();
 }
@@ -146,6 +170,11 @@ void Chat::deleteChatMessage(ChatMessage* message)
     message->deleteLater();
 
     emit messagesChanged();
+}
+
+QUuid Chat::receiverUserId() const
+{
+    return m_otherMembers.size() == 1 ? *m_otherMembers.begin() : QUuid();
 }
 
 ChatMessage* Chat::findChatMessage(const QUuid& id) const

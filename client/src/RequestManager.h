@@ -105,13 +105,35 @@ public:
      * @param content The text content of the message.
      */
     void sendTextChatMessage(const QUuid& targetChatId, QString content) const;
-    
+
+    /**
+     * @brief Sends a P2P-encrypted text message for a direct chat.
+     * @param targetChatId The unique identifier of the target chat.
+     * @param content The text content of the message.
+     * @param receiverPublicKey RSA public key of the receiver for message content encryption.
+     */
+    void sendTextChatMessage(const QUuid& targetChatId, QString content, const QByteArray& receiverPublicKey) const;
+
     /**
      * @brief Sends a media chat message (e.g., image, video, file).
      * @param targetChatId The unique identifier of the target chat.
      * @param content The media content or reference to media.
      */
     void sendMediaChatMessage(const QUuid& targetChatId, QString content) const;
+
+    /**
+     * @brief Sends a P2P-encrypted media message for a direct chat.
+     */
+    void sendMediaChatMessage(const QUuid& targetChatId, QString content, const QByteArray& receiverPublicKey) const;
+
+    /**
+     * @brief Proactively initiates RSA public key exchange with a peer.
+     * @param peerSessionId Session ID of the peer.
+     *
+     * Call this when opening a direct chat to ensure the peer's public key
+     * is available before the first message is sent.
+     */
+    void initiatePeerKeyExchange(const QUuid& peerSessionId) const;
     
     /**
      * @brief Authenticates a user with the server.
