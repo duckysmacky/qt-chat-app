@@ -411,6 +411,7 @@ void RequestManager::handleKeyExchange(const shared::Packet& packet)
 
     shared::KeyStore::instance().setPeerPublicKey(packet.sender(), payload.value());
     m_requestedKeyExchanges.remove(packet.sender());
+    emit peerKeyReceived(packet.sender());
 
     if (!hadPeerKey && !requestedPeerKey)
         requestKeyExchange(packet.sender());

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <QObject>
+#include <QQueue>
 #include <QUuid>
 
 #include "ChatMessage.h"
@@ -26,6 +27,7 @@ class MessageSender : public QObject
 private:
     QUuid m_chatId;         ///< UUID of the chat associated with this message sender
     QUuid m_receiverUserId; ///< User ID of the receiver for direct chats; null for group chats
+    mutable QQueue<const ChatMessage*> m_pendingMessages; ///< Messages queued while waiting for receiver's public key
 
 public:
     /**
@@ -52,4 +54,11 @@ signals:
      * @param messageId UUID of the sent message.
      */
     void messageSent(const QUuid& messageId) const;
+
+private slots:
+    /**
+     * @brief Flushes queued messages when the receiver's public key becomes available.
+     * @param peerSessionId Session ID of the peer whose key was just received.
+     */
+    void onPeerKeyReceived(const QUuid& peerSessionId);
 };

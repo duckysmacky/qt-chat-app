@@ -256,6 +256,12 @@ signals:
     void chatInfoReceived(const shared::ChatInfo& chat);
 
     void userSessionReceived(const shared::SessionInfo& sessionInfo);
+
+    /**
+     * @brief Emitted when the public key for a peer session becomes available.
+     * @param peerSessionId Session ID of the peer whose key was just received.
+     */
+    void peerKeyReceived(const QUuid& peerSessionId);
     
     /**
      * @brief Emitted when a packet is received but its format is invalid.
