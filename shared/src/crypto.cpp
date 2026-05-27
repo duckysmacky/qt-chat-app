@@ -12,7 +12,7 @@ QByteArray encryptBytes(const QByteArray& bytes, const QByteArray& encryptionKey
         return bytes;
 
     QRSAEncryption rsa(KeyStore::instance().keySize());
-    return rsa.encode(bytes, encryptionKey);
+    return rsa.encode(bytes, encryptionKey, QRSAEncryption::BlockSize::OneByte);
 }
 
 QByteArray decryptBytes(const QByteArray& bytes, const QByteArray& decryptionKey)
@@ -21,7 +21,7 @@ QByteArray decryptBytes(const QByteArray& bytes, const QByteArray& decryptionKey
         return bytes;
 
     QRSAEncryption rsa(KeyStore::instance().keySize());
-    return rsa.decode(bytes, decryptionKey);
+    return rsa.decode(bytes, decryptionKey, QRSAEncryption::BlockSize::OneByte);
 }
 
 KeyPair deriveKeyPair(const QUuid& sessionId)
